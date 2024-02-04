@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.html": "jinja-html"
+		   },
+		"emmet.includeLanguages": {"jinja-html": "html"},
+		"editor.defaultFormatter": "vscode.emmet",
+		"cSpell.words": [
+			"sqlalchemy",
+			"wtforms"
+		],
+	}
+}
