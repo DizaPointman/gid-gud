@@ -14,5 +14,8 @@
 			"sqlalchemy",
 			"wtforms"
 		],
+		"[jinja-html]": {
+			"editor.defaultFormatter": "vscode.html-language-features"
+		},
 	}
 }
