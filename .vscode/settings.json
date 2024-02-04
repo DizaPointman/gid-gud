@@ -3,6 +3,7 @@
         "rythm",
         "sqlalchemy",
         "todos",
+        "werkzeug",
         "wtforms"
     ]
 }

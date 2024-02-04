@@ -12,6 +12,7 @@
 		"editor.defaultFormatter": "vscode.emmet",
 		"cSpell.words": [
 			"sqlalchemy",
+			"werkzeug",
 			"wtforms"
 		],
 		"[jinja-html]": {
