@@ -39,13 +39,13 @@ class ToDo(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
-    recurrence_rythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     author: so.Mapped[User] = so.relationship(back_populates='todos')
 
     def __repr__(self):
-        return '<Post {}>'.format(self.body)
+        return '<ToDo {}>'.format(self.body)
     
 @login.user_loader
 def load_user(id):

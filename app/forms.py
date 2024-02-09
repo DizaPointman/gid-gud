@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
 import sqlalchemy as sa
 from app import db
@@ -43,3 +43,9 @@ class EditProfileForm(FlaskForm):
                 User.username == self.username.data))
             if user is not None:
                 raise ValidationError('Please use a different username.')
+
+class CreateToDoForm(FlaskForm):
+    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+    recurrence = BooleanField('Repeat Task')
+    recurrence_rhythm = IntegerField ('Repeat every', default=1)
+    submit = SubmitField('Create ToDo')

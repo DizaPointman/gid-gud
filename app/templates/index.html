@@ -3,7 +3,11 @@
 
 {% block content %}
     <h1>Hello, {{ current_user.username }}!</h1>
-    {% for todo in todos %}
-    <div><p>{{ todo.author.username }} wants to: <b>{{ todo.body }}</b></p></div>
+    <a href="{{ url_for('create_todo') }}">More ToDo!</a>
+    <hr>
+    <div>
+        {% for todo in todos %}
+        {% include '_todo.html' %}
     {% endfor %}
+    </div>
 {% endblock %}

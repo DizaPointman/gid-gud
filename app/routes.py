@@ -1,9 +1,9 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateToDoForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app.models import User
+from app.models import User, ToDo
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -11,16 +11,7 @@ from datetime import datetime, timezone
 @app.route('/index')
 @login_required
 def index():
-    todos = [
-        {
-            'author': {'username': 'Schwanz'},
-            'body': 'Clean kitchen counter'
-        },
-        {
-            'author': {'username': 'Schwanz'},
-            'body': 'Clean kitchen table'
-        }
-    ]
+    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author and ToDo.completed == False))
     return render_template('index.html', title='Home', todos=todos)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -71,19 +62,26 @@ def edit_profile():
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('edit_profile'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username
-        form.about_me.data = current_user.about_me
+        {'author': user, 'body': 'Test post #2'}
     return render_template('edit_profile.html', title='Edit Profile', form=form)
+
+@app.route('/create_todo', methods=['GET', 'POST'])
+@login_required
+def create_todo():
+    form = CreateToDoForm()
+    if form.validate_on_submit():
+        todo = ToDo(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data)
+        db.session.add(todo)
+        db.session.commit()
+        flash('New ToDo created!')
+        return redirect(url_for('index'))
+    return render_template('create_todo.html', title='Create ToDo', form=form)
 
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    todos = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
+    todos = todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author and ToDo.completed == False))
     return render_template('user.html', user=user, todos=todos)
 
 @app.before_request
