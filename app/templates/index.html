@@ -5,9 +5,4 @@
     <h1>Hello, {{ current_user.username }}!</h1>
     <a href="{{ url_for('create_todo') }}">More ToDo!</a>
     <hr>
-    <div>
-        {% for todo in todos %}
-        {% include '_todo.html' %}
-    {% endfor %}
-    </div>
 {% endblock %}

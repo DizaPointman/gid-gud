@@ -1,0 +1,5 @@
+<div>
+    {% for todo in todos if not todo.completed %}
+        {% include '_todo.html' %}
+    {% endfor %}
+</div>

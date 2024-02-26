@@ -3,5 +3,9 @@
         <td><img src="{{ todo.author.avatar(36) }}"></td>
         <td>{{ todo.body }}</td>
     </tr>
+    <tr>
+        <td><a href="{{ url_for('complete_todo', id=todo.id) }}">COMPLETED</a></td>
+        <td><a href="{{ url_for('delete_todo', id=todo.id) }}">DELETE</a></td>
+    </tr>
 </table>
 <hr>
