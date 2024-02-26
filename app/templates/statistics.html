@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Hello, {{ current_user.username }}! This is your statistic</h1>
+    <div>
+        {% for todo in todos if todo.completed %}
+            {% include '_todo.html' %}
+        {% endfor %}
+    </div>
+{% endblock %}

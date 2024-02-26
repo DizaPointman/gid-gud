@@ -49,3 +49,9 @@ class CreateToDoForm(FlaskForm):
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     submit = SubmitField('Create ToDo')
+
+class EditTodoForm(FlaskForm):
+    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+    recurrence = BooleanField('Repeat Task')
+    recurrence_rhythm = IntegerField ('Repeat every', default=1)
+    submit = SubmitField('Change ToDo')

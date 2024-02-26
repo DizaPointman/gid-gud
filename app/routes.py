@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateToDoForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateToDoForm, EditTodoForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, ToDo
@@ -80,6 +80,24 @@ def create_todo():
         return redirect(url_for('index'))
     return render_template('create_todo.html', title='Create ToDo', form=form, todos=todos)
 
+@app.route('/edit_todo/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_todo(id):
+    todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
+    form = EditTodoForm()
+    if form.validate_on_submit():
+        todo.body = form.body.data
+        todo.recurrence = form.recurrence.data
+        todo.recurrence_rhythm = form.recurrence_rhythm.data
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('index'))
+    elif request.method == 'GET':
+        form.body.data = todo.body
+        form.recurrence.data = todo.recurrence
+        form.recurrence_rhythm.data = todo.recurrence_rhythm
+    return render_template('edit_todo.html', title='Edit ToDo', form=form)
+
 @app.route('/delete_todo/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_todo(id):
@@ -97,6 +115,12 @@ def complete_todo(id):
     db.session.commit()
     flash('ToDo completed!')
     return redirect(url_for('index'))
+
+@app.route('/user/<username>/statistics', methods=['GET'])
+@login_required
+def statistics(username):
+    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
+    return render_template('statistics.html', title='My Statistic', todos=todos)
 
 @app.route('/user/<username>')
 @login_required
