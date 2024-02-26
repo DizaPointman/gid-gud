@@ -15,7 +15,7 @@
         </tr>
     </table>
     <hr>
-    {% for todo in todos %}
-        {% include '_todo.html' %}
-    {% endfor %}
+{% endblock %}
+{% block content2 %}
+    {% include '_todo_feed.html' %}
 {% endblock %}

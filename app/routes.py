@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 @app.route('/index')
 @login_required
 def index():
-    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author and ToDo.completed == False))
+    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
     return render_template('index.html', title='Home', todos=todos)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -62,26 +62,47 @@ def edit_profile():
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('edit_profile'))
-        {'author': user, 'body': 'Test post #2'}
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
 @app.route('/create_todo', methods=['GET', 'POST'])
 @login_required
 def create_todo():
     form = CreateToDoForm()
+    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
     if form.validate_on_submit():
         todo = ToDo(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data)
         db.session.add(todo)
         db.session.commit()
         flash('New ToDo created!')
         return redirect(url_for('index'))
-    return render_template('create_todo.html', title='Create ToDo', form=form)
+    return render_template('create_todo.html', title='Create ToDo', form=form, todos=todos)
+
+@app.route('/delete_todo/<id>', methods=['GET', 'DELETE', 'POST'])
+@login_required
+def delete_todo(id):
+    current_todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
+    db.session.delete(current_todo)
+    db.session.commit()
+    flash('ToDo deleted!')
+    return redirect(url_for('index'))
+
+@app.route('/complete_todo/<id>', methods=['GET', 'POST'])
+@login_required
+def complete_todo(id):
+    current_todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
+    current_todo.completed = True
+    db.session.commit()
+    flash('ToDo completed!')
+    return redirect(url_for('index'))
 
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    todos = todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author and ToDo.completed == False))
+    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
     return render_template('user.html', user=user, todos=todos)
 
 @app.before_request
