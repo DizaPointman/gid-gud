@@ -43,12 +43,10 @@ class Gid(db.Model):
     recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     author: so.Mapped[User] = so.relationship(back_populates='gids')
-
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='gid')
-
-    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     def __repr__(self):
         return '<Gid {}>'.format(self.body)
@@ -61,7 +59,6 @@ class Gud(db.Model):
     gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='guds')
-
     gid: so.Mapped[Gid] = so.relationship(back_populates='guds')
 
     def __repr__(self):
