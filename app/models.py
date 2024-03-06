@@ -14,8 +14,8 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
-
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='author')
+    categories: so.Mapped[Optional[dict|list]] = so.mapped_column(type_=sa.JSON)
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -45,6 +45,10 @@ class Gid(db.Model):
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
+    category: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=True)
+    sub_category: so.Mapped[str] = so.mapped_column(sa.String(30), nullable=True)
+    sub_sub_category: so.Mapped[str] = so.mapped_column(sa.String(40), nullable=True)
+
     author: so.Mapped[User] = so.relationship(back_populates='gids')
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='gid')
 
@@ -57,6 +61,10 @@ class Gud(db.Model):
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
+
+    category: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=True)
+    sub_category: so.Mapped[str] = so.mapped_column(sa.String(30), nullable=True)
+    sub_sub_category: so.Mapped[str] = so.mapped_column(sa.String(40), nullable=True)
 
     author: so.Mapped[User] = so.relationship(back_populates='guds')
     gid: so.Mapped[Gid] = so.relationship(back_populates='guds')
