@@ -3,6 +3,7 @@
         "rythm",
         "sqlalchemy",
         "gids",
+        "guds",
         "werkzeug",
         "wtforms"
     ]
