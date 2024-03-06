@@ -44,14 +44,14 @@ class EditProfileForm(FlaskForm):
             if user is not None:
                 raise ValidationError('Please use a different username.')
 
-class CreateToDoForm(FlaskForm):
+class CreateGidForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
-    submit = SubmitField('Create ToDo')
+    submit = SubmitField('Create Gid')
 
-class EditTodoForm(FlaskForm):
+class EditGidForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
-    submit = SubmitField('Change ToDo')
+    submit = SubmitField('Change Gid')

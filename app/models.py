@@ -13,7 +13,7 @@ class User(UserMixin, db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
-    todos: so.WriteOnlyMapped['ToDo'] = so.relationship(back_populates='author')
+    gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -32,7 +32,7 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-class ToDo(db.Model):
+class Gid(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
@@ -42,10 +42,10 @@ class ToDo(db.Model):
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
-    author: so.Mapped[User] = so.relationship(back_populates='todos')
+    author: so.Mapped[User] = so.relationship(back_populates='gids')
 
     def __repr__(self):
-        return '<ToDo {}>'.format(self.body)
+        return '<Gid {}>'.format(self.body)
     
 @login.user_loader
 def load_user(id):

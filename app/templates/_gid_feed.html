@@ -1,0 +1,5 @@
+<div>
+    {% for gid in gids if not gid.completed %}
+        {% include '_gid.html' %}
+    {% endfor %}
+</div>

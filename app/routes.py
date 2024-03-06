@@ -1,9 +1,9 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateToDoForm, EditTodoForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidForm, EditGidForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app.models import User, ToDo
+from app.models import User, Gid
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 @app.route('/index')
 @login_required
 def index():
-    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
-    return render_template('index.html', title='Home', todos=todos)
+    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
+    return render_template('index.html', title='Home', gids=gids)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -67,67 +67,67 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/create_todo', methods=['GET', 'POST'])
+@app.route('/create_gid', methods=['GET', 'POST'])
 @login_required
-def create_todo():
-    form = CreateToDoForm()
-    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
+def create_gid():
+    form = CreateGidForm()
+    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
-        todo = ToDo(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data)
-        db.session.add(todo)
+        gid = Gid(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data)
+        db.session.add(gid)
         db.session.commit()
-        flash('New ToDo created!')
+        flash('New Gid created!')
         return redirect(url_for('index'))
-    return render_template('create_todo.html', title='Create ToDo', form=form, todos=todos)
+    return render_template('create_gid.html', title='Create Gid', form=form, gids=gids)
 
-@app.route('/edit_todo/<id>', methods=['GET', 'POST'])
+@app.route('/edit_gid/<id>', methods=['GET', 'POST'])
 @login_required
-def edit_todo(id):
-    todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
-    form = EditTodoForm()
+def edit_gid(id):
+    gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
+    form = EditGidForm()
     if form.validate_on_submit():
-        todo.body = form.body.data
-        todo.recurrence = form.recurrence.data
-        todo.recurrence_rhythm = form.recurrence_rhythm.data
+        gid.body = form.body.data
+        gid.recurrence = form.recurrence.data
+        gid.recurrence_rhythm = form.recurrence_rhythm.data
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
     elif request.method == 'GET':
-        form.body.data = todo.body
-        form.recurrence.data = todo.recurrence
-        form.recurrence_rhythm.data = todo.recurrence_rhythm
-    return render_template('edit_todo.html', title='Edit ToDo', form=form)
+        form.body.data = gid.body
+        form.recurrence.data = gid.recurrence
+        form.recurrence_rhythm.data = gid.recurrence_rhythm
+    return render_template('edit_gid.html', title='Edit Gid', form=form)
 
-@app.route('/delete_todo/<id>', methods=['GET', 'DELETE', 'POST'])
+@app.route('/delete_gid/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
-def delete_todo(id):
-    current_todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
-    db.session.delete(current_todo)
+def delete_gid(id):
+    current_gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
+    db.session.delete(current_gid)
     db.session.commit()
-    flash('ToDo deleted!')
+    flash('Gid deleted!')
     return redirect(url_for('index'))
 
-@app.route('/complete_todo/<id>', methods=['GET', 'POST'])
+@app.route('/complete_gid/<id>', methods=['GET', 'POST'])
 @login_required
-def complete_todo(id):
-    current_todo = db.session.scalar(sa.select(ToDo).where(id == ToDo.id))
-    current_todo.completed = True
+def complete_gid(id):
+    current_gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
+    current_gid.completed = True
     db.session.commit()
-    flash('ToDo completed!')
+    flash('Gid completed!')
     return redirect(url_for('index'))
 
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
-    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
-    return render_template('statistics.html', title='My Statistic', todos=todos)
+    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
+    return render_template('statistics.html', title='My Statistic', gids=gids)
 
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    todos = db.session.scalars(sa.select(ToDo).where(current_user == ToDo.author))
-    return render_template('user.html', user=user, todos=todos)
+    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
+    return render_template('user.html', user=user, gids=gids)
 
 @app.before_request
 def before_request():
