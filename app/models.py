@@ -15,6 +15,8 @@ class User(UserMixin, db.Model):
 
     gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
 
+    guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='author')
+
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
         default=lambda: datetime.now(timezone.utc))
@@ -44,8 +46,26 @@ class Gid(db.Model):
 
     author: so.Mapped[User] = so.relationship(back_populates='gids')
 
+    guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='gid')
+
+    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+
     def __repr__(self):
         return '<Gid {}>'.format(self.body)
+    
+class Gud(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    body: so.Mapped[str] = so.mapped_column(sa.String(140))
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
+
+    author: so.Mapped[User] = so.relationship(back_populates='guds')
+
+    gid: so.Mapped[Gid] = so.relationship(back_populates='guds')
+
+    def __repr__(self):
+        return '<Gud {}>'.format(self.body)
     
 @login.user_loader
 def load_user(id):
