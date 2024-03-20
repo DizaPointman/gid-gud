@@ -1,8 +1,8 @@
-"""created user, gid and gud models
+"""setup models
 
-Revision ID: a50abe1ae959
+Revision ID: a6b35b9e0adf
 Revises: 
-Create Date: 2024-03-06 20:54:20.343209
+Create Date: 2024-03-20 01:25:14.638499
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a50abe1ae959'
+revision = 'a6b35b9e0adf'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,6 +23,8 @@ def upgrade():
     sa.Column('username', sa.String(length=64), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('password_hash', sa.String(length=256), nullable=True),
+    sa.Column('counter', sa.Integer(), nullable=False),
+    sa.Column('categories', sa.JSON(), nullable=False),
     sa.Column('about_me', sa.String(length=140), nullable=True),
     sa.Column('last_seen', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -36,10 +38,12 @@ def upgrade():
     sa.Column('body', sa.String(length=140), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('number', sa.Integer(), nullable=False),
     sa.Column('recurrence', sa.Boolean(), nullable=False),
     sa.Column('recurrence_rhythm', sa.Integer(), nullable=False),
     sa.Column('completed', sa.Boolean(), nullable=False),
     sa.Column('archived', sa.Boolean(), nullable=False),
+    sa.Column('category', sa.String(length=20), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -53,6 +57,8 @@ def upgrade():
     sa.Column('timestamp', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('gid_id', sa.Integer(), nullable=False),
+    sa.Column('number', sa.Integer(), nullable=False),
+    sa.Column('category', sa.String(length=20), nullable=True),
     sa.ForeignKeyConstraint(['gid_id'], ['gid.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')

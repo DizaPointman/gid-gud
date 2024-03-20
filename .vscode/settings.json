@@ -5,6 +5,7 @@
         "gids",
         "guds",
         "werkzeug",
-        "wtforms"
+        "wtforms",
+        "uncategorized"
     ]
 }

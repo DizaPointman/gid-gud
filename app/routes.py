@@ -73,10 +73,11 @@ def create_gid():
     form = CreateGidForm()
     gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
-        gid = Gid(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data)
+        user, number = current_user.categorize(form.category.data)
+        gid = Gid(body=form.body.data, user_id=current_user.id, number=number, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=form.category.data)
         db.session.add(gid)
         db.session.commit()
-        flash('New Gid created!')
+        #flash('New Gid created!')
         return redirect(url_for('index'))
     return render_template('create_gid.html', title='Create Gid', form=form, gids=gids)
 
@@ -89,6 +90,8 @@ def edit_gid(id):
         gid.body = form.body.data
         gid.recurrence = form.recurrence.data
         gid.recurrence_rhythm = form.recurrence_rhythm.data
+        if gid.category is not form.category.data:
+            current_user.update_category(gid.number, form.category.data)
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
@@ -96,6 +99,7 @@ def edit_gid(id):
         form.body.data = gid.body
         form.recurrence.data = gid.recurrence
         form.recurrence_rhythm.data = gid.recurrence_rhythm
+        form.category.data = gid.category
     return render_template('edit_gid.html', title='Edit Gid', form=form)
 
 @app.route('/delete_gid/<id>', methods=['GET', 'DELETE', 'POST'])
