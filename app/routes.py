@@ -1,3 +1,4 @@
+import copy
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidForm, EditGidForm
@@ -23,12 +24,14 @@ def login():
         user = db.session.scalar(
             sa.select(User).where(User.username == form.username.data))
         if user is None or not user.check_password(form.password.data):
+            app.logger.info('%s tried logging in with invalid username or password', user.username)
             flash('Invalid username or password')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or urlsplit(next_page).netloc != '':
             next_page = url_for('index')
+        app.logger.info('%s logged in successfully', user.username)
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
@@ -73,7 +76,9 @@ def create_gid():
     form = CreateGidForm()
     gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
-        number = current_user.categorize(form.category.data)
+        app.logger.info(f"users categories before categorize function: {current_user.categories}")
+        current_categories = copy.deepcopy(current_user.categories)
+        number = current_user.categorize(current_categories, form.category.data)
         gid = Gid(body=form.body.data, user_id=current_user.id, number=number, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=form.category.data)
         db.session.add(gid)
         db.session.commit()

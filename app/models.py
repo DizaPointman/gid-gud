@@ -5,7 +5,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import JSON
-from sqlalchemy_json import NestedMutableJson
+from sqlalchemy_json import TrackedDict, NestedMutableJson
 from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
@@ -19,7 +19,7 @@ class User(UserMixin, db.Model):
     gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='author')
     counter: so.Mapped[int] = so.mapped_column(default=1)
-    categories: so.Mapped[dict[list]] = so.mapped_column(NestedMutableJson, default={})
+    categories: so.Mapped[TrackedDict] = so.mapped_column(NestedMutableJson, default={})
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-    def categorize(self, category: str):
+    def categorize(self, current_categories, category: str):
         number = self.counter
 
         if len(category) == 0:
@@ -48,9 +48,9 @@ class User(UserMixin, db.Model):
 # yes, overwrites instead of appends
 # if category in self.categories: adds category and one value, doesnt update list with additional values
 
-
-        if category in self.categories.items():
-            self.categories[category].append(number)
+        if category in current_categories:
+            current_categories[category].append(number)
+            self.categories = current_categories
             self.counter+=1
             return number
         
