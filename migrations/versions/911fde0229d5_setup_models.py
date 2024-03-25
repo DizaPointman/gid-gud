@@ -1,8 +1,8 @@
 """setup models
 
-Revision ID: fe8b85f2e0fa
+Revision ID: 911fde0229d5
 Revises: 
-Create Date: 2024-03-25 20:15:47.536823
+Create Date: 2024-03-25 21:55:31.297264
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'fe8b85f2e0fa'
+revision = '911fde0229d5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -38,12 +38,11 @@ def upgrade():
     sa.Column('body', sa.String(length=140), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('number', sa.Integer(), nullable=False),
     sa.Column('recurrence', sa.Boolean(), nullable=False),
     sa.Column('recurrence_rhythm', sa.Integer(), nullable=False),
     sa.Column('completed', sa.Boolean(), nullable=False),
     sa.Column('archived', sa.Boolean(), nullable=False),
-    sa.Column('category', sa.String(length=20), nullable=True),
+    sa.Column('category', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -57,8 +56,7 @@ def upgrade():
     sa.Column('timestamp', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('gid_id', sa.Integer(), nullable=False),
-    sa.Column('number', sa.Integer(), nullable=False),
-    sa.Column('category', sa.String(length=20), nullable=True),
+    sa.Column('category', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['gid_id'], ['gid.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')

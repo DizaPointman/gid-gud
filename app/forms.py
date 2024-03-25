@@ -49,6 +49,8 @@ class CreateGidForm(FlaskForm):
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
+    sub_category = StringField('Sub-Category', validators=[Length(max=20)])
+    sub_sub_category = StringField('Sub-Sub-Category', validators=[Length(max=20)])
     submit = SubmitField('Create Gid')
 
 class EditGidForm(FlaskForm):
@@ -56,4 +58,6 @@ class EditGidForm(FlaskForm):
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
+    sub_category = StringField('Sub-Category', validators=[Length(max=20)])
+    sub_sub_category = StringField('Sub-Sub-Category', validators=[Length(max=20)])
     submit = SubmitField('Change Gid')

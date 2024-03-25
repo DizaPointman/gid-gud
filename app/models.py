@@ -8,6 +8,7 @@ from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
 import copy
+from sqlalchemy.ext.mutable import MutableList
 
 class User(UserMixin, db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -37,53 +38,18 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-    def categorize(self, category: str):
-        number = self.counter
-        current_categories = copy.deepcopy(self.categories)
-
-        if len(category) == 0:
-            category = "uncategorized"
-
-# if category in self.categories.items(): adds or exchanges number to list, but at least adds value to uncategorized, seems to overwrite values
-# yes, overwrites instead of appends
-# if category in self.categories: adds category and one value, doesnt update list with additional values
-
-        if category in current_categories:
-            current_categories[category].append(number)
-            self.categories = current_categories
-            self.counter+=1
-            return number
-        
-        else:
-            current_categories[category] = [number]
-            self.categories = current_categories
-            self.counter+=1
-            return number
-    
-    def update_category(self, number, category):
-        dict = self.categories
-        if len(category) == 0:
-            dict["uncategorized"] = number
-        for k, v in dict.items():
-            if category == k:
-                v.append(number)
-                return number
-        dict[f"{category}"] = number
-        return number
-    
 class Gid(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    number: so.Mapped[int] = so.mapped_column()
 
     recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
-    category: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=True)
+    category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
 
     author: so.Mapped[User] = so.relationship(back_populates='gids')
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='gid')
@@ -97,9 +63,8 @@ class Gud(db.Model):
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
-    number: so.Mapped[int] = so.mapped_column()
 
-    category: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=True)
+    category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
 
     author: so.Mapped[User] = so.relationship(back_populates='guds')
     gid: so.Mapped[Gid] = so.relationship(back_populates='guds')
