@@ -9,6 +9,7 @@ from sqlalchemy_json import TrackedDict, NestedMutableJson
 from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
+import copy
 
 class User(UserMixin, db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -38,8 +39,9 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-    def categorize(self, current_categories, category: str):
+    def categorize(self, category: str):
         number = self.counter
+        current_categories = copy.deepcopy(self.categories)
 
         if len(category) == 0:
             category = "uncategorized"

@@ -1,4 +1,3 @@
-import copy
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidForm, EditGidForm
@@ -77,8 +76,7 @@ def create_gid():
     gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
         app.logger.info(f"users categories before categorize function: {current_user.categories}")
-        current_categories = copy.deepcopy(current_user.categories)
-        number = current_user.categorize(current_categories, form.category.data)
+        number = current_user.categorize(form.category.data)
         gid = Gid(body=form.body.data, user_id=current_user.id, number=number, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=form.category.data)
         db.session.add(gid)
         db.session.commit()
