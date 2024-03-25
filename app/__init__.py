@@ -6,6 +6,7 @@ from flask_login import LoginManager
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
+from app import routes, models, errors
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -41,4 +42,3 @@ if not app.debug:
         app.logger.setLevel(logging.INFO)
         app.logger.info('GidGud startup')
 
-from app import routes, models, errors

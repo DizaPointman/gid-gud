@@ -4,6 +4,8 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import JSON
+from sqlalchemy_json import NestedMutableJson
 from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
@@ -17,7 +19,7 @@ class User(UserMixin, db.Model):
     gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
     guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='author')
     counter: so.Mapped[int] = so.mapped_column(default=1)
-    categories: so.Mapped[MutableDict] = so.mapped_column(MutableDict.as_mutable(sa.JSON), default=lambda: {'uncategorized': []})
+    categories: so.Mapped[dict[list]] = so.mapped_column(NestedMutableJson, default={})
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -46,16 +48,16 @@ class User(UserMixin, db.Model):
 # yes, overwrites instead of appends
 # if category in self.categories: adds category and one value, doesnt update list with additional values
 
+
         if category in self.categories.items():
             self.categories[category].append(number)
             self.counter+=1
-            return self, number
+            return number
         
         else:
             self.categories[category] = [number]
             self.counter+=1
-            return self, number
-
+            return number
     
     def update_category(self, number, category):
         dict = self.categories

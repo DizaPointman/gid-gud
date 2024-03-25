@@ -73,7 +73,7 @@ def create_gid():
     form = CreateGidForm()
     gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
-        user, number = current_user.categorize(form.category.data)
+        number = current_user.categorize(form.category.data)
         gid = Gid(body=form.body.data, user_id=current_user.id, number=number, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=form.category.data)
         db.session.add(gid)
         db.session.commit()
