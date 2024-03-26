@@ -38,6 +38,10 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
+    def running_number(self):
+        self.counter += 1
+        return self.counter
+    
 class Gid(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
@@ -49,6 +53,7 @@ class Gid(db.Model):
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
+    running_number: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
 
     author: so.Mapped[User] = so.relationship(back_populates='gids')
@@ -64,6 +69,7 @@ class Gud(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
 
+    running_number: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
 
     author: so.Mapped[User] = so.relationship(back_populates='guds')

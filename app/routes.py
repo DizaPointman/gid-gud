@@ -77,9 +77,10 @@ def create_gid():
     gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
     if form.validate_on_submit():
         final_cat = categorize_gidgud(form.category.data, form.sub_category.data, form.sub_sub_category.data)
-        gid = Gid(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=final_cat)
+        run_num = current_user.running_number()
+        gid = Gid(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, running_number=run_num, category=final_cat)
         app.logger.info(f"old categories: {current_user.categories}")
-        update_categories(current_user, final_cat)
+        update_categories(current_user, final_cat, run_num)
         app.logger.info(f"new categories: {current_user.categories}")
         db.session.add(gid)
         db.session.commit()
