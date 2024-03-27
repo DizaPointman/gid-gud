@@ -14,6 +14,4 @@ https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 
 # Categories
 
-Change to JSON in user model and reference in Gid/Gud
-
 # Bughunt

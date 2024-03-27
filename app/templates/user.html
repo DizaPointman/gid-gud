@@ -16,15 +16,18 @@
     </table>
     <hr>
     <div>
-        {% for key, values in user.categories.items() %}
-            <p>Category: {{ key }}:
-                {% for value in values %}
-                    Value: {{ value }}
-                {% endfor %}
-            </p>
+        {% for category in user.categories %}
+            <table>
+                <tr><p>Category: {{ category.name }}</p></tr>
+                <tr>
+                    {% for gidgud in category.gidguds %}
+                        <p>GidGud ID: {{ gidgud.id }}</p>
+                    {% endfor %}
+                </tr>
+            </table>
         {% endfor %}
     </div>
 {% endblock %}
 {% block content2 %}
-    {% include '_gid_feed.html' %}
+    {% include '_gidgud_feed.html' %}
 {% endblock %}

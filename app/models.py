@@ -3,12 +3,9 @@ from datetime import datetime, timezone
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from sqlalchemy import JSON
 from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
-import copy
-from sqlalchemy.ext.mutable import MutableList
 
 class User(UserMixin, db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -17,7 +14,7 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     gidguds: so.WriteOnlyMapped['GidGud'] = so.relationship(back_populates='author')
-    categories: so.Mapped[list[Category]] = so.relationship('Category', back_populates='author')
+    categories: so.Mapped[list['Category']] = so.relationship('Category', back_populates='user')
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -36,9 +33,10 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-    def running_number(self):
-        self.counter += 1
-        return self.counter
+    def check_if_category_exists(self, category_name: str):
+        for category in self.categories:
+            if category_name == category.name: return category
+        return False
     
 class GidGud(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -48,27 +46,32 @@ class GidGud(db.Model):
 
     recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+    unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
+    times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
-    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'))
-    category: so.Mapped[Category] = so.relationship('Category', back_populates='gidguds')
-    author: so.Mapped[User] = so.relationship(back_populates='gidguds')
+    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
+    category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
+    author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
 
     def __repr__(self):
-        return '<Gid {}>'.format(self.body)
-    
+        return '<GidGud {}>'.format(self.body)
+
 class Category(db.Model):
     id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(100))
-    author: so.Mapped[User] = so.relationship(back_populates='categories')
-    parent_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent: so.Mapped[Category] = so.relationship('Category', remote_side=[id], backref='children', nullable=True)
-    children: so.Mapped[list[Category]] = so.relationship('Category', backref='parent', remote_side=[parent_id])
-    gidguds: so.Mapped[list[GidGud]] = so.relationship('GidGud', back_populates='category')
+    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
+    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
     def __repr__(self):
-        return '<Category {}r>'.format(self.name)
+        return '<Category {}>'.format(self.name)
     
 @login.user_loader
 def load_user(id):

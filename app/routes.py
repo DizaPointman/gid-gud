@@ -1,19 +1,19 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidForm, EditGidForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app.models import User, Gid
+from app.models import User, GidGud, Category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
-from app.utils import categorize_gidgud, update_categories
+#from app.utils import
 
 @app.route('/')
 @app.route('/index')
 @login_required
 def index():
-    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
-    return render_template('index.html', title='Home', gids=gids)
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    return render_template('index.html', title='Home', gidguds=gidguds)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -78,80 +78,79 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/create_gid', methods=['GET', 'POST'])
+@app.route('/create_gidgud', methods=['GET', 'POST'])
 @login_required
-def create_gid():
-    form = CreateGidForm()
-    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
+def create_gidgud():
+    form = CreateGidGudForm()
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     if form.validate_on_submit():
-        final_cat = categorize_gidgud(form.category.data, form.sub_category.data, form.sub_sub_category.data)
-        run_num = current_user.running_number()
-        gid = Gid(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, running_number=run_num, category=final_cat)
-        app.logger.info(f"old categories: {current_user.categories}")
-        update_categories(current_user, final_cat, run_num)
-        app.logger.info(f"new categories: {current_user.categories}")
-        db.session.add(gid)
+        category_name = form.category.data or 'default'
+        app.logger.info(f'category_name: {category_name}')
+        category = current_user.check_if_category_exists(category_name)
+        app.logger.info(f'category already exists: {category}')
+        if not category:
+            category = Category(name=category_name, user_id=current_user.id)
+            db.session.add(category)
+        gidgud = GidGud(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=category)
+        db.session.add(gidgud)
         db.session.commit()
-        #flash('New Gid created!')
+        #flash('New GidGud created!')
         return redirect(url_for('index'))
-    return render_template('create_gid.html', title='Create Gid', form=form, gids=gids)
+    return render_template('create_gidgud.html', title='Create GidGud', form=form, gidguds=gidguds)
 
-@app.route('/edit_gid/<id>', methods=['GET', 'POST'])
+@app.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
-def edit_gid(id):
-    gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
-    form = EditGidForm()
+def edit_gidgud(id):
+    gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
+    form = EditGidGudForm()
     if form.validate_on_submit():
-        gid.body = form.body.data
-        gid.recurrence = form.recurrence.data
-        gid.recurrence_rhythm = form.recurrence_rhythm.data
-        final_cat = categorize_gidgud(form.category.data, form.sub_category.data, form.sub_sub_category.data)
-        gid.category = final_cat
-        update_categories(current_user, final_cat)
+        gidgud.body = form.body.data
+        gidgud.recurrence = form.recurrence.data
+        gidgud.recurrence_rhythm = form.recurrence_rhythm.data
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
     elif request.method == 'GET':
-        form.body.data = gid.body
-        form.recurrence.data = gid.recurrence
-        form.recurrence_rhythm.data = gid.recurrence_rhythm
-        form.category.data = gid.category[0]
-        if gid.category[1]:
-            form.sub_category.data = gid.category[1]
-            if gid.category[2]:
-                form.sub_sub_category.data = gid.category[2]
-    return render_template('edit_gid.html', title='Edit Gid', form=form)
+        form.body.data = gidgud.body
+        form.recurrence.data = gidgud.recurrence
+        form.recurrence_rhythm.data = gidgud.recurrence_rhythm
+        form.category.data = gidgud.category[0]
+        if gidgud.category[1]:
+            form.sub_category.data = gidgud.category[1]
+            if gidgud.category[2]:
+                form.sub_sub_category.data = gidgud.category[2]
+    return render_template('edit_gid.html', title='Edit GidGud', form=form)
 
-@app.route('/delete_gid/<id>', methods=['GET', 'DELETE', 'POST'])
+@app.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
-def delete_gid(id):
-    current_gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
-    db.session.delete(current_gid)
+def delete_gidgud(id):
+    current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
+    db.session.delete(current_gidgud)
     db.session.commit()
-    flash('Gid deleted!')
+    flash('GidGud deleted!')
     return redirect(url_for('index'))
 
-@app.route('/complete_gid/<id>', methods=['GET', 'POST'])
+@app.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
-def complete_gid(id):
-    current_gid = db.session.scalar(sa.select(Gid).where(id == Gid.id))
-    current_gid.completed = True
+def complete_gidgud(id):
+    current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
+    current_gidgud.completed = True
     db.session.commit()
-    flash('Gid completed!')
+    flash('GidGud completed!')
     return redirect(url_for('index'))
 
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
-    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
-    return render_template('statistics.html', title='My Statistic', gids=gids)
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
 
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    gids = db.session.scalars(sa.select(Gid).where(current_user == Gid.author))
-    return render_template('user.html', user=user, gids=gids)
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    return render_template('user.html', user=user, gidguds=gidguds)
 
 @app.before_request
 def before_request():

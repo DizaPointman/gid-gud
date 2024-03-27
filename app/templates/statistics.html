@@ -3,8 +3,8 @@
 {% block content %}
     <h1>Hello, {{ current_user.username }}! This is your statistic</h1>
     <div>
-        {% for gid in gids if gid.completed %}
-            {% include '_gid.html' %}
+        {% for gidgud in gidguds if gidgud.completed %}
+            {% include '_gidgud.html' %}
         {% endfor %}
     </div>
 {% endblock %}
