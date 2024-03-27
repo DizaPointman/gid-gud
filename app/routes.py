@@ -17,6 +17,14 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    The `login` function in this Python code handles user authentication and login functionality,
+    including form validation, logging in the user, and redirecting to the appropriate page.
+    :return: The code snippet provided is a Flask route for handling user login functionality. When a
+    user accesses the '/login' route, the function checks if the current user is already authenticated.
+    If the user is authenticated, it redirects to the 'index' page. If not, it renders a login form
+    using the 'LoginForm' class.
+    """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = LoginForm()

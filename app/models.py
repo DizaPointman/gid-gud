@@ -16,10 +16,8 @@ class User(UserMixin, db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
-    gids: so.WriteOnlyMapped['Gid'] = so.relationship(back_populates='author')
-    guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='author')
-    counter: so.Mapped[int] = so.mapped_column(default=1)
-    categories: so.Mapped[dict] = so.mapped_column(JSON, default={})
+    gidguds: so.WriteOnlyMapped['GidGud'] = so.relationship(back_populates='author')
+    categories: so.Mapped[list[Category]] = so.relationship('Category', back_populates='author')
 
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -42,7 +40,7 @@ class User(UserMixin, db.Model):
         self.counter += 1
         return self.counter
     
-class Gid(db.Model):
+class GidGud(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
@@ -53,30 +51,24 @@ class Gid(db.Model):
     completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
-    running_number: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
-
-    author: so.Mapped[User] = so.relationship(back_populates='gids')
-    guds: so.WriteOnlyMapped['Gud'] = so.relationship(back_populates='gid')
+    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'))
+    category: so.Mapped[Category] = so.relationship('Category', back_populates='gidguds')
+    author: so.Mapped[User] = so.relationship(back_populates='gidguds')
 
     def __repr__(self):
         return '<Gid {}>'.format(self.body)
-        
-class Gud(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
-    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    gid_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Gid.id), index=True)
-
-    running_number: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    category: so.Mapped[list[str]] = so.mapped_column(MutableList.as_mutable(sa.JSON), default=[])
-
-    author: so.Mapped[User] = so.relationship(back_populates='guds')
-    gid: so.Mapped[Gid] = so.relationship(back_populates='guds')
+    
+class Category(db.Model):
+    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(100))
+    author: so.Mapped[User] = so.relationship(back_populates='categories')
+    parent_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent: so.Mapped[Category] = so.relationship('Category', remote_side=[id], backref='children', nullable=True)
+    children: so.Mapped[list[Category]] = so.relationship('Category', backref='parent', remote_side=[parent_id])
+    gidguds: so.Mapped[list[GidGud]] = so.relationship('GidGud', back_populates='category')
 
     def __repr__(self):
-        return '<Gud {}>'.format(self.body)
+        return '<Category {}r>'.format(self.name)
     
 @login.user_loader
 def load_user(id):
