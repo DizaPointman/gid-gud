@@ -15,7 +15,19 @@
         </tr>
     </table>
     <hr>
+    <div>
+        {% for category in user.categories %}
+            <table>
+                <tr><p>Category: {{ category.name }}</p></tr>
+                <tr>
+                    {% for gidgud in category.gidguds %}
+                        <p>GidGud ID: {{ gidgud.id }}</p>
+                    {% endfor %}
+                </tr>
+            </table>
+        {% endfor %}
+    </div>
 {% endblock %}
 {% block content2 %}
-    {% include '_todo_feed.html' %}
+    {% include '_gidgud_feed.html' %}
 {% endblock %}

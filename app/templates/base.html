@@ -16,6 +16,7 @@
             {% if current_user.is_anonymous %}
             <a href="{{ url_for('login') }}">Login</a>
             {% else %}
+            <a href="{{ url_for('statistics', username=current_user.username) }}">My Stats</a>
             <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
             <a href="{{ url_for('logout') }}">Logout</a>
             {% endif %}
@@ -31,7 +32,7 @@
         {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
-        {% include '_todo_feed.html' %}
+        {% include '_gidgud_feed.html' %}
     </body>
 
 </html>

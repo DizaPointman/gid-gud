@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Create new ToDo</h1>
+    <h1>Create new GidGud</h1>
     <form action="" method="post">
         {{ form.hidden_tag() }}
         <p>
@@ -13,10 +13,11 @@
         <p>{{ form.recurrence.label }} {{ form.recurrence() }}</p>
         <p>
             {{ form.recurrence_rhythm.label }} {{ form.recurrence_rhythm}} days
-            {% for error in form.recurrence_rhythm.errors %}
+        </p>
+        <p>{{ form.category.label }} {{ form.category }}</p>
+        {% for error in form.category.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
-        </p>
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}

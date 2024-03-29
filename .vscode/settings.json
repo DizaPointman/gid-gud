@@ -2,8 +2,11 @@
     "cSpell.words": [
         "rythm",
         "sqlalchemy",
-        "todos",
+        "gids",
+        "guds",
         "werkzeug",
-        "wtforms"
-    ]
+        "wtforms",
+        "uncategorized"
+    ],
+    "python.analysis.autoImportCompletions": true
 }

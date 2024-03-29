@@ -1,73 +1,40 @@
-2024-02-05 16:30:15,558 ERROR: Exception on /edit_profile [POST] [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask/app.py:828]
-Traceback (most recent call last):
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
-    self.dialect.do_execute(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.IntegrityError: UNIQUE constraint failed: user.username
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask/app.py", line 1463, in wsgi_app
-    response = self.full_dispatch_request()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask/app.py", line 872, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask/app.py", line 870, in full_dispatch_request
-    rv = self.dispatch_request()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask/app.py", line 855, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/flask_login/utils.py", line 290, in decorated_view
-    return current_app.ensure_sync(func)(*args, **kwargs)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py", line 71, in edit_profile
-    db.session.commit()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/scoping.py", line 598, in commit
-    return self._proxied.commit()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1969, in commit
-    trans.commit(_to_root=True)
-  File "<string>", line 2, in commit
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
-    ret_value = fn(self, *arg, **kw)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1256, in commit
-    self._prepare_impl()
-  File "<string>", line 2, in _prepare_impl
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
-    ret_value = fn(self, *arg, **kw)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 1231, in _prepare_impl
-    self.session.flush()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 4312, in flush
-    self._flush(objects)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 4447, in _flush
-    with util.safe_reraise():
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
-    raise exc_value.with_traceback(exc_tb)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/session.py", line 4408, in _flush
-    flush_context.execute()
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
-    rec.execute(self)
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
-    util.preloaded.orm_persistence.save_obj(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/persistence.py", line 85, in save_obj
-    _emit_update_statements(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/orm/persistence.py", line 910, in _emit_update_statements
-    c = connection.execute(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
-    return meth(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/sql/elements.py", line 517, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
-    ret = self._execute_context(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
-    return self._exec_single_context(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2344, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
-    self.dialect.do_execute(
-  File "/home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/.venv/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: user.username
-[SQL: UPDATE user SET username=?, about_me=? WHERE user.id = ?]
-[parameters: ('funky2', "I'm funky biaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaatch", 2)]
-(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2024-03-27 22:04:25,271 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:04:29,100 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:04:29,103 INFO: category already exists: None [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:05:34,474 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:05:34,475 INFO: category already exists: <Category defaultr> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:07:16,409 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:08:37,156 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:10:06,053 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:10:24,768 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:10:24,769 INFO: category already exists: False [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:10:51,885 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:10:51,886 INFO: category already exists: <Category default> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:11:05,040 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:11:05,041 INFO: category already exists: <Category default> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:12:40,145 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:12:40,146 INFO: category already exists: <Category default> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:14:03,324 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:14:11,176 INFO: category_name: default [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:14:11,178 INFO: category already exists: <Category default> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:14:54,612 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:14:54,613 INFO: category already exists: False [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:15:40,091 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:15:40,092 INFO: category already exists: False [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:16:29,302 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:23:22,308 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:23:22,729 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:23:37,099 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:23:37,101 INFO: category already exists: <Category features> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:25:03,785 INFO: category_name: hate [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:25:03,786 INFO: category already exists: False [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:33:47,578 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-27 22:34:53,652 INFO: category_name: hate [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:34:53,653 INFO: category already exists: <Category hate> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:37:09,124 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-27 22:37:09,125 INFO: category already exists: <Category features> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
+2024-03-27 22:42:04,797 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:12,717 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:13,155 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:24,121 INFO: category_name: hate [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-29 16:04:24,124 INFO: category already exists: <Category hate> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]

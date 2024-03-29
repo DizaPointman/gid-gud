@@ -3,7 +3,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextA
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
 import sqlalchemy as sa
 from app import db
-from app.models import User
+from app.models import User, GidGud, Category
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -44,8 +44,18 @@ class EditProfileForm(FlaskForm):
             if user is not None:
                 raise ValidationError('Please use a different username.')
 
-class CreateToDoForm(FlaskForm):
+class CreateGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
-    submit = SubmitField('Create ToDo')
+    category = StringField('Category', validators=[Length(max=20)])
+    submit = SubmitField('Create GidGud')
+
+class EditGidGudForm(FlaskForm):
+    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+    recurrence = BooleanField('Repeat Task')
+    recurrence_rhythm = IntegerField ('Repeat every', default=1)
+    category = StringField('Category', validators=[Length(max=20)])
+    sub_category = StringField('Sub-Category', validators=[Length(max=20)])
+    sub_sub_category = StringField('Sub-Sub-Category', validators=[Length(max=20)])
+    submit = SubmitField('Change GidGud')
