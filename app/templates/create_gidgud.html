@@ -13,11 +13,11 @@
         <p>{{ form.recurrence.label }} {{ form.recurrence() }}</p>
         <p>
             {{ form.recurrence_rhythm.label }} {{ form.recurrence_rhythm}} days
-            {% for error in form.recurrence_rhythm.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
         </p>
         <p>{{ form.category.label }} {{ form.category }}</p>
+        {% for error in form.category.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}
