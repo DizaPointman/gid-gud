@@ -15,3 +15,26 @@ https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 # Categories
 
 # Bughunt
+
+## Git Flow
+
+https://jeffkreeftmeijer.com/git-flow/
+
+### Changelog
+
+https://mokkapps.de/blog/how-to-automatically-generate-a-helpful-changelog-from-your-git-commit-messages
+
+### Features
+
+1. git flow feature start [feature name]
+2. git flow feature finish [feature name]
+
+### Versioned releases
+
+1. git flow release start 0.1.0
+2. git flow release finish '0.1.0'
+
+### Hotfixing production code
+
+1. git flow hotfix start [assets]
+2. git flow hotfix finish 'assets'

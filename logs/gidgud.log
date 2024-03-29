@@ -34,3 +34,7 @@
 2024-03-27 22:37:09,124 INFO: category_name: features [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
 2024-03-27 22:37:09,125 INFO: category already exists: <Category features> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
 2024-03-27 22:42:04,797 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:12,717 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:13,155 INFO: GidGud startup [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/__init__.py:65]
+2024-03-29 16:04:24,121 INFO: category_name: hate [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:88]
+2024-03-29 16:04:24,124 INFO: category already exists: <Category hate> [in /home/diza/Projects/VSCode_Projects/Myfuture/gid-gud/app/routes.py:90]
