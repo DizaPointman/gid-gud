@@ -23,6 +23,11 @@ https://jeffkreeftmeijer.com/git-flow/
 ### Changelog
 
 https://mokkapps.de/blog/how-to-automatically-generate-a-helpful-changelog-from-your-git-commit-messages
+https://dev.to/devsatasurion/automate-changelogs-to-ease-your-release-282
+
+### Cheatsheet
+
+https://danielkummer.github.io/git-flow-cheatsheet/
 
 ### Features
 
