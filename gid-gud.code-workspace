@@ -11,10 +11,11 @@
 		"emmet.includeLanguages": {"jinja-html": "html"},
 		"editor.defaultFormatter": "vscode.emmet",
 		"cSpell.words": [
-			"gids",
-			"guds",
+			"gidgud",
+			"gidguds",
 			"sqlalchemy",
 			"uncategorized",
+			"uselist",
 			"werkzeug",
 			"wtforms"
 		],

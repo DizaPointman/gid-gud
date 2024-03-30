@@ -87,7 +87,7 @@ def create_gidgud():
     if form.validate_on_submit():
         category = check_if_category_exists(current_user, form.category.data)
         if not category:
-            category = create_new_category(current_user, category_name)
+            category = create_new_category(current_user, form.category.data)
             db.session.add(category)
         gidgud = GidGud(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=category)
         db.session.add(gidgud)

@@ -2,11 +2,12 @@
     "cSpell.words": [
         "rythm",
         "sqlalchemy",
-        "gids",
-        "guds",
+        "gidgud",
+		"gidguds",
         "werkzeug",
         "wtforms",
-        "uncategorized"
+        "uncategorized",
+        "uselist",
     ],
     "python.analysis.autoImportCompletions": true
 }
