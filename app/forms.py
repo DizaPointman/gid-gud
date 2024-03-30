@@ -56,6 +56,4 @@ class EditGidGudForm(FlaskForm):
     recurrence = BooleanField('Repeat Task')
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
-    sub_category = StringField('Sub-Category', validators=[Length(max=20)])
-    sub_sub_category = StringField('Sub-Sub-Category', validators=[Length(max=20)])
     submit = SubmitField('Change GidGud')
