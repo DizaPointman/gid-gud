@@ -33,11 +33,6 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
     
-    def check_if_category_exists(self, category_name: str):
-        for category in self.categories:
-            if category_name == category.name: return category
-        return False
-    
 class GidGud(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))

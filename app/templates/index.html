@@ -6,3 +6,6 @@
     <a href="{{ url_for('create_gidgud') }}">New GidGud!</a>
     <hr>
 {% endblock %}
+{% block feed %}
+    {% include '_gidgud_feed.html' %}
+{% endblock %}

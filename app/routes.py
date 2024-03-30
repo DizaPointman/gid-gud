@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import check_if_category_exists, create_new_category
+from app.utils import check_if_category_exists_and_return_or_false, create_new_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 #from app.utils import
@@ -85,7 +85,7 @@ def create_gidgud():
     form = CreateGidGudForm()
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     if form.validate_on_submit():
-        category = check_if_category_exists(current_user, form.category.data)
+        category = check_if_category_exists_and_return_or_false(current_user, form.category.data)
         if not category:
             category = create_new_category(current_user, form.category.data)
             db.session.add(category)
@@ -106,7 +106,7 @@ def edit_gidgud(id):
         gidgud.recurrence = form.recurrence.data
         gidgud.recurrence_rhythm = form.recurrence_rhythm.data
         if form.category.data is not gidgud.category.name:
-            updated_category = check_if_category_exists(current_user, form.category.data)
+            updated_category = check_if_category_exists_and_return_or_false(current_user, form.category.data)
             if not updated_category:
                 new_category = create_new_category(current_user, form.category.data)
                 db.session.add(new_category)
@@ -140,6 +140,12 @@ def complete_gidgud(id):
     db.session.commit()
     flash('GidGud completed!')
     return redirect(url_for('index'))
+
+@app.route('/user/<username>/my_categories', methods=['GET'])
+@login_required
+def my_categories():
+    existing_categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
+    return render_template('my_categories.html', title='My Categories', existing_categories=existing_categories)
 
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required

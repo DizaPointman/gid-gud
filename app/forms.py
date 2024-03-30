@@ -57,3 +57,7 @@ class EditGidGudForm(FlaskForm):
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
     submit = SubmitField('Change GidGud')
+
+class EditCategory(FlaskForm):
+    name = StringField('Name', validators=[Length(min=1, max=20)])
+    parent = StringField('Name', validators=[Length(min=1, max=20)])

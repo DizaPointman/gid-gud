@@ -2,11 +2,35 @@
 
 from app.models import User, GidGud, Category
 
-def check_if_category_exists(user, category_name):
+# Category management
+
+def check_if_category_exists_and_return_or_false(user, category_name):
     category_name = category_name or 'default'
     for category in user.categories:
-        if category_name == category.name: return category
+        if category_name == category.name:
+            return category
     return False
 
 def create_new_category(user, category_name):
     return Category(name=category_name, user_id=user.id)
+
+def edit_category_name(user, category_name):
+    return True
+
+def check_if_category_has_gidguds_and_return_list(user, category_name):
+    return True
+
+def update_gidgud_category(user, gidgud):
+    return True
+
+def delete_category(user, category_name):
+    return True
+
+def add_parent_category(user, category_name, parent_category_name):
+    return True
+
+def remove_parent_category(user, category_name, parent_category_name):
+    return True
+
+def add_children_to_category(user, category_name, child_category_name):
+    return True
