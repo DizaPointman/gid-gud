@@ -85,8 +85,7 @@ def create_gidgud():
     form = CreateGidGudForm()
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     if form.validate_on_submit():
-        category_name = form.category.data or 'default'
-        category = check_if_category_exists(current_user, category_name)
+        category = check_if_category_exists(current_user, form.category.data)
         if not category:
             category = create_new_category(current_user, category_name)
             db.session.add(category)
