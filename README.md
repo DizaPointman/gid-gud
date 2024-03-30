@@ -32,6 +32,7 @@ https://dev.to/devsatasurion/automate-changelogs-to-ease-your-release-282
 ### Cheatsheet
 
 https://danielkummer.github.io/git-flow-cheatsheet/
+https://www.baeldung.com/cs/semantic-versioning
 
 Correct commit msg
 
