@@ -18,6 +18,10 @@ https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 
 ## Git Flow
 
+Semantic Versioning is used
+
+INFO: there's also a special versioning for python!!!!
+
 https://jeffkreeftmeijer.com/git-flow/
 
 ### Changelog
@@ -28,6 +32,16 @@ https://dev.to/devsatasurion/automate-changelogs-to-ease-your-release-282
 ### Cheatsheet
 
 https://danielkummer.github.io/git-flow-cheatsheet/
+https://www.baeldung.com/cs/semantic-versioning
+
+Correct commit msg
+
+https://www.conventionalcommits.org/en/v1.0.0/
+https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#-commit-message-guidelines
+
+Git Tag
+
+https://git-scm.com/book/en/v2/Git-Basics-Tagging
 
 ### Features
 
