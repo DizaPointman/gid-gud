@@ -18,6 +18,10 @@ https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 
 ## Git Flow
 
+Semantic Versioning is used
+
+INFO: there's also a special versioning for python!!!!
+
 https://jeffkreeftmeijer.com/git-flow/
 
 ### Changelog
