@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.html": "jinja-html"
+		   },
+		"emmet.includeLanguages": {"jinja-html": "html"},
+		"editor.defaultFormatter": "vscode.emmet",
+		"cSpell.words": [
+			"gidgud",
+			"gidguds",
+			"sqlalchemy",
+			"uncategorized",
+			"uselist",
+			"werkzeug",
+			"wtforms"
+		],
+		"[jinja-html]": {
+			"editor.defaultFormatter": "vscode.html-language-features"
+		},
+	}
+}
