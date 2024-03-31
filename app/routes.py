@@ -199,7 +199,7 @@ def delete_and_reassign_category(id):
             gidgud.category = new_category
             app.logger.info(f"GidGud ID: {gidgud.id}, Category: {gidgud.category}, GidGuds: {gidgud.category.gidguds}")
             #update_gidgud_category(gidgud, new_category)
-            db.session.commit()
+        db.session.commit()
         db.session.delete(current_category)
         db.session.commit()
         flash(f'Category: {cat_name} deleted!')

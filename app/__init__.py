@@ -6,6 +6,7 @@ from flask_login import LoginManager
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
+import sys
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -40,6 +41,13 @@ if not app.debug:
 
         app.logger.setLevel(logging.INFO)
         app.logger.info('GidGud startup')
+
+        # Set up logging
+        logging.basicConfig()
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+        # Redirect SQL logs to stdout
+        logging.getLogger('sqlalchemy.engine').addHandler(logging.StreamHandler(sys.stdout))
 
 if app.debug:
 

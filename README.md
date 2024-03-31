@@ -74,3 +74,7 @@ REPEAT or alter existing for EACH additional feature
 # Easter Eggs
 
 TabNine Pro 90 days free trial
+
+# What ToDo
+
+rearrange delete routes to split between route for updating gidguds with new category and deletion of old category
