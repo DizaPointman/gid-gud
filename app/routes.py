@@ -1,12 +1,13 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, EditCategoryForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, EditCategoryForm, AssignNewCategoryOnDelete
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
 from app.utils import check_if_category_exists_and_return_or_false, create_new_category, check_if_category_has_gidguds_and_return_list, update_gidgud_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
+import logging
 
 
 @app.route('/')
@@ -172,15 +173,38 @@ def delete_category(id):
         attached_gidguds = check_if_category_has_gidguds_and_return_list(current_category)
         if not attached_gidguds:
             db.session.delete(current_category)
+            db.session.commit()
+            flash('Category deleted!')
         else:
-            flash('This Category has attached GidGuds. These will be put into the Default Category.')
-            new_category = db.session.scalar(sa.select(Category).where(Category.name == 'default'))
-            for gidgud in attached_gidguds:
-                update_gidgud_category(gidgud, new_category)
-            db.session.delete(current_category)
-        db.session.commit()
+            flash('This Category has attached GidGuds. Please assign a new Category')
+            return redirect(url_for('delete_and_reassign_category', id=id))
         flash('Category deleted!')
         return redirect(url_for('user_categories', username=current_user.username))
+    
+@app.route('/delete_and_reassign_category/<id>', methods=['GET', 'DELETE', 'POST'])
+@login_required
+def delete_and_reassign_category(id):
+    current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
+    cat_name = current_category.name
+    form = AssignNewCategoryOnDelete()
+    form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
+    if form.validate_on_submit():
+        attached_gidguds = check_if_category_has_gidguds_and_return_list(current_category)
+        for gidgud in attached_gidguds:
+            app.logger.info(f"ID: {gidgud.id}, BODY:{gidgud}, Category ID: {gidgud.category.id} Category GidGuds: {gidgud.category.gidguds}")
+        new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
+        app.logger.info(f"Current Cat ID: {current_category.id}, Current Cat Name: {current_category}, GidGuds: {current_category.gidguds}")
+        app.logger.info(f"New Cat ID: {new_category.id}, New Cat Name: {new_category}, GidGuds: {new_category.gidguds}")
+        for gidgud in attached_gidguds:
+            gidgud.category = new_category
+            app.logger.info(f"GidGud ID: {gidgud.id}, Category: {gidgud.category}, GidGuds: {gidgud.category.gidguds}")
+            #update_gidgud_category(gidgud, new_category)
+            db.session.commit()
+        db.session.delete(current_category)
+        db.session.commit()
+        flash(f'Category: {cat_name} deleted!')
+        return redirect(url_for('user_categories', username=current_user.username))
+    return render_template('delete_and_reassign_category.html', title='Assign new Category', form=form, id=id)
 
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
+from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
 import sqlalchemy as sa
 from app import db
@@ -60,10 +60,14 @@ class EditGidGudForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    parent = StringField('Name', validators=[Length(min=1, max=20)])
+    #parent = StringField('Name', validators=[Length(min=1, max=20)])
     submit = SubmitField('Change Category')
 
     def validate_name(self, name):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
+        
+class AssignNewCategoryOnDelete(FlaskForm):
+    new_category = SelectField('New Category', validators=[DataRequired()])
+    submit = SubmitField('Assign new Category')
