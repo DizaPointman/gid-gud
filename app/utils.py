@@ -14,9 +14,6 @@ def check_if_category_exists_and_return_or_false(user, category_name):
 def create_new_category(user, category_name):
     return Category(name=category_name, user_id=user.id)
 
-def edit_category_name(user, category_name):
-    return True
-
 def check_if_category_has_gidguds_and_return_list(category):
     if category.gidguds is None:
         return False
