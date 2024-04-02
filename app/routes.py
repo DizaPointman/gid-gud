@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import check_if_category_exists_and_return_or_false, create_new_category, check_if_category_has_gidguds_and_return_list, update_gidgud_category
+from app.utils import check_if_category_exists_and_return_or_false, create_new_category, check_if_category_has_gidguds_and_return_list, handle_name_change, handle_reassign_gidguds, update_gidgud_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 import logging
@@ -148,12 +148,12 @@ def user_categories(username):
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     return render_template('user_categories.html', title='My Categories', categories=categories)
 
-@app.route('/edit_category/<id>', methods=['GET', 'DELETE', 'POST'])
+@app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    app.logger.info(f'Starting the edit_category route for category id: {id}')
+    #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
-    app.logger.info(f'delete_afterwards: {delete_afterwards}')
+    #app.logger.info(f'delete_afterwards: {delete_afterwards}')
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
     form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
@@ -163,8 +163,8 @@ def edit_category(id):
         reassign_gidguds = True if form.new_category.data != current_category.name else False
         gidguds_to_reassign = [gidgud.id for gidgud in current_category.gidguds] if reassign_gidguds else False
 
-        app.logger.info(f'current_category: {current_category}')
-        app.logger.info(f'name_change: {name_change}, reassign_gidguds: {reassign_gidguds},delete afterwards: {delete_afterwards}')
+        #app.logger.info(f'current_category: {current_category}')
+        #app.logger.info(f'name_change: {name_change}, reassign_gidguds: {reassign_gidguds},delete afterwards: {delete_afterwards}')
 
         if name_change:
             app.logger.info(f'This shows up if we reach the name change statement. name_change: {name_change}')
@@ -176,7 +176,7 @@ def edit_category(id):
                 flash(f'Category {current_category.name} was renamed to {form.name.data}.')
 
         if reassign_gidguds:
-            app.logger.info(f'This shows up if we reach the reassign gidguds statement. reassign_gidguds: {reassign_gidguds}')
+            #app.logger.info(f'This shows up if we reach the reassign gidguds statement. reassign_gidguds: {reassign_gidguds}')
             new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
             for gidgud_id in gidguds_to_reassign:
                 gidgud = db.session.query(GidGud).get(gidgud_id)
@@ -185,11 +185,8 @@ def edit_category(id):
             flash(f'The GidGuds from {current_category.name} were assigned to {new_category.name}')
 
         if delete_afterwards:
-            app.logger.info(f'This shows up if we reach the delete afterwards statement. delete afterwards: {delete_afterwards}')
-            redirect_url = url_for('delete_category', id=id)
-            app.logger.info(f"Redirect URL: {redirect_url}")
-            return redirect(redirect_url)
-            #return redirect(url_for(f'delete_category', username=current_user.username, id=id))
+            #app.logger.info(f'This shows up if we reach the delete afterwards statement. delete afterwards: {delete_afterwards}')
+            return redirect(url_for(f'delete_category', username=current_user.username, id=id))
         return redirect(url_for('user_categories', username=current_user.username))
 
     elif request.method == 'GET':
@@ -205,18 +202,14 @@ def delete_category(id):
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
     else:
-        attached_gidguds = check_if_category_has_gidguds_and_return_list(current_category)
-        if not attached_gidguds:
+        if not current_category.gidguds:
             db.session.delete(current_category)
             db.session.commit()
             flash('Category deleted!')
         else:
             flash('This Category has attached GidGuds. Please assign a new Category')
-            #return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
             delete_afterwards = True
-            redirect_url = url_for('edit_category', id=id, delete_afterwards=delete_afterwards)
-            app.logger.info(f"Redirect URL: {redirect_url}")
-            return redirect(redirect_url)
+            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
         return redirect(url_for('user_categories', username=current_user.username))
 
 @app.route('/user/<username>/statistics', methods=['GET'])
