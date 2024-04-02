@@ -17,6 +17,7 @@ https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 Default for SelectField
 
 https://stackoverflow.com/questions/12099741/how-do-you-set-a-default-value-for-a-wtforms-selectfield/12100214#12100214
+https://wtforms.readthedocs.io/en/2.3.x/fields/
 
 # Bughunt
 
