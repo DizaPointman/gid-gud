@@ -1,13 +1,12 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, EditCategoryForm
+from app.forms import CreateCategoryForm, LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
 from app.utils import check_if_category_exists_and_return_or_false, create_new_category, check_if_category_has_gidguds_and_return_list, handle_name_change, handle_reassign_gidguds, update_gidgud_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
-import logging
 
 
 @app.route('/')
@@ -147,6 +146,19 @@ def complete_gidgud(id):
 def user_categories(username):
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     return render_template('user_categories.html', title='My Categories', categories=categories)
+
+@app.route('/create_category', methods=['GET', 'POST'])
+@login_required
+def create_category():
+    form = CreateCategoryForm()
+    categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
+    if form.validate_on_submit():
+        new_category = create_new_category(current_user, form.name.data)
+        db.session.add(new_category)
+        db.session.commit()
+        flash('New Category created!')
+        return redirect(url_for('user_categories', username=current_user.username))
+    return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required

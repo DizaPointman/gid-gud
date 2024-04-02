@@ -68,3 +68,53 @@
             form.name.data = current_category.name
             form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
         return render_template('edit_category.html', title='Edit Category', form=form)
+
+# Logging
+
+## SQL to log file
+
+    import logging
+    from logging.handlers import RotatingFileHandler
+    from flask import Flask
+    from flask_sqlalchemy import SQLAlchemy
+
+    # Initialize Flask application
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'your_database_uri'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('sqlalchemy.engine')
+    file_handler = RotatingFileHandler('sql.log', maxBytes=1024 * 1024, backupCount=10)
+    file_handler.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+
+    # Initialize SQLAlchemy extension
+    db = SQLAlchemy(app)
+
+    # Import routes and other modules
+    from . import routes  # Import your routes module
+
+## Log to terminal
+
+    from flask import Flask
+    from flask_sqlalchemy import SQLAlchemy
+    import logging
+
+    # Initialize Flask application
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'your_database_uri'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # Set up logging
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    logging.getLogger('sqlalchemy.engine').addHandler(logging.StreamHandler())
+
+    # Initialize SQLAlchemy extension
+    db = SQLAlchemy(app)
+
+    # Import routes and other modules
+    from . import routes  # Import your routes module
+

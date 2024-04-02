@@ -58,14 +58,17 @@ class EditGidGudForm(FlaskForm):
     category = StringField('Category', validators=[Length(max=20)])
     submit = SubmitField('Change GidGud')
 
-class EditCategoryForm(FlaskForm):
+class CreateCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    new_category = SelectField('New Category', validators=[DataRequired()])
-    #parent = StringField('Name', validators=[Length(min=1, max=20)])
-    submit = SubmitField('Save Changes')
-"""
+    submit = SubmitField('Create Category')
+
     def validate_name(self, name):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
-"""
+
+class EditCategoryForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
+    new_category = SelectField('New Category', validators=[DataRequired()])
+    #parent = SelectField('New Category')
+    submit = SubmitField('Save Changes')
