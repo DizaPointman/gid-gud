@@ -12,7 +12,11 @@ https://stackoverflow.com/questions/75379948/what-is-correct-mapped-annotation-f
 
 https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 
-# Categories
+# FlaskForm / WTForm
+
+Default for SelectField
+
+https://stackoverflow.com/questions/12099741/how-do-you-set-a-default-value-for-a-wtforms-selectfield/12100214#12100214
 
 # Bughunt
 
@@ -77,4 +81,6 @@ TabNine Pro 90 days free trial
 
 # What ToDo
 
-rearrange delete routes to split between route for updating gidguds with new category and deletion of old category
+implement correct defaults for my forms
+
+add field for parent/child category along with logic, html, route and maybe utils
