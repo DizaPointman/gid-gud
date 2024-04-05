@@ -82,6 +82,14 @@ TabNine Pro 90 days free trial
 
 # What ToDo
 
-implement correct defaults for my forms
+send params in dictionary via route to template for conditioning of template
 
-add field for parent/child category along with logic, html, route and maybe utils
+make template behave differently according to values in dict
+
+add child function etc
+
+create meaningful utils functions
+
+CHECK_ and HANDLE_ for use cases to clean up routes and dont repeat code
+
+split routes according to request type: get, delete, post, etc
