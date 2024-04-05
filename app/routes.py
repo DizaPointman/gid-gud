@@ -169,9 +169,11 @@ def edit_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
     form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
+    form.parent.choices = [current_category.parent.name or None] + [category.name for category in current_user.categories if not category.parent]
 
     if form.validate_on_submit():
         name_change = True if form.name.data != current_category.name else False
+        change_parent = True if form.parent.data != current_category.parent.name else False
         reassign_gidguds = True if form.new_category.data != current_category.name else False
         gidguds_to_reassign = [gidgud.id for gidgud in current_category.gidguds] if reassign_gidguds else False
 
@@ -186,6 +188,12 @@ def edit_category(id):
                 current_category.name = form.name.data
                 db.session.commit()
                 flash(f'Category {current_category.name} was renamed to {form.name.data}.')
+
+        if change_parent:
+            new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
+            current_category.parent = new_parent
+            db.session.commit()
+            flash(f'Category <{current_category.name}> is now a subcategory of <{new_parent.name}>')
 
         if reassign_gidguds:
             #app.logger.info(f'This shows up if we reach the reassign gidguds statement. reassign_gidguds: {reassign_gidguds}')
