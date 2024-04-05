@@ -165,6 +165,7 @@ def create_category():
 def edit_category(id):
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
+    has_children = request.args.get('has_children', 'False') == 'True'
     #app.logger.info(f'delete_afterwards: {delete_afterwards}')
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
@@ -194,13 +195,24 @@ def edit_category(id):
                 flash(f'Category {current_category.name} was renamed to {form.name.data}.')
 
         if change_parent:
-            if form.parent.data == 'None':
-                current_category.parent = None
-                flash(f'Category <{current_category.name}> is not a subcategory anymore.')
+            if has_children:
+                if form.parent.data == 'None':
+                    for category in current_category.children:
+                        category.parent = None
+                    flash(f'The subcategories of <{current_category.name}> are now normal categories.')
+                else:
+                    new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
+                    for category in current_category.children:
+                        category.parent = new_parent
+                    flash(f'The subcategories of <{current_category.name}> are now a subcategories of <{new_parent.name}>.')
             else:
-                new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
-                current_category.parent = new_parent
-                flash(f'Category <{current_category.name}> is now a subcategory of <{new_parent.name}>.')
+                if form.parent.data == 'None':
+                    current_category.parent = None
+                    flash(f'Category <{current_category.name}> is not a subcategory anymore.')
+                else:
+                    new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
+                    current_category.parent = new_parent
+                    flash(f'Category <{current_category.name}> is now a subcategory of <{new_parent.name}>.')
             db.session.commit()
 
         if reassign_gidguds:
@@ -231,14 +243,26 @@ def delete_category(id):
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
     else:
-        if not current_category.gidguds:
+        if not current_category.gidguds and not current_category.children:
             db.session.delete(current_category)
             db.session.commit()
             flash('Category deleted!')
-        else:
-            flash('This Category has attached GidGuds. Please assign a new Category')
+        elif current_category.gidguds and not current_category.children:
+            flash('This Category has attached GidGuds. Please assign a new Category.')
             delete_afterwards = True
-            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
+            has_gidguds = True
+            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards, has_gidguds=has_gidguds))
+        elif not current_category.gidguds and current_category.children:
+            flash('This Category has attached Subcategories. Please assign a new Parent.')
+            delete_afterwards = True
+            has_children = True
+            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards, has_children=has_children))
+        elif current_category.gidguds and current_category.children:
+            flash('This Category has attached GidGuds and Subcategories. Please assign a new Category and Parent.')
+            delete_afterwards = True
+            has_gidguds = True
+            has_children = True
+            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards, has_gidguds=has_gidguds, has_children=has_children))
         return redirect(url_for('user_categories', username=current_user.username))
 
 @app.route('/user/<username>/statistics', methods=['GET'])
