@@ -168,7 +168,7 @@ def edit_category(id):
     #app.logger.info(f'delete_afterwards: {delete_afterwards}')
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
-    form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
+    form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
 
     if form.validate_on_submit():
         name_change = True if form.name.data != current_category.name else False
@@ -203,7 +203,7 @@ def edit_category(id):
 
     elif request.method == 'GET':
         form.name.data = current_category.name
-        form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
+        form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
     return render_template('edit_category.html', title='Edit Category', form=form)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
