@@ -211,6 +211,7 @@ def edit_category(id):
 
     elif request.method == 'GET':
         form.name.data = current_category.name
+        form.parent.choices = [current_category.parent.name or None] + [category.name for category in current_user.categories if not category.parent]
         form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
     return render_template('edit_category.html', title='Edit Category', form=form)
 
