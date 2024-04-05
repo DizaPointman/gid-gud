@@ -69,6 +69,6 @@ class CreateCategoryForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    new_category = SelectField('New Category', validators=[DataRequired()])
+    new_category = SelectField('Reassign GidGuds to:', validators=[DataRequired()])
     #parent = SelectField('New Category')
     submit = SubmitField('Save Changes')
