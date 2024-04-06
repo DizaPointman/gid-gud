@@ -21,6 +21,12 @@ https://wtforms.readthedocs.io/en/2.3.x/fields/
 
 # Bughunt
 
+# Git
+
+# Rewind and Reset
+
+https://www.30secondsofcode.org/git/s/rewind-to-commit/
+
 ## Git Flow
 
 Semantic Versioning is used
@@ -75,6 +81,12 @@ do this for ONE functionality
 4. utils function/s
 
 REPEAT or alter existing for EACH additional feature
+
+## Helpful
+
+    # TODO: Implement error handling here
+    # FIXME: This function is not optimized
+    # BUG: This block needs refactoring
 
 # Easter Eggs
 

@@ -4,7 +4,7 @@ from app.forms import CreateCategoryForm, LoginForm, RegistrationForm, EditProfi
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import check_if_category_exists_and_return_or_false, create_new_category, check_if_category_has_gidguds_and_return_list, handle_name_change, handle_reassign_gidguds, update_gidgud_category
+from app.utils import check_if_category_exists_and_return
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -85,10 +85,11 @@ def create_gidgud():
     form = CreateGidGudForm()
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     if form.validate_on_submit():
-        category = check_if_category_exists_and_return_or_false(current_user, form.category.data)
+        category = check_if_category_exists_and_return(form.category.data)
         if not category:
-            category = create_new_category(current_user, form.category.data)
-            db.session.add(category)
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
         gidgud = GidGud(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=category)
         db.session.add(gidgud)
         db.session.commit()
@@ -106,9 +107,9 @@ def edit_gidgud(id):
         gidgud.recurrence = form.recurrence.data
         gidgud.recurrence_rhythm = form.recurrence_rhythm.data
         if form.category.data is not gidgud.category.name:
-            updated_category = check_if_category_exists_and_return_or_false(current_user, form.category.data)
+            updated_category = check_if_category_exists_and_return(form.category.data)
             if not updated_category:
-                new_category = create_new_category(current_user, form.category.data)
+                new_category = Category(name=form.category.data, user_id=current_user.id)
                 db.session.add(new_category)
                 gidgud.category = new_category
             else:
@@ -153,7 +154,7 @@ def create_category():
     form = CreateCategoryForm()
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     if form.validate_on_submit():
-        new_category = create_new_category(current_user, form.name.data)
+        new_category = Category(form.name.data, user_id=current_user.id)
         db.session.add(new_category)
         db.session.commit()
         flash('New Category created!')
@@ -171,9 +172,9 @@ def edit_category(id):
     form = EditCategoryForm()
     form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
     if current_category.parent:
-        default_choice = [current_category.parent.name] + [None]
+        default_choice = [current_category.parent.name] + ['None']
     else:
-        default_choice = [None]
+        default_choice = ['None']
     form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]
 
     if form.validate_on_submit():
