@@ -164,6 +164,11 @@ def create_category():
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
+    # TODO: create choices variables for reassigning gidguds AND parent
+    # TODO: create utility function for check if name change and update
+    # TODO: create utility function for check if parent change and update
+    # TODO: create utility function for check if reassign gidguds and update
+    # TODO: update delete_afterwards interpreter
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
     has_children = request.args.get('has_children', 'False') == 'True'
@@ -239,6 +244,9 @@ def edit_category(id):
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_category(id):
+    # TODO: create function that creates dict based on necessity of edit before delete
+    # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
+    # TODO: simplify delete_afterwards parameter
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
