@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import CreateCategoryForm, LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, EditCategoryForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
@@ -180,6 +180,7 @@ def edit_category(id):
         default_choice = [current_category.parent.name] + ['None']
     else:
         default_choice = ['None']
+    # default_choice = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
     form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]
 
     if form.validate_on_submit():

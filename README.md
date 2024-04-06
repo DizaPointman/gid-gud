@@ -23,9 +23,13 @@ https://wtforms.readthedocs.io/en/2.3.x/fields/
 
 # Git
 
-# Rewind and Reset
+## Rewind and Reset
 
 https://www.30secondsofcode.org/git/s/rewind-to-commit/
+
+## Amend
+
+git commit --amend --no-edit
 
 ## Git Flow
 
