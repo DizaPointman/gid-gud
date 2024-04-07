@@ -199,7 +199,7 @@ def edit_category(id):
 
     if form.validate_on_submit():
         name_change = True if form.name.data != current_category.name else False
-        change_parent = True if form.parent.data != default_choice else False
+        change_parent = True if form.parent.data != default_parent_choice else False
         reassign_gidguds = True if form.new_category.data != current_category.name else False
         gidguds_to_reassign = [gidgud.id for gidgud in current_category.gidguds] if reassign_gidguds else False
 
