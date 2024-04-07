@@ -169,19 +169,33 @@ def edit_category(id):
     # TODO: create utility function for check if parent change and update
     # TODO: create utility function for check if reassign gidguds and update
     # TODO: update delete_afterwards interpreter
+
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
     has_children = request.args.get('has_children', 'False') == 'True'
     #app.logger.info(f'delete_afterwards: {delete_afterwards}')
+
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
-    form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
+
+    # new version variables
+    gidgud_reassignment_choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
+    default_parent_choice = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
+    parent_reassignment_choices = default_parent_choice + [category.name for category in current_user.categories if not category.parent]
+    # assigning choices to selection fields
+    form.new_category.choices = gidgud_reassignment_choices
+    form.parent.choices = parent_reassignment_choices
+    # end variables and assign choices
+
+    # old version
+    """form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
     if current_category.parent:
         default_choice = [current_category.parent.name] + ['None']
     else:
         default_choice = ['None']
-    # default_choice = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
-    form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]
+    form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]"""
+    # old version end
+
 
     if form.validate_on_submit():
         name_change = True if form.name.data != current_category.name else False
@@ -237,9 +251,17 @@ def edit_category(id):
         return redirect(url_for('user_categories', username=current_user.username))
 
     elif request.method == 'GET':
+        # assigning choices to selection fields
         form.name.data = current_category.name
+        form.new_category.choices = gidgud_reassignment_choices
+        form.parent.choices = parent_reassignment_choices
+        # end assign choices
+
+        # old version
+        """form.name.data = current_category.name
         form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]
-        form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
+        form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]"""
+        # end old version
     return render_template('edit_category.html', title='Edit Category', form=form)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
