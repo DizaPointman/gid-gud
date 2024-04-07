@@ -164,7 +164,6 @@ def create_category():
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    # TODO: create choices variables for reassigning gidguds AND parent
     # TODO: create utility function for check if name change and update
     # TODO: create utility function for check if parent change and update
     # TODO: create utility function for check if reassign gidguds and update

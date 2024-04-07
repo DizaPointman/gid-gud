@@ -118,3 +118,32 @@
     # Import routes and other modules
     from . import routes  # Import your routes module
 
+# Utility
+
+    def category_handle_reassign_children(current_category, form):
+    """
+    Reassigns the parent category for all children categories of the current category.
+
+    Args:
+        current_category: The current category whose children are to be reassigned.
+        form: The form containing the new parent category data.
+
+    Returns:
+        bool: True if the operation is successful, False otherwise.
+    """
+    try:
+        # Find the new parent category
+        new_parent = next((category for category in current_user.categories if category.name == form.parent.data), None)
+
+        # Reassign the parent category for each child category
+        for child_category in itertools.islice(current_category.children, len(current_category.children)):
+            child_category.parent = new_parent
+
+        # Flash message indicating successful parent change
+        flash(f"Parent of children changed to {new_parent.name or 'None'}")
+        return True
+    except Exception as e:
+        # Log any exceptions that occur
+        log_exception(e)
+        return False
+
