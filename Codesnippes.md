@@ -1,5 +1,19 @@
 /* cSpell:disable */
 
+# Chat GPT
+
+I need the functionality to check the the following:
+a) a category may have a parent and children
+b) the children of a category that already has a parent are not allowed to have children
+c) a category with children where at least one child has children too, is not allowed to have a parent
+
+please evaluate where it is suitable to implement this. options:
+a) a class function for the category model
+b) a custom validator in the Flaskform
+c) a utility function
+
+list advantages and disadvantages for the different approaches. suggest better approaches
+
 # Routes
 
     @app.route('/delete_and_reassign_category/<id>', methods=['GET', 'DELETE', 'POST'])

@@ -155,8 +155,92 @@ def check_if_category_exists_and_return(new_cat_name):
         log_exception(e)
         return False
 
+def check_category_level(current_category) -> dict:
+    """
+    Check if adding a parent or children to the current category is allowed based on the maximum category level constraint.
+
+    Args:
+        current_category (Category): The category to check.
+
+    Returns:
+        dict: A dictionary indicating whether adding a parent or children is allowed.
+            - 'parent_allowed': True if adding a parent is allowed, False otherwise.
+            - 'child_allowed': True if adding children is allowed, False otherwise.
+    """
+    level: dict[str, bool] = {'parent_allowed': True, 'child_allowed': True}
+    try:
+        # Check if adding children is allowed
+        if current_category.parent and current_category.parent.parent:
+            level['child_allowed'] = False
+
+        # Check if adding a parent is allowed
+        has_grandchildren = any(category.children for category in current_category.children)
+        if has_grandchildren:
+            level['parent_allowed'] = False
+
+        return level
+    except Exception as e:
+        # Log any exceptions that occur during the process
+        log_exception(e)
+        return False
+
+def get_potential_parent_categories(current_category):
+    """
+    Get a list of potential parent categories for the given current category.
+
+    Args:
+        current_category (Category): The current category.
+
+    Returns:
+        list: A list of potential parent categories.
+    """
+    try:
+        potential_parents = []
+
+        # Case a: Current category has no children
+        if not current_category.children:
+            # Add categories that are two levels above
+            potential_parents = Category.query.filter(Category.id != current_category.id) \
+                                               .filter(Category.parent_id != current_category.id) \
+                                               .all()
+
+        # Case b: Current category has children, but the children have no children themselves
+        elif not any(child.children for child in current_category.children):
+            # Add categories that are one level above
+            potential_parents = Category.query.filter(Category.id != current_category.id) \
+                                               .filter(Category.parent_id != current_category.id) \
+                                               .all()
+
+        # Case c: The current category has children and these also have children
+        else:
+            # No parent is allowed in this case, return an empty list
+            pass
+
+        return potential_parents
+    except Exception as e:
+        # Log any exceptions that occur during the process
+        log_exception(e)
+        return []
+
 
 # Category - create_object
+
+def create_new_category(name: str, user_id: int) -> Category:
+    """
+    Create a new category with the given name and user ID.
+
+    Args:
+        name (str): The name of the new category.
+        user_id (int): The ID of the user who owns the category.
+
+    Returns:
+        Category: The newly created category object.
+    """
+    new_category = Category(name=name, user_id=user_id)
+    db.session.add(new_category)
+    db.session.commit()
+    return new_category
+
 # Category - handle_and_update_object
 
 def category_handle_rename(current_category, form):
@@ -171,12 +255,14 @@ def category_handle_rename(current_category, form):
         bool: True if the operation is successful, False otherwise.
     """
     try:
-        if form.name.data in current_user.categories:
+        if current_category.name == 'default':
+            flash('The default category may not be renamed.')
+        elif form.name.data in current_user.categories:
             flash('Category already exists. Please choose another name.')
         else:
             current_category.name = form.name.data
-            db.session.commit()
             flash(f'Category {current_category.name} was renamed to {form.name.data}.')
+            db.session.commit()
             return True
     except Exception as e:
         # Log any exceptions

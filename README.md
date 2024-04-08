@@ -109,3 +109,16 @@ create meaningful utils functions
 CHECK_ and HANDLE_ for use cases to clean up routes and dont repeat code
 
 split routes according to request type: get, delete, post, etc
+
+## TODO
+Parent check:
+Build a function that returns a list of categories as possible parent that:
+- Checks if the current category has children
+- Checks if those children have children -> no parent possible
+- Checks if the Potential parent already has a grandparent
+- if grandparent has parent -> no possible parent
+Add a function that Checks the available categories. And returns only categories that are. either allowed to have a child. Or a parent 
+
+if current category has no children -> category, category.parent allowed and category.parent.parent not allowed
+has children without own children -> category allowed
+children have children -> no parent allowed

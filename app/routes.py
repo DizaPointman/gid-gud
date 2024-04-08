@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import check_if_category_exists_and_return
+from app.utils import category_handle_change_parent, category_handle_rename, check_if_category_exists_and_return, create_new_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -148,17 +148,40 @@ def user_categories(username):
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     return render_template('user_categories.html', title='My Categories', categories=categories)
 
-@app.route('/create_category', methods=['GET', 'POST'])
+"""@app.route('/create_category', methods=['GET', 'POST'])
 @login_required
 def create_category():
     form = CreateCategoryForm()
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     if form.validate_on_submit():
-        new_category = Category(form.name.data, user_id=current_user.id)
+        new_category = Category(name=form.name.data, user_id=current_user.id)
         db.session.add(new_category)
         db.session.commit()
         flash('New Category created!')
         return redirect(url_for('user_categories', username=current_user.username))
+    return render_template('create_category.html', title='Create Category', form=form, categories=categories)"""
+
+@app.route('/create_category', methods=['GET', 'POST'])
+@login_required
+def create_category():
+    """
+    Handle requests to create a new category.
+
+    GET: Display the form to create a new category.
+    POST: Process the form submission to create a new category.
+
+    Returns:
+        flask.Response: Redirects to the user's categories page upon successful creation.
+    """
+    form = CreateCategoryForm()
+    categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
+
+    if form.validate_on_submit():
+        new_category_name = form.name.data
+        create_new_category(new_category_name, current_user.id)
+        flash('New Category created!')
+        return redirect(url_for('user_categories', username=current_user.username))
+
     return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
@@ -179,26 +202,31 @@ def edit_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     form = EditCategoryForm()
 
-    # new version variables
+    # choices: all categories except the current category
     gidgud_reassignment_choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
+
+    # choices: current category, None, all categories without parent, 'default' category excluded
     default_parent_choice = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
     parent_reassignment_choices = default_parent_choice + [category.name for category in current_user.categories if not category.parent or category.name == 'default']
+
     # assigning choices to selection fields
     form.new_category.choices = gidgud_reassignment_choices
     form.parent.choices = parent_reassignment_choices
-    # end variables and assign choices
-
-    # old version
-    """form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
-    if current_category.parent:
-        default_choice = [current_category.parent.name] + ['None']
-    else:
-        default_choice = ['None']
-    form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]"""
-    # old version end
-
 
     if form.validate_on_submit():
+
+        """
+        # check if form contains new category name
+        if form.name.data != current_category.name:
+            # assign new category name
+            category_handle_rename(current_category, form)
+
+        # check if form contains new parent
+        if form.parent.data != default_parent_choice:
+            # assign new parent
+            category_handle_change_parent(current_category, form)
+        """
+
         name_change = True if form.name.data != current_category.name else False
         change_parent = True if form.parent.data != default_parent_choice else False
         reassign_gidguds = True if form.new_category.data != current_category.name else False
@@ -252,17 +280,10 @@ def edit_category(id):
         return redirect(url_for('user_categories', username=current_user.username))
 
     elif request.method == 'GET':
-        # assigning choices to selection fields
+        # populating fields for get requests
         form.name.data = current_category.name
         form.new_category.choices = gidgud_reassignment_choices
         form.parent.choices = parent_reassignment_choices
-        # end assign choices
-
-        # old version
-        """form.name.data = current_category.name
-        form.parent.choices = default_choice + [category.name for category in current_user.categories if not category.parent]
-        form.new_category.choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]"""
-        # end old version
     return render_template('edit_category.html', title='Edit Category', form=form)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
