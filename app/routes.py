@@ -164,9 +164,11 @@ def create_category():
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    # TODO: create utility function for check if name change and update
-    # TODO: create utility function for check if parent change and update
-    # TODO: create utility function for check if reassign gidguds and update
+    # TODO: Implement created utility functions
+        # TODO: Implement name change
+        # TODO: Implement parent change
+        # TODO: Implement reassign children
+        # TODO: Implement reassign gidguds
     # TODO: update delete_afterwards interpreter
 
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
@@ -180,7 +182,7 @@ def edit_category(id):
     # new version variables
     gidgud_reassignment_choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
     default_parent_choice = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
-    parent_reassignment_choices = default_parent_choice + [category.name for category in current_user.categories if not category.parent]
+    parent_reassignment_choices = default_parent_choice + [category.name for category in current_user.categories if not category.parent or category.name == 'default']
     # assigning choices to selection fields
     form.new_category.choices = gidgud_reassignment_choices
     form.parent.choices = parent_reassignment_choices

@@ -1,3 +1,5 @@
+/* cSpell:disable */
+
 **Project Information:**
 
 - **Technical Environment:**

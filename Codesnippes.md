@@ -1,3 +1,5 @@
+/* cSpell:disable */
+
 # Routes
 
     @app.route('/delete_and_reassign_category/<id>', methods=['GET', 'DELETE', 'POST'])
