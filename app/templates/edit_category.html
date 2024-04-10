@@ -4,55 +4,23 @@
 
     {% if delete_afterwards %}
 
-        {% if has_gidguds and not has_children %}
-
-            <h1>Please assign a new category for attached GidGuds before deleting the category.</h1>
-            <form action="" method="post">
-                {{ form.hidden_tag() }}
-                <p>
-                    {{ form.new_category.label }} {{ form.new_category }}<br>
-                    {% for error in form.new_category.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>{{ form.submit() }}</p>
-            </form>
-
-        {% elif has_children and not has_gidguds %}
-
-            <h1>Please assign a new parent category for the attached subcategories before deleting the category.</h1>
-            <form action="" method="post">
-                {{ form.hidden_tag() }}
-                <p>
-                    {{ form.parent.label }} {{ form.parent }}<br>
-                    {% for error in form.parent.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>{{ form.submit() }}</p>
-            </form>
-
-        {% else %}
-
-            <h1>Please assign a new parent category for the attached subcategories and reassign attached GidGuds before deleting the category.</h1>
-            <form action="" method="post">
-                {{ form.hidden_tag() }}
-                <p>
-                    {{ form.parent.label }} {{ form.parent }}<br>
-                    {% for error in form.parent.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>
-                    {{ form.new_category.label }} {{ form.new_category }}<br>
-                    {% for error in form.new_category.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>
-                <p>{{ form.submit() }}</p>
-            </form>
-
-        {% endif %}
+        <h1>Edit Category</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.parent.label }} {{ form.parent }}<br>
+                {% for error in form.parent.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                {% for error in form.reassign_gidguds.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>{{ form.submit() }}</p>
+        </form>
 
     {% else %}
 
@@ -72,8 +40,8 @@
                 {% endfor %}
             </p>
             <p>
-                {{ form.new_category.label }} {{ form.new_category }}<br>
-                {% for error in form.new_category.errors %}
+                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                {% for error in form.reassign_gidguds.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>

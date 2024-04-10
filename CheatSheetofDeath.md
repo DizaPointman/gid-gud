@@ -2,21 +2,23 @@
 
 **Cheatcheat of Death**
 - [Linux](#linux)
-  - [CLI](#cli)
+	- [CLI](#cli)
 - [VS Code](#vs-code)
-  - [Extensions](#extensions)
-    - [Code Spell Checker](#code-spell-checker)
+	- [Extensions](#extensions)
+		- [Code Spell Checker](#code-spell-checker)
 - [Python](#python)
-  - [Best practices](#best-practices)
-  - [Iterators](#iterators)
-  - [Especially fast libraries](#especially-fast-libraries)
-  - [Frameworks](#frameworks)
-    - [Flask](#flask)
-  - [Technologies](#technologies)
+	- [Best practices](#best-practices)
+	- [Iterators](#iterators)
+	- [Especially fast libraries](#especially-fast-libraries)
+	- [Frameworks](#frameworks)
+		- [Flask](#flask)
+			- [Logging](#logging)
+			- [Debugging](#debugging)
+	- [Technologies](#technologies)
 - [Databases](#databases)
-  - [Loading](#loading)
-  - [SQLAlchemy](#sqlalchemy)
-    - [Loading](#loading-1)
+	- [Loading](#loading)
+	- [SQLAlchemy](#sqlalchemy)
+		- [Loading](#loading-1)
 
 # Linux
 
@@ -56,6 +58,15 @@ Enable Checking
 ## Frameworks
 
 ### Flask
+
+#### Logging
+
+Logging in non route files:
+
+	from flask import current_app
+	current_app.logger.info("info message from util")
+
+#### Debugging
 
 ## Technologies
 

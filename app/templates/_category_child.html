@@ -1,0 +1,10 @@
+<table>
+    <tr valign="top">
+        <td>Category: {{ child.name }}</td>
+    </tr>
+    <tr>
+        <td><a href="{{ url_for('edit_category', id=child.id) }}">Edit Category</a></td>
+        <td><a href="{{ url_for('delete_category', id=child.id) }}">Delete Category</a></td>
+    </tr>
+</table>
+<hr>

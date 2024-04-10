@@ -14,78 +14,86 @@ c) a utility function
 
 list advantages and disadvantages for the different approaches. suggest better approaches
 
+# Create default category on registration
+
+    from sqlalchemy import event
+
+    # Define your User and Category models here
+
+    # Define event listener function to create default category for new users
+    def create_default_category_for_user(mapper, connection, target):
+        from your_module import db, Category  # Import the necessary modules
+
+        # Create a default category for the new user
+        default_category = Category(name='default', user=target)
+        db.session.add(default_category)
+        db.session.commit()
+
+    # Attach the event listener to the User model
+    event.listen(User, 'after_insert', create_default_category_for_user)
+
+    # Informative message to Sensei
+    print("A default category will be created for each new user.")
+
 # Routes
 
-    @app.route('/delete_and_reassign_category/<id>', methods=['GET', 'DELETE', 'POST'])
-    @login_required
-    def delete_and_reassign_category(id):
-        current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-        cat_name = current_category.name
-        form = AssignNewCategoryOnDelete()
-        form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
-        if form.validate_on_submit():
-            attached_gidguds = check_if_category_has_gidguds_and_return_list(current_category)
-            for gidgud in attached_gidguds:
-                app.logger.info(f"ID: {gidgud.id}, BODY:{gidgud}, Category ID: {gidgud.category.id} Category GidGuds: {gidgud.category.gidguds}")
-            new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
-            app.logger.info(f"Current Cat ID: {current_category.id}, Current Cat Name: {current_category}, GidGuds: {current_category.gidguds}")
-            app.logger.info(f"New Cat ID: {new_category.id}, New Cat Name: {new_category}, GidGuds: {new_category.gidguds}")
-            for gidgud in attached_gidguds:
-                gidgud.category = new_category
-                app.logger.info(f"GidGud ID: {gidgud.id}, Category: {gidgud.category}, GidGuds: {gidgud.category.gidguds}")
-                #update_gidgud_category(gidgud, new_category)
-            db.session.commit()
-            db.session.delete(current_category)
-            db.session.commit()
-            flash(f'Category: {cat_name} deleted!')
-            return redirect(url_for('user_categories', username=current_user.username))
-        return render_template('delete_and_reassign_category.html', title='Assign new Category', form=form, id=id)
-
-
-
-    @app.route('/edit_category/<id>', methods=['GET', 'DELETE', 'POST'])
-    @login_required
-    def edit_category(id):
-        current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-        form = EditCategoryForm()
-        form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
-        if form.validate_on_submit():
-
-            if form.name.data != current_category.name:
-                if form.name.data in current_user.categories:
-                    flash('Category already exists. Please choose another name.')
-                else:
-                    if form.new_category.data == current_category.name and current_category.name != form.name.data:
-                        current_category.name = form.name.data
-                        db.session.commit()
-                        flash(f'Category {current_category.name} was renamed to {form.name.data}.')
-                        return redirect(url_for('user_categories', username=current_user.username))
-                    elif form.new_category.data == current_category.name and current_category.name == form.name.data:
-                        flash('No changes were made.')
-                        return redirect(url_for('user_categories', username=current_user.username))
-                    elif form.new_category.data != current_category.name and current_category.name != form.name.data:
-                        current_category.name = form.name.data
-                        db.session.commit()
-                        new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
-                        for gidgud in new_category.gidguds:
-                            update_gidgud_category(gidgud, new_category)
-                            db.session.commit()
-                        flash(f'Category {current_category.name} was renamed to {form.name.data}.')
-                        flash(f'Attached GidGuds were assigned from Category {current_category.name} to Category {new_category.name}')
-                        return redirect(url_for('user_categories', username=current_user.username))
-                    elif form.new_category.data != current_category.name and current_category.name == form.name.data:
-                        new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
-                        for gidgud in new_category.gidguds:
-                            update_gidgud_category(gidgud, new_category)
-                            db.session.commit()
-                        flash(f'Attached GidGuds were assigned from Category {current_category.name} to Category {new_category.name}')
-                        return redirect(url_for('user_categories', username=current_user.username))
-        elif request.method == 'GET':
-            form.name.data = current_category.name
-            form.new_category.choices = [category.name for category in current_user.categories if category != current_category]
-        return render_template('edit_category.html', title='Edit Category', form=form)
-
 # Logging
+
+# Routes
+
+Former part of edit category route
+
+        name_change = True if form.name.data != current_category.name else False
+        change_parent = True if form.parent.data != default_parent_choices else False
+        reassign_gidguds = True if form.new_category.data != current_category.name else False
+        gidguds_to_reassign = [gidgud.id for gidgud in current_category.gidguds] if reassign_gidguds else False
+
+        #app.logger.info(f'current_category: {current_category}')
+        #app.logger.info(f'name_change: {name_change}, reassign_gidguds: {reassign_gidguds},delete afterwards: {delete_afterwards}')
+
+        if name_change:
+            app.logger.info(f'This shows up if we reach the name change statement. name_change: {name_change}')
+            if form.name.data in current_user.categories:
+                flash('Category already exists. Please choose another name.')
+            else:
+                current_category.name = form.name.data
+                db.session.commit()
+                flash(f'Category {current_category.name} was renamed to {form.name.data}.')
+
+        if change_parent:
+            if has_children:
+                if form.parent.data == 'None':
+                    for category in current_category.children:
+                        category.parent = None
+                    flash(f'The subcategories of <{current_category.name}> are now normal categories.')
+                else:
+                    new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
+                    for category in current_category.children:
+                        category.parent = new_parent
+                    flash(f'The subcategories of <{current_category.name}> are now a subcategories of <{new_parent.name}>.')
+            else:
+                if form.parent.data == 'None':
+                    current_category.parent = None
+                    flash(f'Category <{current_category.name}> is not a subcategory anymore.')
+                else:
+                    new_parent = db.session.scalar(sa.select(Category).where(Category.name == form.parent.data))
+                    current_category.parent = new_parent
+                    flash(f'Category <{current_category.name}> is now a subcategory of <{new_parent.name}>.')
+            db.session.commit()
+
+        if reassign_gidguds:
+            #app.logger.info(f'This shows up if we reach the reassign gidguds statement. reassign_gidguds: {reassign_gidguds}')
+            new_category = db.session.scalar(sa.select(Category).where(Category.name == form.new_category.data))
+            for gidgud_id in gidguds_to_reassign:
+                gidgud = db.session.query(GidGud).get(gidgud_id)
+                gidgud.category = new_category
+            db.session.commit()
+            flash(f'The GidGuds from {current_category.name} were assigned to {new_category.name}')
+
+        if delete_afterwards:
+            #app.logger.info(f'This shows up if we reach the delete afterwards statement. delete afterwards: {delete_afterwards}')
+            return redirect(url_for(f'delete_category', username=current_user.username, id=id))
+        return redirect(url_for('user_categories', username=current_user.username))
 
 ## SQL to log file
 

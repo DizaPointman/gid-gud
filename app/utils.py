@@ -1,6 +1,6 @@
 # utils.py
 
-from flask import flash
+from flask import flash, current_app
 from flask_login import current_user
 from app.models import User, GidGud, Category
 from app import db
@@ -156,6 +156,7 @@ def check_if_category_exists_and_return(new_cat_name):
         return False
 
 def category_check_and_return_possible_parents(current_category):
+    current_app.logger.info(f'possible parents: starting')
     """Return a list of potential parent categories for the given current_category,
     adhering to a maximum of 3 category levels.
 
@@ -178,32 +179,24 @@ def category_check_and_return_possible_parents(current_category):
         possible_parents = []
 
         # Case A: Category has no children
+        current_app.logger.info(f'possible parents: before case 1')
         if not current_category.children:
-            possible_parents = Category.query.filter(
-                Category.id != current_category.id,
-                Category.parent_id == None,
-                Category.parent.has(parent_id=None),  # Ensure no grandparent
-                ~Category.name.ilike('default')
-            ).all()
+            current_app.logger.info(f'possible parents: in case 1 before query')
+            possible_parents = [category.name for category in current_user.categories if (category.parent == None or category.parent.parent == None) and category.name != 'default']
+            current_app.logger.info(possible_parents)
 
         # Case B: Category has children, and the children do not have children
         elif current_category.children and not any(category.children for category in current_category.children):
-            possible_parents = Category.query.filter(
-                Category.id != current_category.id,
-                Category.parent_id == None,  # Ensure no grandparent
-                ~Category.name.ilike('default')
-            ).all()
+            current_app.logger.info(f'possible parents: in case 2')
+            possible_parents = possible_parents = [category.name for category in current_user.categories if category.parent == None and category.name != 'default']
 
         # Case C: Category has children with children
         else:
+            current_app.logger.info(f'possible parents: in case 3')
             # No suitable parents for categories with grandchildren
             pass
 
         return possible_parents
-
-    except Exception as e:
-        log_exception(e)
-        return []
 
     except Exception as e:
         # Log any exceptions that occur during the process
@@ -336,6 +329,7 @@ def category_handle_reassign_children(current_category, form):
 
 
 def category_handle_reassign_gidguds(current_category, form):
+    #BUG: does not reassign all gidguds
     """
     Reassign gidguds from the current category to a new category based on user input.
 
@@ -352,7 +346,8 @@ def category_handle_reassign_gidguds(current_category, form):
 
     try:
         # Retrieve new category for gidguds
-        new_category_for_gidguds = form.new_category.data
+        #TODO: correct the 50% bug
+        new_category_for_gidguds = form.reassign_gidguds.data
         new_category_for_gidguds = next((category for category in current_user.categories if category.name == new_category_for_gidguds), default_category)
 
         if new_category_for_gidguds:
