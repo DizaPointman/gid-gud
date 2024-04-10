@@ -155,73 +155,57 @@ def check_if_category_exists_and_return(new_cat_name):
         log_exception(e)
         return False
 
-def check_category_level(current_category) -> dict:
-    """
-    Check if adding a parent or children to the current category is allowed based on the maximum category level constraint.
+def category_check_and_return_possible_parents(current_category):
+    """Return a list of potential parent categories for the given current_category,
+    adhering to a maximum of 3 category levels.
 
     Args:
-        current_category (Category): The category to check.
+        current_category (Category): The current category for which potential parents are to be determined.
 
     Returns:
-        dict: A dictionary indicating whether adding a parent or children is allowed.
-            - 'parent_allowed': True if adding a parent is allowed, False otherwise.
-            - 'child_allowed': True if adding children is allowed, False otherwise.
-    """
-    level: dict[str, bool] = {'parent_allowed': True, 'child_allowed': True}
-    try:
-        # Check if adding children is allowed
-        if current_category.parent and current_category.parent.parent:
-            level['child_allowed'] = False
+        list[Category]: A list of potential parent categories, or an empty list if no suitable parents are found.
 
-        # Check if adding a parent is allowed
-        has_grandchildren = any(category.children for category in current_category.children)
-        if has_grandchildren:
-            level['parent_allowed'] = False
+    Raises:
+        Exception: Any exception that occurs during the process is logged and an empty list is returned.
 
-        return level
-    except Exception as e:
-        # Log any exceptions that occur during the process
-        log_exception(e)
-        return False
+    Notes:
+        - Case A: Categories with no children allow parents that have no parent (i.e., no grandparent).
+        - Case B: Categories with children (but children have no children themselves) allow parents with no parent.
+        - Case C: Categories with children that have children do not allow parents.
 
-def get_potential_parent_categories(current_category):
-    """
-    Get a list of potential parent categories for the given current category.
-
-    Args:
-        current_category (Category): The current category.
-
-    Returns:
-        list: A list of potential parent categories.
     """
     try:
-        potential_parents = []
+        possible_parents = []
 
-        # Case a: Current category has no children
+        # Case A: Category has no children
         if not current_category.children:
-            # Add categories that are two levels above
-            potential_parents = Category.query.filter(Category.id != current_category.id) \
-                                               .filter(Category.parent_id != current_category.id) \
-                                               .all()
+            possible_parents = Category.query.filter(
+                Category.id != current_category.id,
+                Category.parent_id == None,
+                Category.parent.has(parent_id=None)  # Ensure no grandparent
+            ).all()
 
-        # Case b: Current category has children, but the children have no children themselves
-        elif not any(child.children for child in current_category.children):
-            # Add categories that are one level above
-            potential_parents = Category.query.filter(Category.id != current_category.id) \
-                                               .filter(Category.parent_id != current_category.id) \
-                                               .all()
+        # Case B: Category has children, and the children do not have children
+        elif current_category.children and not any(category.children for category in current_category.children):
+            possible_parents = Category.query.filter(
+                Category.id != current_category.id,
+                Category.parent_id == None  # Ensure no grandparent
+            ).all()
 
-        # Case c: The current category has children and these also have children
+        # Case C: Category has children with children
         else:
-            # No parent is allowed in this case, return an empty list
+            # No suitable parents for categories with grandchildren
             pass
 
-        return potential_parents
+        return possible_parents
+
     except Exception as e:
-        # Log any exceptions that occur during the process
         log_exception(e)
         return []
 
+
+def category_child_protection_service():
+    return True
 
 # Category - create_object
 
