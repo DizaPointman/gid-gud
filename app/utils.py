@@ -203,7 +203,6 @@ def category_check_and_return_possible_parents(current_category):
         log_exception(e)
         return []
 
-
 def category_child_protection_service():
     return True
 
