@@ -182,14 +182,16 @@ def category_check_and_return_possible_parents(current_category):
             possible_parents = Category.query.filter(
                 Category.id != current_category.id,
                 Category.parent_id == None,
-                Category.parent.has(parent_id=None)  # Ensure no grandparent
+                Category.parent.has(parent_id=None),  # Ensure no grandparent
+                ~Category.name.ilike('default')
             ).all()
 
         # Case B: Category has children, and the children do not have children
         elif current_category.children and not any(category.children for category in current_category.children):
             possible_parents = Category.query.filter(
                 Category.id != current_category.id,
-                Category.parent_id == None  # Ensure no grandparent
+                Category.parent_id == None,  # Ensure no grandparent
+                ~Category.name.ilike('default')
             ).all()
 
         # Case C: Category has children with children
@@ -202,6 +204,12 @@ def category_check_and_return_possible_parents(current_category):
     except Exception as e:
         log_exception(e)
         return []
+
+    except Exception as e:
+        # Log any exceptions that occur during the process
+        log_exception(e)
+        return False
+
 
 def category_child_protection_service():
     return True
