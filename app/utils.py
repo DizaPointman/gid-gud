@@ -155,16 +155,16 @@ def check_if_category_exists_and_return(new_cat_name):
         log_exception(e)
         return False
 
-def category_check_and_return_possible_parents(current_category):
-    current_app.logger.info(f'possible parents: starting')
-    """Return a list of potential parent categories for the given current_category,
+def check_and_return_list_of_possible_parents(current_category) -> list[str]:
+    """
+    Return a list of potential parent categories for the given current_category,
     adhering to a maximum of 3 category levels.
 
     Args:
         current_category (Category): The current category for which potential parents are to be determined.
 
     Returns:
-        list[Category]: A list of potential parent categories, or an empty list if no suitable parents are found.
+        list[str]: A list of potential parent category names, including 'No Parent' option, or an empty list if no suitable parents are found.
 
     Raises:
         Exception: Any exception that occurs during the process is logged and an empty list is returned.
@@ -179,20 +179,15 @@ def category_check_and_return_possible_parents(current_category):
         possible_parents = []
 
         # Case A: Category has no children
-        current_app.logger.info(f'possible parents: before case 1')
         if not current_category.children:
-            current_app.logger.info(f'possible parents: in case 1 before query')
-            possible_parents = [category.name for category in current_user.categories if (category.parent == None or category.parent.parent == None) and category.name != 'default']
-            current_app.logger.info(possible_parents)
+            possible_parents = [category.name for category in current_user.categories if (category.parent is None or category.parent.parent is None) and category.name != 'default']
 
         # Case B: Category has children, and the children do not have children
         elif current_category.children and not any(category.children for category in current_category.children):
-            current_app.logger.info(f'possible parents: in case 2')
-            possible_parents = possible_parents = [category.name for category in current_user.categories if category.parent == None and category.name != 'default']
+            possible_parents = [category.name for category in current_user.categories if category.parent is None and category.name != 'default']
 
         # Case C: Category has children with children
         else:
-            current_app.logger.info(f'possible parents: in case 3')
             # No suitable parents for categories with grandchildren
             pass
 
@@ -201,11 +196,45 @@ def category_check_and_return_possible_parents(current_category):
     except Exception as e:
         # Log any exceptions that occur during the process
         log_exception(e)
-        return False
+        return []
 
+def check_and_return_list_of_possible_parents_for_children(current_category) -> list[str]:
+    """
+    Check and return the list of potential parent categories for the children of the given category.
 
-def category_child_protection_service():
-    return True
+    Args:
+        current_category (Category): The category whose children are to be considered.
+
+    Returns:
+        list[str]: A list of potential parent categories for the children.
+    """
+    try:
+        possible_parents = []
+        remove_parent = ['No Parent']
+
+        # Ensure eager loading of children to avoid N+1 query issue
+        current_category = Category.query.filter_by(id=current_category.id).options(selectinload(Category.children)).first()
+
+        # Check if any child category has children
+        if current_category.children:
+            # Check if any child category has its own children
+            first_child_with_grandchildren = next((category for category in current_category.children if category.children), None)
+
+            if first_child_with_grandchildren:
+                # If a child category has grandchildren, determine potential parent categories recursively
+                possible_parents = check_and_return_list_of_possible_parents(first_child_with_grandchildren)
+            else:
+                # If no child category has grandchildren, determine potential parent categories for any child
+                possible_parents = check_and_return_list_of_possible_parents(current_category.children[0])
+
+            possible_parents = remove_parent + possible_parents
+
+        return possible_parents
+
+    except Exception as e:
+        # Log the exception with details
+        log_exception(f"An error occurred while checking possible parent categories for children: {str(e)}")
+        return []
 
 # Category - create_object
 
@@ -289,85 +318,87 @@ def category_handle_change_parent(current_category, form):
         return False
 
 
-def category_handle_reassign_children(current_category, form):
+def category_child_protection_service(current_category, form):
     """
-    Reassign children categories of the current category to a new parent category based on user input.
+    Reassign children from the current category to a new parent category or remove them from their parent based on user input.
+
+    This function reassigns all categories belonging to the current category to a new parent category specified by the user through a form input. 
+    If the specified new category is 'None', the categories are removed from their parent.
 
     Args:
-        current_category: The current category whose children will be reassigned.
-        form: The form containing user input, including the new parent category.
+        current_category: The current category whose children will be reassigned or removed.
+        form: The Flask-WTF form object containing user input, including the name of the new parent category.
 
     Returns:
         bool: True if the operation is successful, False otherwise.
     """
-
     try:
-        # Retrieve new parent category for children
-        new_parent_name = form.parent.data
-        new_parent = next((category for category in current_user.categories if category.name == new_parent_name), None)
+        # Extract the name of the new parent category from the form input
+        new_name = form.reassign_children.data
 
-        if new_parent:
-            # Use selectinload to eagerly load children of current_category
-            db.session.query(Category).filter_by(id=current_category.id).options(selectinload(Category.children)).first()
-
-            # Update parent for each child category
-            for child_category in current_category.children:
-                child_category.parent = new_parent
-
-            # Flash message
-            flash(f"Parent of children changed to {new_parent_name}")
-            # Commit changes
-            db.session.commit()
-            return True
+        # Find the new parent category based on the provided name or set it to None if 'None' is specified
+        if new_name == 'No Parent':
+            new_parent_category_id = None
         else:
-            flash(f"Parent category '{new_parent_name}' not found.")
-            return False
+            new_parent_category_id = next((c.id for c in current_user.categories if c.name == new_name), None)
+
+        # Update the parent_id of categories belonging to the current category using a query update
+        db.session.query(Category).filter(Category.parent_id == current_category.id).update(
+            {Category.parent_id: new_parent_category_id}, synchronize_session=False)
+
+        # Commit the database transaction
+        db.session.commit()
+
+        # Provide feedback to the user about the successful reassignment or removal
+        if new_parent_category_id:
+            flash(f"Children reassigned to {new_name}")
+        else:
+            flash("Children removed from parent.")
+
+        return True
     except Exception as e:
-        # Log any exceptions
+        # Log any exceptions that occur during the operation
         log_exception(e)
         return False
 
 
 def category_handle_reassign_gidguds(current_category, form):
-    #BUG: does not reassign all gidguds
     """
     Reassign gidguds from the current category to a new category based on user input.
 
+    This function reassigns all gidguds belonging to the current category to a new category specified by the user through a form input. 
+    If the specified new category does not exist, the gidguds are reassigned to a default category.
+
     Args:
         current_category: The current category from which gidguds will be reassigned.
-        form: The form containing user input, including the new category.
+        form: The Flask-WTF form object containing user input, including the name of the new category.
 
     Returns:
         bool: True if the operation is successful, False otherwise.
     """
-
-    # Set default category as default for gidguds to be reassigned
-    default_category = Category.query.filter(Category.name == 'default').first()
-
     try:
-        # Retrieve new category for gidguds
-        #TODO: correct the 50% bug
-        new_category_for_gidguds = form.reassign_gidguds.data
-        new_category_for_gidguds = next((category for category in current_user.categories if category.name == new_category_for_gidguds), default_category)
+        # Extract the name of the new category from the form input
+        new_name = form.reassign_gidguds.data
 
-        if new_category_for_gidguds:
-            # Use selectinload to eagerly load gidguds of current_category
-            db.session.query(Category).filter_by(id=current_category.id).options(selectinload(Category.gidguds)).first()
+        # Find the new category based on the provided name or default to a predefined default category
+        new_category = next((c for c in current_user.categories if c.name == new_name), Category.query.filter_by(name='default').first())
 
-            # Update category for each gidgud of current_category
-            for gidgud in current_category.gidguds:
-                gidgud.category = new_category_for_gidguds
+        if new_category:
+            # Update the category_id of gidguds belonging to the current category to the id of the new category
+            db.session.query(GidGud).filter(GidGud.category_id == current_category.id).update(
+                {GidGud.category_id: new_category.id}, synchronize_session=False)
 
-            # Flash message
-            flash(f"GidGuds reassigned to {new_category_for_gidguds.name}")
-            # Commit changes
+            # Commit the database transaction
             db.session.commit()
+
+            # Provide feedback to the user about the successful reassignment
+            flash(f"GidGuds reassigned to {new_category.name}")
             return True
         else:
-            flash(f"Parent category '{new_category_for_gidguds}' not found.")
+            # Flash a message indicating that the specified parent category was not found
+            flash(f"Parent category '{new_name}' not found.")
             return False
     except Exception as e:
-        # Log any exceptions
+        # Log any exceptions that occur during the operation
         log_exception(e)
         return False
-

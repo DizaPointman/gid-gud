@@ -4,7 +4,7 @@
 
     {% if delete_afterwards %}
 
-        <h1>Edit Category</h1>
+        <h1>Edit Category before Deletion</h1>
         <form action="" method="post">
             {{ form.hidden_tag() }}
             <p>
@@ -16,6 +16,12 @@
             <p>
                 {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
                 {% for error in form.reassign_gidguds.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {% for error in form.reassign_children.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
@@ -42,6 +48,12 @@
             <p>
                 {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
                 {% for error in form.reassign_gidguds.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {% for error in form.reassign_children.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>

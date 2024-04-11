@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_check_and_return_possible_parents, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_if_category_exists_and_return, create_new_category
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -174,9 +174,8 @@ def create_category():
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    # TODO: Implement created utility functions
-        # TODO: Implement reassign children
     # TODO: update delete_afterwards interpreter
+    # TODO: change choices to exclude the current category on deletion
 
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
@@ -189,33 +188,22 @@ def edit_category(id):
     # Choices: all categories except the current category
     gidgud_reassignment_choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
 
-    # Construct a list of default parent choices, starting with the name of the current category's parent if it exists,
-    # otherwise set it to 'None'
-    default_parent_choices = [current_category.parent.name] + ['None'] if current_category.parent else ['None']
-    app.logger.info(f'default parent choices: {default_parent_choices}')
+    default_parent_choices = [current_category.parent.name] + ['No Parent'] if current_category.parent else ['No Parent']
+    parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
 
-    # Retrieve a list of possible parent categories for the given current category if it's not the default category
-    app.logger.info(f'before calling category check for parents')
-    possible_parent_choices = [] if current_category.name == 'default' else category_check_and_return_possible_parents(current_category)
-    app.logger.info(f'possible parents in route: {possible_parent_choices}')
-
-    # Combine the default parent choices with the possible parent choices to form the final list of parent choices
-    parent_choices = default_parent_choices + possible_parent_choices
-    app.logger.info(f'final parent_choices: {parent_choices}')
+    default_parent_choices_for_children = ['No Children']
+    parent_choices_for_children = check_and_return_list_of_possible_parents_for_children(current_category) or default_parent_choices_for_children
 
     form = EditCategoryForm()
     # Assigning choices to selection fields
-    form.reassign_gidguds.choices = gidgud_reassignment_choices
     form.parent.choices = parent_choices
-
-    #I need current_category.parent.name to return the name or 'None' as a string if the parent is a None object
-    current_parent = 'None' if current_category.parent is None else current_category.parent.name
-    app.logger.info(f'current parent: {current_parent}')
+    form.reassign_gidguds.choices = gidgud_reassignment_choices
+    form.reassign_children.choices = parent_choices_for_children
 
     if form.validate_on_submit():
 
         # Check if form contains new parent
-        if form.parent.data != current_parent:
+        if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
             app.logger.info(f'calling parent change: old:{current_category.parent}, new: {form.parent.data}')
             # Assign new parent
             category_handle_change_parent(current_category, form)
@@ -225,6 +213,11 @@ def edit_category(id):
             app.logger.info(f'calling reassign gidguds: old:{current_category.name}, new: {form.reassign_gidguds.data}')
             # Assign gidguds to new category
             category_handle_reassign_gidguds(current_category, form)
+
+        # Check if form contains a new parent category for the current category's children
+        if form.reassign_children.data not in (default_parent_choices_for_children, current_category.name):
+            # Assign children categories to the new parent category
+            category_child_protection_service(current_category, form)
 
         # Check if form contains new category name
         if form.name.data != current_category.name:
@@ -242,6 +235,7 @@ def edit_category(id):
         form.name.data = current_category.name
         form.parent.choices = parent_choices
         form.reassign_gidguds.choices = gidgud_reassignment_choices
+        form.reassign_children.choices = parent_choices_for_children
     return render_template('edit_category.html', title='Edit Category', form=form)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])

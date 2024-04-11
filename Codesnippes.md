@@ -35,11 +35,33 @@ list advantages and disadvantages for the different approaches. suggest better a
     # Informative message to Sensei
     print("A default category will be created for each new user.")
 
-# Routes
+# Template
+
+
+            <p>
+                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {% for error in form.reassign_children.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
 
 # Logging
 
 # Routes
+
+    # Construct a list of default parent choices, starting with the name of the current category's parent if it exists,
+    # otherwise set it to 'No Parent'
+    default_parent_choices = [current_category.parent.name] + ['No Parent'] if current_category.parent else ['No Parent']
+    app.logger.info(f'default parent choices: {default_parent_choices}')
+
+    # Retrieve a list of possible parent categories for the given current category if it's not the default category
+    app.logger.info(f'before calling category check for parents')
+    possible_parent_choices = [] if current_category.name == 'default' else category_check_and_return_possible_parents(current_category)
+    app.logger.info(f'possible parents in route: {possible_parent_choices}')
+
+    # Combine the default parent choices with the possible parent choices to form the final list of parent choices
+    parent_choices = default_parent_choices + possible_parent_choices
+    app.logger.info(f'final parent_choices: {parent_choices}')
 
 Former part of edit category route
 
