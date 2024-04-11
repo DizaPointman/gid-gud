@@ -103,6 +103,8 @@ class GidGud(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
+    # TODO: sanitizing gidgud attributes (whitespace characters at end or beginning) check other cases for problems
+
 class Category(db.Model):
     """
     Represents a category in the application.
@@ -132,6 +134,12 @@ class Category(db.Model):
 
     def __repr__(self):
         return '<Category {}>'.format(self.name)
+
+    # TODO: add creation of 'default' category on user creation
+    # TODO: sanitizing category names (whitespace characters at end or beginning) check other cases for problems
+    # TODO: add protection for default?
+    # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
+    # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
 
 @login.user_loader
 def load_user(id):
