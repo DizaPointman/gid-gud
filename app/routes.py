@@ -176,6 +176,7 @@ def create_category():
 def edit_category(id):
     # TODO: update delete_afterwards interpreter
     # TODO: change choices to exclude the current category on deletion
+    # TODO: add multiple children at once
 
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
     delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'

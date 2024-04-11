@@ -340,7 +340,7 @@ def category_child_protection_service(current_category, form):
         if new_name == 'No Parent':
             new_parent_category_id = None
         else:
-            new_parent_category_id = next((c.id for c in current_user.categories if c.name == new_name), None)
+            new_parent_category_id = next((category.id for category in current_user.categories if category.name == new_name), None)
 
         # Update the parent_id of categories belonging to the current category using a query update
         db.session.query(Category).filter(Category.parent_id == current_category.id).update(
