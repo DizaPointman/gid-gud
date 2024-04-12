@@ -179,8 +179,13 @@ def edit_category(id):
     # TODO: add multiple children at once
 
     #app.logger.info(f'Starting the edit_category route for category id: {id}')
-    delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
-    #app.logger.info(f'delete_afterwards: {delete_afterwards}')
+    #delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
+    dla = request.args.get('dla')
+    delete_afterwards = 'dla' in request.args
+    if not dla:
+        dla = {}
+        app.logger.info(f'dla on start of edit route: {dla}')
+    app.logger.info(f'delete_afterwards: {delete_afterwards}')
 
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
@@ -226,8 +231,9 @@ def edit_category(id):
             # Assign new category name
             category_handle_rename(current_category, form)
 
+        #if delete_afterwards:
         if delete_afterwards:
-            app.logger.info(f'This shows up if we reach the delete afterwards statement. delete afterwards: {delete_afterwards}')
+            app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {dla}')
             return redirect(url_for(f'delete_category', username=current_user.username, id=id))
         return redirect(url_for('user_categories', username=current_user.username))
 
@@ -237,7 +243,9 @@ def edit_category(id):
         form.parent.choices = parent_choices
         form.reassign_gidguds.choices = gidgud_reassignment_choices
         form.reassign_children.choices = parent_choices_for_children
-    return render_template('edit_category.html', title='Edit Category', form=form)
+
+
+    return render_template('edit_category.html', title='Edit Category', form=form, dla=dla)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -245,20 +253,21 @@ def delete_category(id):
     # TODO: create function that creates dict based on necessity of edit before delete
     # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
     # TODO: simplify delete_afterwards parameter
-    delete_params = {'gidguds': False, 'children': False, 'delete_afterwards': True}
-    if current_category.gidguds: delete_params['gidguds'] = True
-    if current_category.children: delete_params['children'] = True
-    delete_afterwards = True
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
+    dla = {'d': True}
+    if current_category.gidguds: dla['g']=True
+    if current_category.children: dla['c']=True
+    app.logger.info(f'dla before passing to edit route: {dla}')
+    #delete_afterwards = True
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
-    elif current_category.gidguds or current_category.children:
+    #elif current_category.gidguds or current_category.children:
+    #    flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
+    #    return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
+    elif dla:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
-    elif delete_params[0] or delete_params[1]:
-        flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, delete_params=delete_params))
+        return redirect(url_for('edit_category', id=id, dla=dla))
     else:
         db.session.delete(current_category)
         db.session.commit()
