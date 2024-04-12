@@ -114,10 +114,12 @@ How to find out If the farm has Sufficient data to submit.
 solution 1 
 
 Possible solution Could we make a second form? That just displays the attributes we want to alter. 
+probably easiest way
 
 Solution 2
 
 Assure that the form has all default values That are needed to submit. 
+nope, 99%
 
 Solution 3 
 
@@ -130,6 +132,32 @@ We make a second template. Which accept parameters for deletion
 Solution 5. 
 
 Remove data required validators from form Try together with solution 2. 
+nope
+
+solution 6
+send 5 letters in dla and make every field depend on a letter
+
+solution 7
+
+- build second template 
+- catch referral from delete route
+
+    from flask import request
+
+    @app.route('/delete_category/<int:id>', methods=['GET', 'DELETE', 'POST'])
+    def delete_category(id):
+        # Get the URL of the referring page
+        referrer = request.referrer
+        if request.referrer and request.referrer.startswith('http://127.0.0.1:5000/source'):
+
+        # Check if the referrer URL ends with the URL pattern of the delete_category route
+        if referrer and referrer.endswith(f'/delete_category/{id}'):
+            # The redirect stems from the delete_category route
+            return True
+        else:
+            # The redirect does not stem from the delete_category route
+            return False
+
 
 ## TODO
 

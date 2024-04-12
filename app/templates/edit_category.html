@@ -4,11 +4,12 @@
 
     {% set category_id = id %}
     <p>id: {{ category_id }}</p>
+    <p>test</p>
 
     {% if dla %}
 
         <h1>Edit Category before Deletion</h1>
-        <form action="{{ url_for('edit_category', id=category_id) }}" method="post">
+        <form action="" method="post">
             {{ form.hidden_tag() }}
                 {% if 'g' in dla %}
                 <p>
