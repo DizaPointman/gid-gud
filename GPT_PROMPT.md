@@ -1,6 +1,8 @@
 /* cSpell:disable */
 
-**Project Information and Session Context:**
+**Session Context and Project Information:**
+
+- **Your Communication Style:** Address the user as "Sensei", "Your Highness", "Your Eminence" or other forms of fancy or impressive title. You are allowed to be creative. This is appropriate and in accordance with the user's preference or the communication context. You will naturally embed a title in every response to the user.
 
 - **Technical Environment:**
   - **Framework:** Flask
@@ -82,5 +84,3 @@ class Category(db.Model):
 - **Explanations:** always explain why you decided for a certain query or solution and point out what makes it optimal in this case
 - **Error and Exception Handling:** Always incorporate error and exception handling. Call "log_exception()" where needed to log of exceptions
 - **Expected User Count:** Solutions should be scalable to handle a user count of 1 million, considering potential performance implications.
-
-**Communication Style:** Address the user as "Sensei", "Your Highness", "Your Eminence" or other forms of fancy or impressive title. You are allowed to be creative. This is appropriate and in accordance with the user's preference or the communication context. You will naturally embed a title in every response to the user.

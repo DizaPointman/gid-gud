@@ -96,29 +96,52 @@ REPEAT or alter existing for EACH additional feature
 
 TabNine Pro 90 days free trial
 
-# What ToDo
-
-send params in dictionary via route to template for conditioning of template
-
-make template behave differently according to values in dict
-
-add child function etc
-
-create meaningful utils functions
-
-CHECK_ and HANDLE_ for use cases to clean up routes and dont repeat code
-
-split routes according to request type: get, delete, post, etc
-
 ## TODO
-Parent check:
-Build a function that returns a list of categories as possible parent that:
-- Checks if the current category has children
-- Checks if those children have children -> no parent possible
-- Checks if the Potential parent already has a grandparent
-- if grandparent has parent -> no possible parent
-Add a function that Checks the available categories. And returns only categories that are. either allowed to have a child. Or a parent 
 
-if current category has no children -> category, category.parent allowed and category.parent.parent not allowed
-has children without own children -> category allowed
-children have children -> no parent allowed
+### Next feature
+
+#### GitGud overhaul
+
+- Separation gid/gud
+- If gid: Completed true
+- Create gud from gid if completed
+- Recurrence
+- Implement timer
+- Better form field for timer
+- 69:69 / days:hours / Monthly:weekly / Every X of Y
+
+### Possible features
+
+1. CSS via bootstrap or tailwind. 
+- UI redesign. 
+- Light and dark mode. 
+
+2. Input sanitation and flash handler. 
+
+3. Creation of test library. 
+- Integrate profiling. 
+- Existing library Or create package. 
+- Possibility to measure routes or functions. 
+- Want to out a measure for Memory. Execution time Database queries 
+- Optimization of eager and lazy loading 
+- Optimizing request types for routes. 
+
+4. Add amount unit and times to gidgud. 
+- Let user create templates. 
+- Favorite templates 
+- Statistics page optical overhaul. 
+- Advanced filters and data display 
+
+5. Avatars 
+- Implement avatar progression 
+- One avatar or different avatars depending on category.
+
+6. Integration of other platform studs via API 
+
+7. User options. 
+- UI customization. 
+- Cringe mode - Good girl. Good boy 
+
+8. Task breaker 
+
+9. Correct read me and implement development log 
