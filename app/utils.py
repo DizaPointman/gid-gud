@@ -74,9 +74,6 @@ def flash_warning_not_empty(name, collection):
 # User - check_and_return
 
 def check_alerts():
-# TODO: Implement alert
-# FIXME: This function is not optimized
-# BUG: to be implemented
     return True if current_user.alerts else False
 
 def check_and_return_all_gidguds() -> list:
@@ -177,6 +174,7 @@ def check_and_return_list_of_possible_parents(current_category) -> list[str]:
     """
     try:
         possible_parents = []
+        # BUG: current_category showing is not excluded and shows up as possible parent category
 
         # Case A: Category has no children
         if not current_category.children:

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% if delete_params %}
+
+        <h1>Edit Category before Deletion</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+            {% if gidguds in delete_params %}
+            <p>
+                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                {% for error in form.reassign_gidguds.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            {% if children in delete_params %}
+            <p>
+                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {% for error in form.reassign_children.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            {% endif %}
+            <p>{{ form.submit() }}</p>
+        </form>
+
+    {% else %}
+
+        <h1>Edit Category</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.name.label }} {{ form.name }}<br>
+                {% for error in form.name.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.parent.label }} {{ form.parent }}<br>
+                {% for error in form.parent.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                {% for error in form.reassign_gidguds.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {% for error in form.reassign_children.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>{{ form.submit() }}</p>
+        </form>
+
+    {% endif %}
+{% endblock %}

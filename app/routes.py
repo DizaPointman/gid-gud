@@ -245,14 +245,20 @@ def delete_category(id):
     # TODO: create function that creates dict based on necessity of edit before delete
     # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
     # TODO: simplify delete_afterwards parameter
+    delete_params = {'gidguds': False, 'children': False, 'delete_afterwards': True}
+    if current_category.gidguds: delete_params['gidguds'] = True
+    if current_category.children: delete_params['children'] = True
     delete_afterwards = True
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
     elif current_category.gidguds or current_category.children:
-            flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-            return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
+        flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
+        return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
+    elif delete_params[0] or delete_params[1]:
+        flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
+        return redirect(url_for('edit_category', id=id, delete_params=delete_params))
     else:
         db.session.delete(current_category)
         db.session.commit()
