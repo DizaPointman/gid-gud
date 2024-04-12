@@ -96,6 +96,41 @@ REPEAT or alter existing for EACH additional feature
 
 TabNine Pro 90 days free trial
 
+## PROBLEM
+
+Problem is, if I. send The object from the delegate with parameters. Displaying the template. the template in the correct way. 
+Then I can achieve that the template Decides which form to display. 
+But when I submit It does not Follow on To the deleting part. Where the redirect to delete route should happen 
+
+It's also not working to change. the formation to redirect. 
+
+Question 
+
+Does the form not finish Because I display only Fields. And may have forgotten To set default values 
+That would kick in when I submit the form. 
+
+How to find out If the farm has Sufficient data to submit. 
+
+solution 1 
+
+Possible solution Could we make a second form? That just displays the attributes we want to alter. 
+
+Solution 2
+
+Assure that the form has all default values That are needed to submit. 
+
+Solution 3 
+
+Check if there's a building function. To adjust this play, parts of a flask form 
+
+Solution 4
+
+We make a second template. Which accept parameters for deletion 
+
+Solution 5. 
+
+Remove data required validators from form Try together with solution 2. 
+
 ## TODO
 
 ### Next feature
