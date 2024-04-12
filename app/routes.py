@@ -178,16 +178,16 @@ def edit_category(id):
     # TODO: change choices to exclude the current category on deletion
     # TODO: add multiple children at once
 
-    #app.logger.info(f'Starting the edit_category route for category id: {id}')
+    current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
+    app.logger.info(f'Starting the edit_category route for category id: {id}, name: {current_category.name}')
     #delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
-    dla = request.args.get('dla')
-    delete_afterwards = 'dla' in request.args
-    if not dla:
-        dla = {}
-        app.logger.info(f'dla on start of edit route: {dla}')
+    dla = request.args.get('dla') or {}
+    delete_afterwards = bool(dla)
+    #if not dla:
+        #dla = {}
+    app.logger.info(f'dla on start of edit route: {dla}')
     app.logger.info(f'delete_afterwards: {delete_afterwards}')
 
-    current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
 
 
@@ -208,6 +208,7 @@ def edit_category(id):
 
     if form.validate_on_submit():
 
+
         # Check if form contains new parent
         if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
             app.logger.info(f'calling parent change: old:{current_category.parent}, new: {form.parent.data}')
@@ -221,7 +222,7 @@ def edit_category(id):
             category_handle_reassign_gidguds(current_category, form)
 
         # Check if form contains a new parent category for the current category's children
-        if form.reassign_children.data not in (default_parent_choices_for_children, current_category.name):
+        if form.reassign_children.data not in (default_parent_choices_for_children, current_category.name, 'No Children'):
             # Assign children categories to the new parent category
             category_child_protection_service(current_category, form)
 
@@ -234,7 +235,7 @@ def edit_category(id):
         #if delete_afterwards:
         if delete_afterwards:
             app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {dla}')
-            return redirect(url_for(f'delete_category', username=current_user.username, id=id))
+            return redirect(url_for('delete_category', username=current_user.username, id=id))
         return redirect(url_for('user_categories', username=current_user.username))
 
     elif request.method == 'GET':
@@ -244,8 +245,7 @@ def edit_category(id):
         form.reassign_gidguds.choices = gidgud_reassignment_choices
         form.reassign_children.choices = parent_choices_for_children
 
-
-    return render_template('edit_category.html', title='Edit Category', form=form, dla=dla)
+    return render_template('edit_category.html', title='Edit Category', id=id, form=form, dla=dla)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -254,7 +254,7 @@ def delete_category(id):
     # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
     # TODO: simplify delete_afterwards parameter
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-    dla = {'d': True}
+    dla = {}
     if current_category.gidguds: dla['g']=True
     if current_category.children: dla['c']=True
     app.logger.info(f'dla before passing to edit route: {dla}')

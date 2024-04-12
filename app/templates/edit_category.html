@@ -2,10 +2,10 @@
 
 {% block content %}
 
-    {% if 'd' in dla %}
+    {% if dla %}
 
         <h1>Edit Category before Deletion</h1>
-        <form action="" method="post">
+        <form action="{{ url_for('delete_category', id=id) }}" method="post">
             {{ form.hidden_tag() }}
                 {% if 'g' in dla %}
                 <p>
