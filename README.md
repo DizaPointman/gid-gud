@@ -98,6 +98,26 @@ TabNine Pro 90 days free trial
 
 ## PROBLEM
 
+1. if delete afterwards:
+2. set defaults for form.data
+
+Overall:
+
+1. recreate default choices:
+    1.1 parent: (current parent +) 'No Parent' + possible parents via function
+    1.2 gidguds: 'No GidGuds' OR possible choices via function
+    1.3 children: 'No Children' OR possible choices via function
+
+2. create default values:
+    2.1 if value = None: 'No Parent', 'No GidGuds', 'No Children'
+
+3. create check to set None values in form to default values
+
+4. change 'if block' after form validation:
+    3.1 implement correct interpretation of new or default values
+    3.2 if form.attribute.data != current_value OR default_value
+-------------------------------------
+
 Problem is, if I. send The object from the delegate with parameters. Displaying the template. the template in the correct way. 
 Then I can achieve that the template Decides which form to display. 
 But when I submit It does not Follow on To the deleting part. Where the redirect to delete route should happen 

@@ -171,6 +171,7 @@ def create_category():
 
     return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
+# new edit and delete
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
@@ -180,12 +181,11 @@ def edit_category(id):
 
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     app.logger.info(f'Starting the edit_category route for category id: {id}, name: {current_category.name}')
-    #delete_afterwards = request.args.get('delete_afterwards', 'False') == 'True'
-    dla = request.args.get('dla') or {}
-    delete_afterwards = bool(dla)
-    #if not dla:
-        #dla = {}
-    app.logger.info(f'dla on start of edit route: {dla}')
+    # Get the URL of the referring page
+    #referrer = request.referrer
+    #app.logger.info(f'referrer: {referrer}')
+    #delete_afterwards = True if referrer.endswith(f'/delete_category/{id}') else False
+    delete_afterwards = request.args.get('delete_afterwards')
     app.logger.info(f'delete_afterwards: {delete_afterwards}')
 
     app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
@@ -206,8 +206,13 @@ def edit_category(id):
     form.reassign_gidguds.choices = gidgud_reassignment_choices
     form.reassign_children.choices = parent_choices_for_children
 
+    if request.method == 'POST':
+        app.logger.info(f"FORM: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}")
+
+
     if form.validate_on_submit():
 
+        app.logger.info("after form validation")
 
         # Check if form contains new parent
         if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
@@ -234,7 +239,7 @@ def edit_category(id):
 
         #if delete_afterwards:
         if delete_afterwards:
-            app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {dla}')
+            app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {delete_afterwards}')
             return redirect(url_for('delete_category', username=current_user.username, id=id))
         return redirect(url_for('user_categories', username=current_user.username))
 
@@ -245,7 +250,12 @@ def edit_category(id):
         form.reassign_gidguds.choices = gidgud_reassignment_choices
         form.reassign_children.choices = parent_choices_for_children
 
-    return render_template('edit_category.html', title='Edit Category', id=id, form=form, dla=dla)
+    else:
+        # Form validation failed, render the form template again with error messages
+        flash('Form validation failed. Please correct the errors and resubmit.')
+        return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
+
+    return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -254,20 +264,15 @@ def delete_category(id):
     # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
     # TODO: simplify delete_afterwards parameter
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-    dla = {}
-    if current_category.gidguds: dla['g']=True
-    if current_category.children: dla['c']=True
-    app.logger.info(f'dla before passing to edit route: {dla}')
-    #delete_afterwards = True
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
     #elif current_category.gidguds or current_category.children:
     #    flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
     #    return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
-    elif dla:
+    elif current_category.gidguds or current_category.children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, dla=dla))
+        return redirect(url_for('edit_category', id=id, delete_afterwards=True))
     else:
         db.session.delete(current_category)
         db.session.commit()
