@@ -4,6 +4,8 @@ from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Le
 import sqlalchemy as sa
 from app import db
 from app.models import User, GidGud, Category
+from flask import current_app, request
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -69,7 +71,8 @@ class CreateCategoryForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    parent = SelectField('New Parent:', validators=[Optional()], coerce=str)
-    reassign_gidguds = SelectField('Reassign GidGuds to:', validators=[Optional()], coerce=str)
-    reassign_children = SelectField('Reassign children to:', validators=[Optional()], coerce=str)
+    parent = SelectField('New Parent:')
+    reassign_gidguds = SelectField('Reassign GidGuds to:')
+    reassign_children = SelectField('Reassign children to:')
     submit = SubmitField('Save Changes')
+

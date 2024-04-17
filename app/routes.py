@@ -203,54 +203,13 @@ def edit_category(id):
 
     form = EditCategoryForm()
 
-    # Set default values for the form fields
-    #form.name.default = current_category.name
-    #form.parent.default = default_parent_choices[0]  # Set the first choice as default
-    #form.reassign_gidguds.default = default_gidgud_choices[0]  # Set the first choice as default
-    #form.reassign_children.default = default_parent_choices_for_children[0]  # Set the first choice as default
-    app.logger.info(f"form.reassign_children.default before process: {form.reassign_children.default}")
-    # Process the defaults so they are recognized by WTForms
-    #form.process()
     # Assigning choices to selection fields
     form.parent.choices = parent_choices
     form.reassign_gidguds.choices = gidgud_reassignment_choices
     form.reassign_children.choices = parent_choices_for_children
-    #form.parent.choices = [(choice, choice) for choice in parent_choices]
-    #form.reassign_gidguds.choices = [(choice, choice) for choice in gidgud_reassignment_choices]
-    #form.reassign_children.choices = [(choice, choice) for choice in parent_choices_for_children]
-    app.logger.info(f"parent_choices_for_children: {parent_choices_for_children}")
-    app.logger.info(f"parent_choices_for_children[0]: {parent_choices_for_children[0]}")
 
     if request.method == 'POST':
-        app.logger.info(f"FORM before: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
-
-        # Access form data from request.form
-        name = request.form.get('name')
-        parent = request.form.get('parent')
-        reassign_gidguds = request.form.get('reassign_gidguds')
-        reassign_children = request.form.get('reassign_children')
-
-        # Check if any of the form data is None and change it if needed
-        if name is None:
-            name = current_category.name
-            form.name.data = name
-        if parent is None:
-            parent = default_parent_choices[0]
-            form.parent.data = parent
-        if reassign_gidguds is None:
-            reassign_gidguds = default_gidgud_choices[0]
-            form.reassign_gidguds.data = reassign_gidguds
-        if reassign_children is None:
-            reassign_children = default_parent_choices_for_children[0]
-            form.reassign_children.data = reassign_children
-
-        # Now you have processed form data, you can assign it back to the form fields
-        #form.name.data = name
-        #form.parent.data = parent
-        #form.reassign_gidguds.data = reassign_gidguds
-        #form.reassign_children.data = reassign_children
-
-        app.logger.info(f"FORM after: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
+        app.logger.info(f"before form validation: name: {request.form.get('name')}, parent: {request.form.get('parent')}, parent type: {type(request.form.get('parent'))}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
 
         if form.validate_on_submit():
 
@@ -286,17 +245,17 @@ def edit_category(id):
                 return redirect(url_for('delete_category', username=current_user.username, id=id))
             return redirect(url_for('user_categories', username=current_user.username))
 
+        else:
+            # Form validation failed, render the form template again with error messages
+            flash('Form validation failed. Please correct the errors and resubmit.')
+            return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
+
     elif request.method == 'GET':
         # populating fields for get requests
         form.name.data = current_category.name
         form.parent.choices = parent_choices
         form.reassign_gidguds.choices = gidgud_reassignment_choices
         form.reassign_children.choices = parent_choices_for_children
-
-    else:
-        # Form validation failed, render the form template again with error messages
-        flash('Form validation failed. Please correct the errors and resubmit.')
-        return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 
     return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 

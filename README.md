@@ -181,6 +181,53 @@ solution 7
 
 ## TODO
 
+To check and manipulate the request data along with the form data, you can access request.form and modify its values as needed before populating the form. Here's how you can do it:
+
+    Check and manipulate the request data before populating the form.
+    Populate the form with the modified request data.
+    Validate the form.
+
+Here's an example:
+
+python
+
+from flask import request
+
+### Check and manipulate the request data
+if request.method == 'POST':
+    # Get the form data from the request
+    form_data = request.form
+
+    # Check if 'parent' field is None or 'None'
+    if form_data.get('parent') in (None, 'None'):
+        # Manipulate the 'parent' field value
+        form_data['parent'] = 'default_parent_value'
+
+    # Populate the form with the modified request data
+    form = EditCategoryForm(formdata=form_data)
+
+    # Validate the form
+    if form.validate():
+        # Form is valid, process the data
+        # ...
+    else:
+        # Form is invalid, handle errors
+        # ...
+else:
+    # Create an empty form for GET request
+    form = EditCategoryForm()
+
+### Render the template with the form
+return render_template('your_template.html', form=form)
+
+In this example:
+
+    We first check if the request method is POST.
+    If it is, we get the form data from the request and manipulate it if necessary.
+    Then, we populate the form with the modified request data.
+    After that, we validate the form. If it's valid, we process the data; otherwise, we handle errors.
+    If the request method is not POST (i.e., it's a GET request), we create an empty form to render the template.
+
 ### Next feature
 
 #### GitGud overhaul

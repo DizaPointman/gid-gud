@@ -47,6 +47,31 @@ list advantages and disadvantages for the different approaches. suggest better a
 
 # Logging
 
+# Validators
+
+    def optional_choice(form, field):
+        current_app.logger.info("starting optional choice validator")
+        current_app.logger.info(f"evaluating: {field}, data: {field.data}, type: {type(field.data)}")
+        current_app.logger.info(f"field data - if field.data is None or 'None': {field.data in (None, 'None')}")
+        if field.data in (None, 'None'):
+            current_app.logger.info("field data - check")
+        #if not field.data:
+            current_app.logger.info(f"not field data: {field.data}")
+            field.data = field.choices[0]
+            current_app.logger.info(f"field choices [0]: {field.choices[0]}")
+            current_app.logger.info(f"new field data: {field.data}")
+            current_app.logger.info(f"before form validation: name: {request.form.get('name')}, parent: {request.form.get('parent')}, parent type: {type(request.form.get('parent'))}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
+            return True
+        current_app.logger.info(f"field data + , data: {field.data}")
+        choices = field.choices
+        current_app.logger.info(f"choices: {choices}")
+        if field.data in choices:
+            current_app.logger.info(f"field data in choices: {field.data in choices}")
+            current_app.logger.info(f"before form validation: name: {request.form.get('name')}, parent: {request.form.get('parent')}, parent type: {type(request.form.get('parent'))}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
+            return True
+        else:
+            raise ValidationError('Invalid choice')
+
 # Routes
 
     # Construct a list of default parent choices, starting with the name of the current category's parent if it exists,
