@@ -192,56 +192,99 @@ def edit_category(id):
 
 
     # Choices: all categories except the current category
-    gidgud_reassignment_choices = [current_category.name] + [category.name for category in current_user.categories if category != current_category]
-
-    default_parent_choices = [current_category.parent.name] + ['No Parent'] if current_category.parent else ['No Parent']
+    default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
     parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
 
-    default_parent_choices_for_children = ['No Children']
-    parent_choices_for_children = check_and_return_list_of_possible_parents_for_children(current_category) or default_parent_choices_for_children
+    default_gidgud_choices = ['No GidGuds'] if current_category.gidguds is None else [current_category.name]
+    gidgud_reassignment_choices = default_gidgud_choices + [category.name for category in current_user.categories if category != current_category]
+
+    default_parent_choices_for_children = ['No Children'] if not current_category.children else [current_category.name] + ['Remove Children']
+    parent_choices_for_children = default_parent_choices_for_children + check_and_return_list_of_possible_parents_for_children(current_category)
 
     form = EditCategoryForm()
+
+    # Set default values for the form fields
+    #form.name.default = current_category.name
+    #form.parent.default = default_parent_choices[0]  # Set the first choice as default
+    #form.reassign_gidguds.default = default_gidgud_choices[0]  # Set the first choice as default
+    #form.reassign_children.default = default_parent_choices_for_children[0]  # Set the first choice as default
+    app.logger.info(f"form.reassign_children.default before process: {form.reassign_children.default}")
+    # Process the defaults so they are recognized by WTForms
+    #form.process()
     # Assigning choices to selection fields
     form.parent.choices = parent_choices
     form.reassign_gidguds.choices = gidgud_reassignment_choices
     form.reassign_children.choices = parent_choices_for_children
+    #form.parent.choices = [(choice, choice) for choice in parent_choices]
+    #form.reassign_gidguds.choices = [(choice, choice) for choice in gidgud_reassignment_choices]
+    #form.reassign_children.choices = [(choice, choice) for choice in parent_choices_for_children]
+    app.logger.info(f"parent_choices_for_children: {parent_choices_for_children}")
+    app.logger.info(f"parent_choices_for_children[0]: {parent_choices_for_children[0]}")
 
     if request.method == 'POST':
-        app.logger.info(f"FORM: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}")
+        app.logger.info(f"FORM before: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
 
+        # Access form data from request.form
+        name = request.form.get('name')
+        parent = request.form.get('parent')
+        reassign_gidguds = request.form.get('reassign_gidguds')
+        reassign_children = request.form.get('reassign_children')
 
-    if form.validate_on_submit():
+        # Check if any of the form data is None and change it if needed
+        if name is None:
+            name = current_category.name
+            form.name.data = name
+        if parent is None:
+            parent = default_parent_choices[0]
+            form.parent.data = parent
+        if reassign_gidguds is None:
+            reassign_gidguds = default_gidgud_choices[0]
+            form.reassign_gidguds.data = reassign_gidguds
+        if reassign_children is None:
+            reassign_children = default_parent_choices_for_children[0]
+            form.reassign_children.data = reassign_children
 
-        app.logger.info("after form validation")
+        # Now you have processed form data, you can assign it back to the form fields
+        #form.name.data = name
+        #form.parent.data = parent
+        #form.reassign_gidguds.data = reassign_gidguds
+        #form.reassign_children.data = reassign_children
 
-        # Check if form contains new parent
-        if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
-            app.logger.info(f'calling parent change: old:{current_category.parent}, new: {form.parent.data}')
-            # Assign new parent
-            category_handle_change_parent(current_category, form)
+        app.logger.info(f"FORM after: name: {request.form.get('name')}, parent: {request.form.get('parent')}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
 
-        # Check if form contains new category for gidguds
-        if form.reassign_gidguds.data != current_category.name:
-            app.logger.info(f'calling reassign gidguds: old:{current_category.name}, new: {form.reassign_gidguds.data}')
-            # Assign gidguds to new category
-            category_handle_reassign_gidguds(current_category, form)
+        if form.validate_on_submit():
 
-        # Check if form contains a new parent category for the current category's children
-        if form.reassign_children.data not in (default_parent_choices_for_children, current_category.name, 'No Children'):
-            # Assign children categories to the new parent category
-            category_child_protection_service(current_category, form)
+            app.logger.info("after form validation")
 
-        # Check if form contains new category name
-        if form.name.data != current_category.name:
-            app.logger.info(f'calling name change: old:{current_category.name}, new {form.name.data}')
-            # Assign new category name
-            category_handle_rename(current_category, form)
+            # Check if form contains new parent
+            if form.parent.data != parent_choices[0]:
+            #if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
+                app.logger.info(f'calling parent change: old:{current_category.parent}, new: {form.parent.data}')
+                # Assign new parent
+                category_handle_change_parent(current_category, form)
 
-        #if delete_afterwards:
-        if delete_afterwards:
-            app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {delete_afterwards}')
-            return redirect(url_for('delete_category', username=current_user.username, id=id))
-        return redirect(url_for('user_categories', username=current_user.username))
+            # Check if form contains new category for gidguds
+            if form.reassign_gidguds.data != gidgud_reassignment_choices[0]:
+                app.logger.info(f'calling reassign gidguds: old:{current_category.name}, new: {form.reassign_gidguds.data}')
+                # Assign gidguds to new category
+                category_handle_reassign_gidguds(current_category, form)
+
+            # Check if form contains a new parent category for the current category's children
+            if form.reassign_children.data != parent_choices_for_children[0]:
+                # Assign children categories to the new parent category
+                category_child_protection_service(current_category, form)
+
+            # Check if form contains new category name
+            if form.name.data != current_category.name:
+                app.logger.info(f'calling name change: old:{current_category.name}, new {form.name.data}')
+                # Assign new category name
+                category_handle_rename(current_category, form)
+
+            #if delete_afterwards:
+            if delete_afterwards:
+                app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {delete_afterwards}')
+                return redirect(url_for('delete_category', username=current_user.username, id=id))
+            return redirect(url_for('user_categories', username=current_user.username))
 
     elif request.method == 'GET':
         # populating fields for get requests

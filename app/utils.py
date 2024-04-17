@@ -335,7 +335,7 @@ def category_child_protection_service(current_category, form):
         new_name = form.reassign_children.data
 
         # Find the new parent category based on the provided name or set it to None if 'None' is specified
-        if new_name == 'No Parent':
+        if new_name == 'Remove Children':
             new_parent_category_id = None
         else:
             new_parent_category_id = next((category.id for category in current_user.categories if category.name == new_name), None)

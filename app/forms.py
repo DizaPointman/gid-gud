@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, Optional
 import sqlalchemy as sa
 from app import db
 from app.models import User, GidGud, Category
@@ -69,7 +69,7 @@ class CreateCategoryForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    parent = SelectField('New Parent:')
-    reassign_gidguds = SelectField('Reassign GidGuds to:')
-    reassign_children = SelectField('Reassign children to:')
+    parent = SelectField('New Parent:', validators=[Optional()], coerce=str)
+    reassign_gidguds = SelectField('Reassign GidGuds to:', validators=[Optional()], coerce=str)
+    reassign_children = SelectField('Reassign children to:', validators=[Optional()], coerce=str)
     submit = SubmitField('Save Changes')
