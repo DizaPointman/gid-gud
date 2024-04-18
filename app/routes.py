@@ -171,7 +171,6 @@ def create_category():
 
     return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
-# new edit and delete
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
