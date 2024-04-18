@@ -2,10 +2,11 @@
 
 {% block content %}
 
-    <h1>Edit Category</h1>
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-        {% if not dla %}
+    {% if not dla %}
+
+        <h1>Edit Category</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
             <p>
                 {{ form.name.label }} {{ form.name }}<br>
                 {% for error in form.name.errors %}
@@ -18,27 +19,55 @@
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
-        {% else %}
-            <input type="hidden" name="name" value="{{ cat.name }}">
-            <input type="hidden" name="parent" value="{{ cat.parent }}">
-        {% endif %}
-        {% if cat.gidguds %}
             <p>
                 {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
                 {% for error in form.reassign_gidguds.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
-        {% endif %}
-        {% if cat.children %}
             <p>
                 {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
                 {% for error in form.reassign_children.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
-        {% endif %}
-        <p>{{ form.submit() }}</p>
-    </form>
+            <p>{{ form.submit() }}</p>
+        </form>
+
+    {% else %}
+
+        <h1>Please empty category before deletion</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+                <input type="hidden" name="name" value="{{ cat.name }}">
+            {% if cat.parent %}
+                <input type="hidden" name="parent" value="{{ cat.parent.name }}">
+            {% else %}
+                <input type="hidden" name="parent" value="No Parent">
+            {% endif %}
+            {% if cat.gidguds %}
+                <p>
+                    {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                    {% for error in form.reassign_gidguds.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+            {% else %}
+                <input type="hidden" name="reassign_gidguds" value="No GidGuds">
+            {% endif %}
+            {% if cat.children %}
+                <p>
+                    {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                    {% for error in form.reassign_children.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+            {% else %}
+                <input type="hidden" name="reassign_children" value="No Children">
+            {% endif %}
+            <p>{{ form.submit() }}</p>
+        </form>
+
+    {% endif %}
 
 {% endblock %}

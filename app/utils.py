@@ -1,6 +1,6 @@
 # utils.py
 
-from flask import flash, current_app
+from flask import flash, current_app, request
 from flask_login import current_user
 from app.models import User, GidGud, Category
 from app import db
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 # Utility Functions
 
 # General
-# exception logger, flash handler
+# exception logger, debug helper, flash handler
 
 # Models
 # user, gidgud, category
@@ -51,6 +51,21 @@ def log_exception(exception: Exception) -> None:
     except Exception as e:
         # If an error occurs while logging the exception, log it as well
         logging.error(f"Error logging exception: {e}")
+
+# debug helper
+
+def log_request():
+    request_data = request.form.to_dict()
+    current_app.logger.info("Starting Request Logging")
+    return [current_app.logger.info(f"field: {k}, field data: {v}, field data type: {type(v)}") for k, v in request_data.items()]
+
+def log_object(obj):
+    attributes_to_log = ["id", "username", "body", "name", "category", "author", "user", "parent", "children", "gidguds"]
+    current_app.logger.info(f"Starting Logging Object of type: {type(obj)}")
+    for attribute in attributes_to_log:
+        value = getattr(obj, attribute, None)
+        if value is not None:
+            current_app.logger.info(f"Attribute: {attribute}, Value: {value}, Type: {type(value)}")
 
 # flash handler
 def flash_successful_change(name, current, new):
@@ -178,11 +193,11 @@ def check_and_return_list_of_possible_parents(current_category) -> list[str]:
 
         # Case A: Category has no children
         if not current_category.children:
-            possible_parents = [category.name for category in current_user.categories if (category.parent is None or category.parent.parent is None) and category.name != 'default']
+            possible_parents = [category.name for category in current_user.categories if (category.parent is None or category.parent.parent is None) and category.name not in (current_category.name, current_category.parent.name, 'default')]
 
         # Case B: Category has children, and the children do not have children
         elif current_category.children and not any(category.children for category in current_category.children):
-            possible_parents = [category.name for category in current_user.categories if category.parent is None and category.name != 'default']
+            possible_parents = [category.name for category in current_user.categories if category.parent is None and category.name not in (current_category.name, current_category.parent.name,'default')]
 
         # Case C: Category has children with children
         else:
@@ -225,6 +240,7 @@ def check_and_return_list_of_possible_parents_for_children(current_category) -> 
                 # If no child category has grandchildren, determine potential parent categories for any child
                 possible_parents = check_and_return_list_of_possible_parents(current_category.children[0])
 
+            possible_parents = [p for p in possible_parents if p != current_category.name]
             possible_parents = remove_parent + possible_parents
 
         return possible_parents

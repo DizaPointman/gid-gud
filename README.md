@@ -1,3 +1,8 @@
+# Fun
+
+C_Man and G_Man as handlers/managers
+C_Man.create_child()
+
 # Dropdowns
 https://hackanons.com/2021/09/flask-dropdown-menu-everything-you-need-to-know.html
 

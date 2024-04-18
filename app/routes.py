@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -188,17 +188,17 @@ def edit_category(id):
     delete_afterwards = request.args.get('delete_afterwards')
     app.logger.info(f'delete_afterwards: {delete_afterwards}')
 
-    app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
-
+    #app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
+    log_object(current_category)
 
     # Choices: all categories except the current category
     default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
     parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
 
-    default_gidgud_choices = ['No GidGuds'] if current_category.gidguds is None else [current_category.name]
+    default_gidgud_choices = ['No GidGuds'] if not current_category.gidguds else [current_category.name]
     gidgud_reassignment_choices = default_gidgud_choices + [category.name for category in current_user.categories if category != current_category]
 
-    default_parent_choices_for_children = ['No Children'] if not current_category.children else [current_category.name] + ['Remove Children']
+    default_parent_choices_for_children = ['No Children'] if current_category.children is [] else [current_category.name]
     parent_choices_for_children = default_parent_choices_for_children + check_and_return_list_of_possible_parents_for_children(current_category)
 
     form = EditCategoryForm()
@@ -209,7 +209,8 @@ def edit_category(id):
     form.reassign_children.choices = parent_choices_for_children
 
     if request.method == 'POST':
-        app.logger.info(f"before form validation: name: {request.form.get('name')}, parent: {request.form.get('parent')}, parent type: {type(request.form.get('parent'))}, gidgud: {request.form.get('reassign_gidguds')}, children: {request.form.get('reassign_children')}, childrentype: {type(request.form.get('reassign_children'))}")
+
+        log_request()
 
         if form.validate_on_submit():
 
