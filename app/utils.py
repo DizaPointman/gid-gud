@@ -205,7 +205,6 @@ def check_and_return_list_of_possible_parents(current_category) -> list[str]:
 
         # Case B: Category has children, and the children do not have children
         elif current_category.children and not any(category.children for category in current_category.children):
-        #elif current_category.children and not any(category.children for category in current_category.children for category in current_category.children):
             possible_parents = [category.name for category in current_user.categories if category.parent is None and category.name not in (current_category.name, 'default')]
 
         # Case C: Category has children with children

@@ -178,28 +178,19 @@ def edit_category(id):
     # TODO: add multiple children at once
 
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-    app.logger.info(f'Starting the edit_category route for category id: {id}, name: {current_category.name}')
-    # Get the URL of the referring page
-    #referrer = request.referrer
-    #app.logger.info(f'referrer: {referrer}')
-    #delete_afterwards = True if referrer.endswith(f'/delete_category/{id}') else False
-    delete_afterwards = bool(request.args.get('delete_afterwards'))
-    app.logger.info(f'delete_afterwards: {delete_afterwards}')
-
-    app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
-    log_object(current_category)
+    delete_afterwards = bool(request.args.get('dla'))
 
     # Choices: all categories except the current category
-    app.logger.info(f'before parent choices')
+
     default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
     parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
-    app.logger.info(f'before gidgud choices')
+
     default_gidgud_choices = ['No GidGuds'] if not current_category.gidguds else [current_category.name]
     gidgud_reassignment_choices = default_gidgud_choices + [category.name for category in current_user.categories if category != current_category]
-    app.logger.info(f'before children choices')
+
     default_parent_choices_for_children = ['No Children'] if not current_category.children else [current_category.name]
     parent_choices_for_children = default_parent_choices_for_children + check_and_return_list_of_possible_parents_for_children(current_category)
-    app.logger.info(f'before form creation')
+
     form = EditCategoryForm()
 
     # Assigning choices to selection fields
@@ -209,22 +200,15 @@ def edit_category(id):
 
     if request.method == 'POST':
 
-        log_request()
-
         if form.validate_on_submit():
-
-            app.logger.info("after form validation")
 
             # Check if form contains new parent
             if form.parent.data != parent_choices[0]:
-            #if form.parent.data != ('No Parent' if current_category.parent is None else current_category.parent.name):
-                app.logger.info(f'calling parent change: old:{current_category.parent}, new: {form.parent.data}')
                 # Assign new parent
                 category_handle_change_parent(current_category, form)
 
             # Check if form contains new category for gidguds
             if form.reassign_gidguds.data != gidgud_reassignment_choices[0]:
-                app.logger.info(f'calling reassign gidguds: old:{current_category.name}, new: {form.reassign_gidguds.data}')
                 # Assign gidguds to new category
                 category_handle_reassign_gidguds(current_category, form)
 
@@ -235,13 +219,11 @@ def edit_category(id):
 
             # Check if form contains new category name
             if form.name.data != current_category.name:
-                app.logger.info(f'calling name change: old:{current_category.name}, new {form.name.data}')
                 # Assign new category name
                 category_handle_rename(current_category, form)
 
             #if delete_afterwards:
             if delete_afterwards:
-                app.logger.info(f'This shows up if we reach the delete afterwards statement in edit: {delete_afterwards}')
                 return redirect(url_for('delete_category', username=current_user.username, id=id))
             return redirect(url_for('user_categories', username=current_user.username))
 
@@ -267,12 +249,9 @@ def delete_category(id):
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
         return redirect(url_for('user_categories', username=current_user.username))
-    #elif current_category.gidguds or current_category.children:
-    #    flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-    #    return redirect(url_for('edit_category', id=id, delete_afterwards=delete_afterwards))
     elif current_category.gidguds or current_category.children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, delete_afterwards=True))
+        return redirect(url_for('edit_category', id=id, dla=True))
     else:
         db.session.delete(current_category)
         db.session.commit()
