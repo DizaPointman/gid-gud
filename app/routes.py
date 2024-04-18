@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGud
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -175,8 +175,6 @@ def create_category():
 @app.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    # TODO: update delete_afterwards interpreter
-    # TODO: change choices to exclude the current category on deletion
     # TODO: add multiple children at once
 
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
@@ -185,22 +183,23 @@ def edit_category(id):
     #referrer = request.referrer
     #app.logger.info(f'referrer: {referrer}')
     #delete_afterwards = True if referrer.endswith(f'/delete_category/{id}') else False
-    delete_afterwards = request.args.get('delete_afterwards')
+    delete_afterwards = bool(request.args.get('delete_afterwards'))
     app.logger.info(f'delete_afterwards: {delete_afterwards}')
 
-    #app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
+    app.logger.info(f'category to edit: {current_category.name}, id: {current_category.id}, parent: {current_category.parent}, children: {current_category.children}')
     log_object(current_category)
 
     # Choices: all categories except the current category
+    app.logger.info(f'before parent choices')
     default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
     parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
-
+    app.logger.info(f'before gidgud choices')
     default_gidgud_choices = ['No GidGuds'] if not current_category.gidguds else [current_category.name]
     gidgud_reassignment_choices = default_gidgud_choices + [category.name for category in current_user.categories if category != current_category]
-
-    default_parent_choices_for_children = ['No Children'] if current_category.children is [] else [current_category.name]
+    app.logger.info(f'before children choices')
+    default_parent_choices_for_children = ['No Children'] if not current_category.children else [current_category.name]
     parent_choices_for_children = default_parent_choices_for_children + check_and_return_list_of_possible_parents_for_children(current_category)
-
+    app.logger.info(f'before form creation')
     form = EditCategoryForm()
 
     # Assigning choices to selection fields
@@ -248,6 +247,7 @@ def edit_category(id):
 
         else:
             # Form validation failed, render the form template again with error messages
+            log_form_validation_errors(form)
             flash('Form validation failed. Please correct the errors and resubmit.')
             return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 
@@ -263,9 +263,6 @@ def edit_category(id):
 @app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_category(id):
-    # TODO: create function that creates dict based on necessity of edit before delete
-    # TODO: pass the dict in a way the edit template can interpret and adapt to display only necessary form fields
-    # TODO: simplify delete_afterwards parameter
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
