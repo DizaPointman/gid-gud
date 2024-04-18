@@ -1,3 +1,5 @@
+/* cSpell:disable */
+
 # Fun
 
 C_Man and G_Man as handlers/managers
