@@ -1,9 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length
+from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, Optional
 import sqlalchemy as sa
 from app import db
 from app.models import User, GidGud, Category
+from flask import current_app, request
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -57,3 +59,20 @@ class EditGidGudForm(FlaskForm):
     recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
     submit = SubmitField('Change GidGud')
+
+class CreateCategoryForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
+    submit = SubmitField('Create Category')
+
+    def validate_name(self, name):
+        category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
+        if category is not None:
+            raise ValidationError('This category already exists.')
+
+class EditCategoryForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
+    parent = SelectField('New Parent:')
+    reassign_gidguds = SelectField('Reassign GidGuds to:')
+    reassign_children = SelectField('Reassign children to:')
+    submit = SubmitField('Save Changes')
+
