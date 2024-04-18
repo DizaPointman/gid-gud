@@ -118,7 +118,6 @@ def check_and_return_all_gidguds() -> list:
         log_exception(e)
         return False
 
-
 def check_and_return_all_categories() -> list:
     """
     Check if categories exist for the current user and return them.
@@ -136,7 +135,6 @@ def check_and_return_all_categories() -> list:
         # Log any exceptions that occur during the process
         log_exception(e)
         return False
-
 
 # User - create_object
 # User - handle_and_update_object
@@ -339,7 +337,6 @@ def category_handle_change_parent(current_category, form):
         log_exception(e)
         return False
 
-
 def category_child_protection_service(current_category, form):
     """
     Reassign children from the current category to a new parent category or remove them from their parent based on user input.
@@ -382,7 +379,6 @@ def category_child_protection_service(current_category, form):
         # Log any exceptions that occur during the operation
         log_exception(e)
         return False
-
 
 def category_handle_reassign_gidguds(current_category, form):
     """
