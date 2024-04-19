@@ -4,6 +4,7 @@
 
 C_Man and G_Man as handlers/managers
 C_Man.create_child()
+C-Man.inject()
 
 # Dropdowns
 https://hackanons.com/2021/09/flask-dropdown-menu-everything-you-need-to-know.html
@@ -26,7 +27,56 @@ Default for SelectField
 https://stackoverflow.com/questions/12099741/how-do-you-set-a-default-value-for-a-wtforms-selectfield/12100214#12100214
 https://wtforms.readthedocs.io/en/2.3.x/fields/
 
-# Bughunt
+# Structure
+
+your_app/
+│
+├── app/
+│   ├── __init__.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   └── object_manager.py
+│   ├── sessions/
+│   │   ├── __init__.py
+│   │   └── session_manager.py
+│   ├── events/
+│   │   ├── __init__.py
+│   │   └── event_manager.py
+│   ├── templates/
+│   ├── static/
+│   ├── blueprints/
+│   │   ├── __init__.py
+│   │   ├── user/
+│   │   │   ├── __init__.py
+│   │   │   ├── routes.py
+│   │   │   └── templates/
+│   │   ├── dashboard/
+│   │   │   ├── __init__.py
+│   │   │   ├── routes.py
+│   │   │   └── templates/
+│   │   └── auth/
+│   │       ├── __init__.py
+│   │       ├── routes.py
+│   │       └── templates/
+│   └── utils/
+│       ├── __init__.py
+│       ├── auth.py
+│       └── decorators.py
+│
+├── migrations/
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_user.py
+│   ├── test_object_manager.py
+│   ├── test_session_manager.py
+│   └── test_event_manager.py
+│
+├── config.py
+├── manage.py
+└── requirements.txt
+
 
 # Git
 
@@ -114,6 +164,7 @@ TabNine Pro 90 days free trial
 - Separation gid/gud
 - If gid: Completed true
 - Create gud from gid if completed
+- completed as date
 - Recurrence
 - Implement timer
 - Better form field for timer

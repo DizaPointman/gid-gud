@@ -3,6 +3,7 @@ from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
+from sqlalchemy import event
 from app.models import User, GidGud, Category
 from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
@@ -49,7 +50,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -59,6 +59,7 @@ def register():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
         db.session.add(user)
+        new_user_id = user.id
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
@@ -90,7 +91,7 @@ def create_gidgud():
             new_category = Category(name=form.category.data, user_id=current_user.id)
             db.session.add(new_category)
             category = new_category
-        gidgud = GidGud(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=category)
+        gidgud = GidGud(body=form.body.data, user_id=current_user.id, category=category)
         db.session.add(gidgud)
         db.session.commit()
         flash('New GidGud created!')
@@ -104,8 +105,6 @@ def edit_gidgud(id):
     form = EditGidGudForm()
     if form.validate_on_submit():
         gidgud.body = form.body.data
-        gidgud.recurrence = form.recurrence.data
-        gidgud.recurrence_rhythm = form.recurrence_rhythm.data
         if form.category.data is not gidgud.category.name:
             updated_category = check_if_category_exists_and_return(form.category.data)
             if not updated_category:
@@ -119,8 +118,6 @@ def edit_gidgud(id):
         return redirect(url_for('index'))
     elif request.method == 'GET':
         form.body.data = gidgud.body
-        form.recurrence.data = gidgud.recurrence
-        form.recurrence_rhythm.data = gidgud.recurrence_rhythm
         form.category.data = gidgud.category.name
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
 

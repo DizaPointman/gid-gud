@@ -60,23 +60,26 @@ class GidGud(db.Model):
     Represents a GidGud (task) in the application.
 
     Attributes:
-        id (int): The unique identifier for the GidGud (primary key).
-        body (str): The description or content of the GidGud (maximum 140 characters).
-        timestamp (datetime): The timestamp when the GidGud was created.
-        user_id (int): The ID of the user who created the GidGud.
 
-        recurrence (bool): Indicates if the GidGud has a recurrence pattern (default: False).
-        recurrence_rhythm (int): The recurrence rhythm of the GidGud (default: 0).
-        amount (int): The amount associated with the GidGud (default: 1).
-        unit (str): The unit of measurement for the GidGud (maximum 10 characters, nullable).
-        times (int): The number of times the GidGud has been completed (default: 1).
+        id (int): The unique identifier for the GidGud item.
+        body (str): The content/body of the GidGud item.
+        timestamp (datetime): The timestamp indicating when the GidGud item was created.
+        user_id (int): The foreign key referencing the ID of the user who created the GidGud item.
 
-        completed (bool): Indicates if the GidGud has been completed (default: False).
-        archived (bool): Indicates if the GidGud has been archived (default: False).
+        time_unit (str): The unit of time for recurrence (e.g., minutes, hours, days, weeks, months).
+        recurrence_rhythm (int): The frequency of recurrence, if applicable.
+        next_recurrence (Optional[datetime]): The timestamp of the next recurrence, if applicable.
 
-        category_id (int): The ID of the category associated with the GidGud.
-        category (Category): The category associated with the GidGud.
-        author (User): The user who authored the GidGud.
+        amount (int): The amount associated with the GidGud item (e.g., quantity, duration).
+        unit (str): The unit associated with the amount (e.g., pieces, minutes, hours).
+        times (int): The number of times the GidGud item has been repeated or used.
+
+        completed (Optional[datetime]): The timestamp indicating when the GidGud item was completed, if applicable.
+        archived (bool): A flag indicating whether the GidGud item is archived.
+
+        category_id (int): The foreign key referencing the ID of the category associated with the GidGud item.
+        category (Category): The category associated with the GidGud item.
+        author (User): The user who created the GidGud item.
 
     Methods:
         __repr__: Returns a string representation of the GidGud object.
@@ -87,13 +90,15 @@ class GidGud(db.Model):
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
-    recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
+    next_recurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
+
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))

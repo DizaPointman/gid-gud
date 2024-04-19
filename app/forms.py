@@ -48,15 +48,11 @@ class EditProfileForm(FlaskForm):
 
 class CreateGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    recurrence = BooleanField('Repeat Task')
-    recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
     submit = SubmitField('Create GidGud')
 
 class EditGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    recurrence = BooleanField('Repeat Task')
-    recurrence_rhythm = IntegerField ('Repeat every', default=1)
     category = StringField('Category', validators=[Length(max=20)])
     submit = SubmitField('Change GidGud')
 
