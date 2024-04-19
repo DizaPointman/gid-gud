@@ -3,7 +3,6 @@ from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from sqlalchemy import event
 from app.models import User, GidGud, Category
 from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
