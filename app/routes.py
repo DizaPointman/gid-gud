@@ -57,8 +57,9 @@ def register():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
-        db.session.add(user)
-        new_user_id = user.id
+        # Setting up the default category
+        def_cat = Category(name='default', user=user)
+        db.session.add(user, def_cat)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
