@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import CreateGidForm, LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
@@ -58,6 +58,7 @@ def register():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
         # Setting up the default category
+        # FIXME: set up default cat via event listener
         def_cat = Category(name='default', user=user)
         db.session.add(user, def_cat)
         db.session.commit()
@@ -138,6 +139,27 @@ def complete_gidgud(id):
     db.session.commit()
     flash('GidGud completed!')
     return redirect(url_for('index'))
+
+@app.route('/create_gid', methods=['GET', 'POST'])
+@login_required
+def create_gid():
+    form = CreateGidForm()
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    if form.validate_on_submit():
+        category = check_if_category_exists_and_return(form.category.data)
+        if not category:
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
+        if form.rec_rhythm.data != 0:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
+        else:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
+        db.session.add(gid)
+        db.session.commit()
+        flash('New Gid created!')
+        return redirect(url_for('index'))
+    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
 
 @app.route('/user/<username>/user_categories', methods=['GET'])
 @login_required

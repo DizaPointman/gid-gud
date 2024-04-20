@@ -92,7 +92,7 @@ class GidGud(db.Model):
 
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
-    next_recurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
+    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
 
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
@@ -140,7 +140,6 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    # TODO: add creation of 'default' category on user creation
     # TODO: sanitizing category names (whitespace characters at end or beginning) check other cases for problems
     # TODO: add protection for default?
     # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
