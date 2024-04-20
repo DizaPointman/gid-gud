@@ -102,96 +102,82 @@
 
 # Utility
 
-    def category_handle_reassign_children(current_category, form):
-    """
-    Reassigns the parent category for all children categories of the current category.
+# Flaskform
 
-    Args:
-        current_category: The current category whose children are to be reassigned.
-        form: The form containing the new parent category data.
+## DataListField I
 
-    Returns:
-        bool: True if the operation is successful, False otherwise.
-    """
-    try:
-        # Find the new parent category
-        new_parent = next((category for category in current_user.categories if category.name == form.parent.data), None)
+    class CreateGudForm(FlaskForm):
+    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+    category = DatalistField('Category')
+    submit = SubmitField('Create Gud')
 
-        # Reassign the parent category for each child category
-        for child_category in itertools.islice(current_category.children, len(current_category.children)):
-            child_category.parent = new_parent
+    def __init__(self, category_choices=[], *args, **kwargs):
+        super(CreateGudForm, self).__init__(*args, **kwargs)
+        # Initialize category choices using the provided argument
+        self.category.datalist = category_choices
 
-        # Flash message indicating successful parent change
-        flash(f"Parent of children changed to {new_parent.name or 'None'}")
-        return True
-    except Exception as e:
-        # Log any exceptions that occur
-        log_exception(e)
-        return False
+    @app.route('/create_gud', methods=['GET', 'POST'])
+    @login_required
+    def create_gud():
+        form = CreateGudForm()
 
-    def check_category_level(current_category) -> dict:
-    """
-    Check if adding a parent or children to the current category is allowed based on the maximum category level constraint.
+        # Retrieve category choices dynamically here
+        category_choices = get_category_choices()
 
-    Args:
-        current_category (Category): The category to check.
+        # Pass category_choices to form instantiation
+        form = CreateGudForm(category_choices=category_choices)
 
-    Returns:
-        dict: A dictionary indicating whether adding a parent or children is allowed.
-            - 'parent_allowed': True if adding a parent is allowed, False otherwise.
-            - 'child_allowed': True if adding children is allowed, False otherwise.
-    """
-    level: dict[str, bool] = {'parent_allowed': True, 'child_allowed': True}
-    try:
-        # Check if adding children is allowed
-        if current_category.parent and current_category.parent.parent:
-            level['child_allowed'] = False
-
-        # Check if adding a parent is allowed
-        has_grandchildren = any(category.children for category in current_category.children)
-        if has_grandchildren:
-            level['parent_allowed'] = False
-
-        return level
-    except Exception as e:
-        # Log any exceptions that occur during the process
-        log_exception(e)
-        return False
-
-def get_potential_parent_categories(current_category):
-    """
-    Get a list of potential parent categories for the given current category.
-
-    Args:
-        current_category (Category): The current category.
-
-    Returns:
-        list: A list of potential parent categories.
-    """
-    try:
-        potential_parents = []
-
-        # Case a: Current category has no children
-        if not current_category.children:
-            # Add categories that are two levels above
-            potential_parents = Category.query.filter(Category.id != current_category.id) \
-                                               .filter(Category.parent_id != current_category.id) \
-                                               .all()
-
-        # Case b: Current category has children, but the children have no children themselves
-        elif not any(child.children for child in current_category.children):
-            # Add categories that are one level above
-            potential_parents = Category.query.filter(Category.id != current_category.id) \
-                                               .filter(Category.parent_id != current_category.id) \
-                                               .all()
-
-        # Case c: The current category has children and these also have children
-        else:
-            # No parent is allowed in this case, return an empty list
+        if form.validate_on_submit():
+            # Process form submission
             pass
 
-        return potential_parents
-    except Exception as e:
-        # Log any exceptions that occur during the process
-        log_exception(e)
-        return []
+        return render_template('create_gud.html', title='Create Gud', form=form)
+
+## DataListField II
+
+You create a simple StringField in your view.
+
+    autocomplete_input = StringField('autocomplete_input', validators=[DataRequired()])
+
+In your template you call the field and add the list parameter (remember to pass the entries to your template):
+
+    {{form.autocomplete_input(list="id_datalist")}}
+    <datalist id="id_datalist">
+    {% for entry in entries %}
+    <option value={{ entry }}>
+    {% endfor %}
+    </datalist>
+
+## DataListField III
+
+I had the same question; but no answer. After struggling for a while, I have got it to work. forms.py:
+
+    class fiscalYearForm(FlaskForm):
+        fy_timeframe = SelectField(
+            "Please Select Fiscal Quarter",
+            choices=[
+                ('FY2022 Q4', 'FY2022 Q4'),
+                ('FY2022 Q3', 'FY2022 Q3'),
+                ('FY2022 Q2', 'FY2022 Q2'),
+                ('FY2022 Q1', 'FY2022 Q1'),
+            ],
+            validators=[DataRequired()],
+        )
+
+html file:
+
+    <form action="" method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.fy_timeframe.label(class="form-label") }}
+            <input class="form-control" list="fylistOptions" placeholder="Type to search...">
+            <datalist id="fylistOptions">
+                    {{form.fy_timeframe(class="form-control form-control-sm")}}
+            </datalist>
+        </div>
+        <div class="mb-3">
+            {{ form.submit(class="btn btn-primary" }}
+        </div>
+    </form>
+
+This worked for me. Hope it helps someone.

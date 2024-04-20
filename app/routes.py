@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import CreateGidForm, LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
@@ -143,8 +143,8 @@ def complete_gidgud(id):
 @app.route('/create_gid', methods=['GET', 'POST'])
 @login_required
 def create_gid():
-    form = CreateGidForm()
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGidForm()
     if form.validate_on_submit():
         category = check_if_category_exists_and_return(form.category.data)
         if not category:
@@ -160,6 +160,27 @@ def create_gid():
         flash('New Gid created!')
         return redirect(url_for('index'))
     return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
+
+@app.route('/create_gud', methods=['GET', 'POST'])
+@login_required
+def create_gud():
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGudForm()
+    #form.category.choices = [category.name for category in current_user.categories]
+    #form.category.choices = [""] + [(category.name, category.name) for category in current_user.categories]
+    if form.validate_on_submit():
+        category = check_if_category_exists_and_return(form.category.data)
+        if not category:
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
+        timestamp = datetime.now(timezone.utc)
+        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
+        db.session.add(gud)
+        db.session.commit()
+        flash('New Gud created!')
+        return redirect(url_for('index'))
+    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
 
 @app.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
