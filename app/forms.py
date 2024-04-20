@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, Optional
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional
 import sqlalchemy as sa
 from app import db
 from app.models import User, GidGud, Category
@@ -59,7 +59,7 @@ class EditGidGudForm(FlaskForm):
 class CreateGidForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
-    rec_rhythm = IntegerField('Repeat after', default=0)
+    rec_rhythm = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
     time_unit = SelectField('TimeUnit', choices=['', 'days', 'weeks', 'months', 'hours', 'minutes'])
     submit = SubmitField('Create Gid')
 
