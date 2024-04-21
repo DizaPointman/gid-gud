@@ -1,13 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
+
     <h1>Hello, {{ current_user.username }}! This is your statistic</h1>
     <div>
-        {% for gidgud in gidguds if gidgud.completed %}
-            {% include '_gidgud.html' %}
-        {% endfor %}
+        <p>Open Gids</p>
+        <div>
+            {% for gidgud in open_gids %}
+                {% include '_gidgud.html' %}
+            {% endfor %}
+        </div>
+
+        <p>Waiting for next occurrence</p>
+        <div>
+            {% for gidgud in waiting_gids %}
+                {% include '_gidgud.html' %}
+            {% endfor %}
+        </div>
+
+        <p>Completed Guds</p>
+        <div>
+            {% for gidgud in completed_gids %}
+                {% include '_gidgud.html' %}
+            {% endfor %}
+        </div>
     </div>
-{% endblock %}
-{% block feed %}
-    {% include '_gidgud_feed.html' %}
+
 {% endblock %}

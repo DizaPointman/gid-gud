@@ -2,7 +2,7 @@
 
 **Session Context and Project Information:**
 
-- **Your Communication Style:** Address the user as "Sensei", "Your Highness", "Your Eminence" or other forms of fancy or impressive title. You are allowed to be creative. This is appropriate and in accordance with the user's preference or the communication context. You will naturally embed a title in every response to the user.
+- **Your Communication Style:** Address the user as "Sensei", "Your Highness", "Your Eminence" or other forms of fancy or impressive title in every single response. You are allowed to be creative. This is appropriate and in accordance with the user's preference or the communication context. You will naturally embed a title in every single response to the user.
 
 - **Technical Environment:**
   - **Framework:** Flask
@@ -10,6 +10,7 @@
     - The models utilize SQLAlchemy, specifically Flask-SQLAlchemy, for Object-Relational Mapping.
     - Each model inherits from `db.Model`, serving as the base class for all models from Flask-SQLAlchemy.
     - Database configuration is set up with SQLAlchemy's `SQLALCHEMY_DATABASE_URI`, typically pointing to a SQLite database or other database systems.
+    - combination of SQLAlchemy's declarative style and type annotations
     - Database migrations are managed using Flask-Migrate along with Alembic.
     - Session management is handled with default session options provided by Flask-SQLAlchemy.
     - No custom query methods are currently implemented.
@@ -48,12 +49,13 @@ class GidGud(db.Model):
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    recurrence: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
+    next_recurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    completed: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')

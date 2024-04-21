@@ -1,5 +1,6 @@
 # utils.py
 
+from datetime import datetime, timedelta, timezone
 import traceback
 from flask import flash, current_app, request
 from flask_login import current_user
@@ -143,6 +144,30 @@ def check_and_return_all_categories() -> list:
 # GidGud - check_and_return
 # GidGud - create_object
 # GidGud - handle_and_update_object
+
+def gidgud_handle_complete(current_gidgud):
+    try:
+        timestamp = datetime.now(timezone.utc)
+        if current_gidgud.recurrence_rhythm == 0:
+            current_gidgud.completed = timestamp
+            db.session.commit()
+            return True
+        else:
+            gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
+            delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
+            next_occurrence = timestamp + delta
+            current_gidgud.next_occurrence = next_occurrence
+            db.session.add(gud)
+            db.session.commit()
+            return True
+    except Exception as e:
+        # Log any exceptions that occur during the process
+        log_exception(e)
+        return False
+
+    timestamp = datetime.now(timezone.utc)
+    current_gidgud.completed = timestamp
+    db.session.commit()
 
 # Category
 # Category - check_and_return

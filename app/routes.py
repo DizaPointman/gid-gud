@@ -1,10 +1,10 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, CreateGidGudForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, log_form_validation_errors, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 
@@ -49,7 +49,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -58,7 +57,10 @@ def register():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
-        db.session.add(user)
+        # Setting up the default category
+        # FIXME: set up default cat via event listener
+        def_cat = Category(name='default', user=user)
+        db.session.add(user, def_cat)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
@@ -79,33 +81,55 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/create_gidgud', methods=['GET', 'POST'])
+@app.route('/create_gid', methods=['GET', 'POST'])
 @login_required
-def create_gidgud():
-    form = CreateGidGudForm()
+def create_gid():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGidForm()
     if form.validate_on_submit():
         category = check_if_category_exists_and_return(form.category.data)
         if not category:
             new_category = Category(name=form.category.data, user_id=current_user.id)
             db.session.add(new_category)
             category = new_category
-        gidgud = GidGud(body=form.body.data, user_id=current_user.id, recurrence=form.recurrence.data, recurrence_rhythm=form.recurrence_rhythm.data, category=category)
-        db.session.add(gidgud)
+        if form.rec_rhythm.data != 0:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
+        else:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
+        db.session.add(gid)
         db.session.commit()
-        flash('New GidGud created!')
+        flash('New Gid created!')
         return redirect(url_for('index'))
-    return render_template('create_gidgud.html', title='Create GidGud', form=form, gidguds=gidguds)
+    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
+
+@app.route('/create_gud', methods=['GET', 'POST'])
+@login_required
+def create_gud():
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGudForm()
+    if form.validate_on_submit():
+        category = check_if_category_exists_and_return(form.category.data)
+        if not category:
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
+        timestamp = datetime.now(timezone.utc)
+        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
+        db.session.add(gud)
+        db.session.commit()
+        flash('New Gud created!')
+        return redirect(url_for('index'))
+    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
 
 @app.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
+    # FIXME: implement util fun to check everything in form and return updated gidgud
+    # TODO: adjust template to hide recurrence fields when editing completed gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
         gidgud.body = form.body.data
-        gidgud.recurrence = form.recurrence.data
-        gidgud.recurrence_rhythm = form.recurrence_rhythm.data
         if form.category.data is not gidgud.category.name:
             updated_category = check_if_category_exists_and_return(form.category.data)
             if not updated_category:
@@ -114,13 +138,15 @@ def edit_gidgud(id):
                 gidgud.category = new_category
             else:
                 gidgud.category = updated_category
+        if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
+            gidgud.recurrence_rhythm = form.rec_rhythm.data
+        if form.time_unit.data is not gidgud.time_unit:
+            gidgud.time_unit = form.time_unit.data
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
     elif request.method == 'GET':
         form.body.data = gidgud.body
-        form.recurrence.data = gidgud.recurrence
-        form.recurrence_rhythm.data = gidgud.recurrence_rhythm
         form.category.data = gidgud.category.name
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
 
@@ -137,9 +163,8 @@ def delete_gidgud(id):
 @login_required
 def complete_gidgud(id):
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    current_gidgud.completed = True
-    db.session.commit()
-    flash('GidGud completed!')
+    gidgud_handle_complete(current_gidgud)
+    flash('Gid completed!')
     return redirect(url_for('index'))
 
 @app.route('/user/<username>/user_categories', methods=['GET'])
@@ -260,8 +285,22 @@ def delete_category(id):
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
+    # TODO: implement next occurrence check somewhere useful
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
+    open_gids = []
+    waiting_gids = []
+    completed_gids = []
+
+    for gidgud in gidguds:
+        if not gidgud.completed and not gidgud.next_occurrence:
+            open_gids.append(gidgud)
+        if gidgud.next_occurrence and (datetime.now() - gidgud.next_occurrence).total_seconds() <= 0:
+            open_gids.append(gidgud)
+        elif gidgud.next_occurrence:
+            waiting_gids.append(gidgud)
+        elif gidgud.completed:
+            completed_gids.append(gidgud)
+    return render_template('statistics.html', title='My Statistic', open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
 
 @app.route('/user/<username>')
 @login_required
