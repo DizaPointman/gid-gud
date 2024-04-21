@@ -155,7 +155,7 @@ def gidgud_handle_complete(current_gidgud):
         else:
             gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
             delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
-            next_occurrence = timestamp + timedelta(delta)
+            next_occurrence = timestamp + delta
             current_gidgud.next_occurrence = next_occurrence
             db.session.add(gud)
             db.session.commit()

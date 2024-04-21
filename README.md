@@ -159,23 +159,19 @@ TabNine Pro 90 days free trial
 
 ### Next feature
 
-#### GitGud overhaul
 
-- Create gud from gid if completed
-- Recurrence
-- Implement timer
-- Better form field for timer
-- 69:69 / days:hours / Monthly:weekly / Every X of Y
 
 ### Possible features
 
 1. CSS via bootstrap or tailwind. 
 - UI redesign. 
 - Light and dark mode. 
+- Better form field for timer
+- 69:69 / days:hours / Monthly:weekly / Every X of Y
 
-2. Input sanitation and flash handler. 
+1. Input sanitation and flash handler. 
 
-3. Creation of test library. 
+2. Creation of test library. 
 - Integrate profiling. 
 - Existing library Or create package. 
 - Possibility to measure routes or functions. 
@@ -183,22 +179,22 @@ TabNine Pro 90 days free trial
 - Optimization of eager and lazy loading 
 - Optimizing request types for routes. 
 
-4. Add amount unit and times to gidgud. 
+1. Add amount unit and times to gidgud. 
 - Let user create templates. 
 - Favorite templates 
 - Statistics page optical overhaul. 
 - Advanced filters and data display 
 
-5. Avatars 
+1. Avatars 
 - Implement avatar progression 
 - One avatar or different avatars depending on category.
 
-6. Integration of other platform studs via API 
+1. Integration of other platform studs via API 
 
-7. User options. 
+2. User options. 
 - UI customization. 
 - Cringe mode - Good girl. Good boy 
 
-8. Task breaker 
+1. Task breaker 
 
-9. Correct read me and implement development log 
+2. Correct read me and implement development log 
