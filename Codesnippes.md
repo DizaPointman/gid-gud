@@ -104,80 +104,54 @@
 
 # Flaskform
 
-## DataListField I
+# SelectField with Input
 
-    class CreateGudForm(FlaskForm):
-    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    category = DatalistField('Category')
-    submit = SubmitField('Create Gud')
+In our esteemed context, Bootstrap alone does not inherently provide a direct mechanism to combine a StringField with a SelectField. However, fear not, for within the realm of Flask-WTF and Jinja2 templating, we possess the power to craft such combinations with elegance and finesse.
 
-    def __init__(self, category_choices=[], *args, **kwargs):
-        super(CreateGudForm, self).__init__(*args, **kwargs)
-        # Initialize category choices using the provided argument
-        self.category.datalist = category_choices
+To achieve this, we can utilize Flask-WTF's FormField and FieldList to create custom composite fields. You can define a WTForms form class that encapsulates both a StringField and a SelectField, then render these fields within your Jinja2 template using appropriate Bootstrap styling.
 
-    @app.route('/create_gud', methods=['GET', 'POST'])
-    @login_required
-    def create_gud():
-        form = CreateGudForm()
+Here's a basic example to illustrate the concept:
 
-        # Retrieve category choices dynamically here
-        category_choices = get_category_choices()
+    python
 
-        # Pass category_choices to form instantiation
-        form = CreateGudForm(category_choices=category_choices)
+    from flask_wtf import FlaskForm
+    from wtforms import StringField, SelectField, FormField, FieldList
 
+    class CustomForm(FlaskForm):
+        string_field = StringField('String Field')
+        select_field = SelectField('Select Field', choices=[('1', 'Option 1'), ('2', 'Option 2')])
+
+    class MainForm(FlaskForm):
+        custom_field = FormField(CustomForm)
+
+    # In your Flask view function
+    @app.route('/example', methods=['GET', 'POST'])
+    def example():
+        form = MainForm()
         if form.validate_on_submit():
-            # Process form submission
+            # Handle form submission
             pass
+        return render_template('example.html', form=form)
 
-        return render_template('create_gud.html', title='Create Gud', form=form)
+In your Jinja2 template (example.html), you can then render the custom composite field using Bootstrap styling:
 
-## DataListField II
+    html
 
-You create a simple StringField in your view.
-
-    autocomplete_input = StringField('autocomplete_input', validators=[DataRequired()])
-
-In your template you call the field and add the list parameter (remember to pass the entries to your template):
-
-    {{form.autocomplete_input(list="id_datalist")}}
-    <datalist id="id_datalist">
-    {% for entry in entries %}
-    <option value={{ entry }}>
-    {% endfor %}
-    </datalist>
-
-## DataListField III
-
-I had the same question; but no answer. After struggling for a while, I have got it to work. forms.py:
-
-    class fiscalYearForm(FlaskForm):
-        fy_timeframe = SelectField(
-            "Please Select Fiscal Quarter",
-            choices=[
-                ('FY2022 Q4', 'FY2022 Q4'),
-                ('FY2022 Q3', 'FY2022 Q3'),
-                ('FY2022 Q2', 'FY2022 Q2'),
-                ('FY2022 Q1', 'FY2022 Q1'),
-            ],
-            validators=[DataRequired()],
-        )
-
-html file:
-
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-        <div class="mb-3">
-            {{ form.fy_timeframe.label(class="form-label") }}
-            <input class="form-control" list="fylistOptions" placeholder="Type to search...">
-            <datalist id="fylistOptions">
-                    {{form.fy_timeframe(class="form-control form-control-sm")}}
-            </datalist>
+    <form method="POST">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            <label for="custom_field_string_field">String Field</label>
+            <input type="text" class="form-control" id="custom_field_string_field" name="custom_field.string_field">
         </div>
-        <div class="mb-3">
-            {{ form.submit(class="btn btn-primary" }}
+        <div class="form-group">
+            <label for="custom_field_select_field">Select Field</label>
+            <select class="form-control" id="custom_field_select_field" name="custom_field.select_field">
+                {% for value, label in form.custom_field.select_field.choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
         </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 
-This worked for me. Hope it helps someone.
+By employing this approach, you can seamlessly integrate a StringField with a SelectField in accordance with the Bootstrap styling conventions, harmonizing form elements with grace and precision. Should further guidance be needed, do not hesitate to beckon!

@@ -16,6 +16,18 @@
                 <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
+        <p>
+            {{ form.rec_rhythm.label }} {{ form.rec_rhythm }}<br>
+            {% for error in form.rec_rhythm.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.time_unit.label }} {{ form.time_unit }}<br>
+            {% for error in form.time_unit.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}
