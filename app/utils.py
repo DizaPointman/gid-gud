@@ -148,6 +148,7 @@ def check_and_return_all_categories() -> list:
 def gidgud_handle_complete(current_gidgud):
     try:
         timestamp = datetime.now(timezone.utc)
+        current_app.logger.info(f"timestamp: {datetime.now(timezone.utc)}")
         if current_gidgud.recurrence_rhythm == 0:
             current_gidgud.completed = timestamp
             db.session.commit()
@@ -156,6 +157,7 @@ def gidgud_handle_complete(current_gidgud):
             gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
             delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
             next_occurrence = timestamp + delta
+            current_app.logger.info(f"no: {next_occurrence}, no type: {type(next_occurrence)}")
             current_gidgud.next_occurrence = next_occurrence
             db.session.add(gud)
             db.session.commit()

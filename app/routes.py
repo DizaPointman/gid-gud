@@ -286,21 +286,32 @@ def delete_category(id):
 @login_required
 def statistics(username):
     # TODO: implement next occurrence check somewhere useful
+    # BUG: rest time calc seemingly wrong: if gidgud.next_occurrence and ((gidgud.next_occurrence - datetime.now()).total_seconds() <= 0)
+    app.logger.info("starting statistics route")
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     open_gids = []
     waiting_gids = []
     completed_gids = []
 
+    app.logger.info("before statistics loop")
     for gidgud in gidguds:
-        if not gidgud.completed and not gidgud.next_occurrence:
-            open_gids.append(gidgud)
-        if gidgud.next_occurrence and (datetime.now() - gidgud.next_occurrence).total_seconds() <= 0:
-            open_gids.append(gidgud)
-        elif gidgud.next_occurrence:
-            waiting_gids.append(gidgud)
-        elif gidgud.completed:
+        if gidgud.completed:
+            app.logger.info(f"FIRST IF - id: {gidgud.id}, completed: {gidgud.completed}")
             completed_gids.append(gidgud)
-    return render_template('statistics.html', title='My Statistic', open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
+        else:
+            app.logger.info(f"FIRST ELSE - id: {gidgud.id}, completed: {gidgud.completed}")
+            if not gidgud.next_occurrence:
+                app.logger.info(f"SECOND IF - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence:}")
+                open_gids.append(gidgud)
+            else:
+                app.logger.info(f"SECOND ELSE - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence:}")
+                if gidgud.next_occurrence and ((gidgud.next_occurrence - datetime.now()).total_seconds() <= 0):
+                    app.logger.info(f"THIRD IF - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence}, time left: {(gidgud.next_occurrence - datetime.now()).total_seconds()}, should be open: {(gidgud.next_occurrence - datetime.now()).total_seconds() <= 0}")
+                    open_gids.append(gidgud)
+                else:
+                    app.logger.info(f"THIRD ELSE - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence}, time left: {(gidgud.next_occurrence - datetime.now()).total_seconds()}, should be open: {(gidgud.next_occurrence - datetime.now()).total_seconds() <= 0}")
+                    waiting_gids.append(gidgud)
+    return render_template('statistics.html', title='My Statistic', gidguds=gidguds, open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
 
 @app.route('/user/<username>')
 @login_required
