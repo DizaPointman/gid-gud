@@ -86,6 +86,7 @@ def edit_profile():
 def edit_gidgud(id):
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     # FIXME: implement util fun to check everything in form and return updated gidgud
+    # TODO: adjust template to hide recurrence fields when editing completed gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
         gidgud.body = form.body.data
@@ -121,8 +122,10 @@ def delete_gidgud(id):
 @app.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def complete_gidgud(id):
+    # TODO: if recurring gid create new gud with timestamp from gid without setting timestamp on gid
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    current_gidgud.completed = True
+    timestamp = datetime.now(timezone.utc)
+    current_gidgud.completed = timestamp
     db.session.commit()
     flash('GidGud completed!')
     return redirect(url_for('index'))
