@@ -1,14 +1,11 @@
-import traceback
 from flask_login import current_user
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, InputRequired, Optional
-from wtforms.widgets import TextInput
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional
 import sqlalchemy as sa
 from app import db
 from app.models import User, GidGud, Category
 from flask import current_app, request
-from markupsafe import Markup
 
 
 class LoginForm(FlaskForm):
