@@ -81,6 +81,46 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
+@app.route('/create_gid', methods=['GET', 'POST'])
+@login_required
+def create_gid():
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGidForm()
+    if form.validate_on_submit():
+        category = check_if_category_exists_and_return(form.category.data)
+        if not category:
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
+        if form.rec_rhythm.data != 0:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
+        else:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
+        db.session.add(gid)
+        db.session.commit()
+        flash('New Gid created!')
+        return redirect(url_for('index'))
+    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
+
+@app.route('/create_gud', methods=['GET', 'POST'])
+@login_required
+def create_gud():
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    form = CreateGudForm()
+    if form.validate_on_submit():
+        category = check_if_category_exists_and_return(form.category.data)
+        if not category:
+            new_category = Category(name=form.category.data, user_id=current_user.id)
+            db.session.add(new_category)
+            category = new_category
+        timestamp = datetime.now(timezone.utc)
+        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
+        db.session.add(gud)
+        db.session.commit()
+        flash('New Gud created!')
+        return redirect(url_for('index'))
+    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
+
 @app.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
@@ -129,46 +169,6 @@ def complete_gidgud(id):
     db.session.commit()
     flash('GidGud completed!')
     return redirect(url_for('index'))
-
-@app.route('/create_gid', methods=['GET', 'POST'])
-@login_required
-def create_gid():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGidForm()
-    if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
-            db.session.add(new_category)
-            category = new_category
-        if form.rec_rhythm.data != 0:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
-        else:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
-        db.session.add(gid)
-        db.session.commit()
-        flash('New Gid created!')
-        return redirect(url_for('index'))
-    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
-
-@app.route('/create_gud', methods=['GET', 'POST'])
-@login_required
-def create_gud():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGudForm()
-    if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
-            db.session.add(new_category)
-            category = new_category
-        timestamp = datetime.now(timezone.utc)
-        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
-        db.session.add(gud)
-        db.session.commit()
-        flash('New Gud created!')
-        return redirect(url_for('index'))
-    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
 
 @app.route('/user/<username>/user_categories', methods=['GET'])
 @login_required

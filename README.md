@@ -161,10 +161,7 @@ TabNine Pro 90 days free trial
 
 #### GitGud overhaul
 
-- Separation gid/gud
-- If gid: Completed true
 - Create gud from gid if completed
-- completed as date
 - Recurrence
 - Implement timer
 - Better form field for timer
