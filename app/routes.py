@@ -166,8 +166,6 @@ def create_gid():
 def create_gud():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     form = CreateGudForm()
-    #form.category.choices = [category.name for category in current_user.categories]
-    #form.category.choices = [""] + [(category.name, category.name) for category in current_user.categories]
     if form.validate_on_submit():
         category = check_if_category_exists_and_return(form.category.data)
         if not category:
