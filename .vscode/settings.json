@@ -9,6 +9,7 @@
 		"gids",
 		"gud",
 		"guds",
+        "pytz",
         "werkzeug",
         "wtforms",
         "uncategorized",
