@@ -10,6 +10,11 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, Pr
 from sqlalchemy.orm import selectinload
 import logging
 import sqlalchemy as sa
+from pytz import utc
+
+# Define a function to generate ISO 8601 formatted strings
+def iso_now():
+    return datetime.now(utc).isoformat()
 
 # Utility Functions
 
@@ -147,18 +152,20 @@ def check_and_return_all_categories() -> list:
 
 def gidgud_handle_complete(current_gidgud):
     try:
-        timestamp = datetime.now(timezone.utc)
-        current_app.logger.info(f"timestamp: {datetime.now(timezone.utc)}")
+        timestamp = datetime.now(utc).isoformat()
         if current_gidgud.recurrence_rhythm == 0:
             current_gidgud.completed = timestamp
+            current_app.logger.info(f"timestamp raw: {timestamp}, fromiso: {datetime.fromisoformat(timestamp)}")
             db.session.commit()
+            current_app.logger.info(f"completed after commit: {current_gidgud.completed}")
             return True
         else:
             gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
+            current_app.logger.info(f"gud on create: {gud.timestamp}, completed: {gud.completed}")
             delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
-            next_occurrence = timestamp + delta
-            current_app.logger.info(f"no: {next_occurrence}, no type: {type(next_occurrence)}")
-            current_gidgud.next_occurrence = next_occurrence
+            next_occurrence = datetime.fromisoformat(timestamp) + delta
+            current_app.logger.info(f"no after delta: {next_occurrence}, to iso: {next_occurrence.isoformat()}")
+            current_gidgud.next_occurrence = next_occurrence.isoformat()
             db.session.add(gud)
             db.session.commit()
             return True
@@ -166,10 +173,6 @@ def gidgud_handle_complete(current_gidgud):
         # Log any exceptions that occur during the process
         log_exception(e)
         return False
-
-    timestamp = datetime.now(timezone.utc)
-    current_gidgud.completed = timestamp
-    db.session.commit()
 
 # Category
 # Category - check_and_return

@@ -4,9 +4,10 @@ from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm,
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, log_form_validation_errors, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
+from pytz import utc
 
 
 @app.route('/')
@@ -140,8 +141,12 @@ def edit_gidgud(id):
                 gidgud.category = updated_category
         if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
             gidgud.recurrence_rhythm = form.rec_rhythm.data
+            if gidgud.next_occurrence is not None:
+                gidgud.next_occurrence = None
         if form.time_unit.data is not gidgud.time_unit:
             gidgud.time_unit = form.time_unit.data
+            if gidgud.next_occurrence is not None:
+                gidgud.next_occurrence = None
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
@@ -293,23 +298,18 @@ def statistics(username):
     waiting_gids = []
     completed_gids = []
 
-    app.logger.info("before statistics loop")
     for gidgud in gidguds:
         if gidgud.completed:
-            app.logger.info(f"FIRST IF - id: {gidgud.id}, completed: {gidgud.completed}")
             completed_gids.append(gidgud)
         else:
-            app.logger.info(f"FIRST ELSE - id: {gidgud.id}, completed: {gidgud.completed}")
             if not gidgud.next_occurrence:
-                app.logger.info(f"SECOND IF - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence:}")
                 open_gids.append(gidgud)
             else:
-                app.logger.info(f"SECOND ELSE - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence:}")
-                if gidgud.next_occurrence and ((gidgud.next_occurrence - datetime.now()).total_seconds() <= 0):
-                    app.logger.info(f"THIRD IF - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence}, time left: {(gidgud.next_occurrence - datetime.now()).total_seconds()}, should be open: {(gidgud.next_occurrence - datetime.now()).total_seconds() <= 0}")
+                datetime_now = datetime.now(utc)
+                gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
+                if gidgud.next_occurrence and ((gidgud_next_occurrence - datetime_now).total_seconds() <= 0):
                     open_gids.append(gidgud)
                 else:
-                    app.logger.info(f"THIRD ELSE - id: {gidgud.id}, completed: {gidgud.completed}, if not gidgud.next_occurrence: {bool(gidgud.next_occurrence)}, next oc: {gidgud.next_occurrence}, time left: {(gidgud.next_occurrence - datetime.now()).total_seconds()}, should be open: {(gidgud.next_occurrence - datetime.now()).total_seconds() <= 0}")
                     waiting_gids.append(gidgud)
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds, open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
 

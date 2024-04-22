@@ -6,6 +6,11 @@ import sqlalchemy.orm as so
 from app import db, login
 from flask_login import UserMixin
 from hashlib import md5
+from pytz import utc
+
+# Define a function to generate ISO 8601 formatted strings
+def iso_now():
+    return datetime.now(utc).isoformat()
 
 class User(UserMixin, db.Model):
     """
@@ -87,18 +92,43 @@ class GidGud(db.Model):
     """
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    #timestamp: so.Mapped[datetime] = so.mapped_column(sa.DateTime(timezone=True), index=True, default=lambda: datetime.now(timezone.utc))
+    # Adjusting the timestamp field
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),  # Use String type to store ISO strings
+        index=True,
+        default=iso_now
+    )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
-    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
+    # Adjusting the next_occurrence and completed fields
+    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
+        sa.String(),  # Use String type to store ISO strings
+        index=True,
+        nullable=True,
+        default=None  # Adjust as needed
+    )
+    #next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
+    #next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
+    #    sa.DateTime(timezone=True),  # Set timezone=True to indicate storing UTC datetimes
+    #    index=True,
+    #    nullable=True
+    #)
 
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
+    #completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
+    completed: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),  # Use String type to store ISO strings
+        index=True,
+        nullable=True,
+        default=None  # Adjust as needed
+    )
+
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
@@ -109,6 +139,8 @@ class GidGud(db.Model):
         return '<GidGud {}>'.format(self.body)
 
     # TODO: sanitizing gidgud attributes (whitespace characters at end or beginning) check other cases for problems
+    # TODO: set model attributes to utc time
+    # TODO: change setters in functions also to utc time
 
 class Category(db.Model):
     """
