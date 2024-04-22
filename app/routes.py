@@ -291,7 +291,7 @@ def delete_category(id):
 @login_required
 def statistics(username):
     # TODO: implement next occurrence check somewhere useful
-    # BUG: rest time calc seemingly wrong: if gidgud.next_occurrence and ((gidgud.next_occurrence - datetime.now()).total_seconds() <= 0)
+    # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
     app.logger.info("starting statistics route")
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     open_gids = []
