@@ -11,9 +11,9 @@
 		"emmet.includeLanguages": {"jinja-html": "html"},
 		"editor.defaultFormatter": "vscode.emmet",
 		"cSpell.words": [
-			"gid",
 			"gidgud",
 			"gidguds",
+			"gid",
 			"gids",
 			"gud",
 			"guds",
