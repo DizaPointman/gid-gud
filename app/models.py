@@ -47,6 +47,8 @@ class User(UserMixin, db.Model):
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
         default=lambda: datetime.now(timezone.utc))
 
+    # FIXME: pytz iso for last seen
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
@@ -92,7 +94,6 @@ class GidGud(db.Model):
     """
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    #timestamp: so.Mapped[datetime] = so.mapped_column(sa.DateTime(timezone=True), index=True, default=lambda: datetime.now(timezone.utc))
     # Adjusting the timestamp field
     timestamp: so.Mapped[datetime] = so.mapped_column(
         sa.String(),  # Use String type to store ISO strings
@@ -110,18 +111,11 @@ class GidGud(db.Model):
         nullable=True,
         default=None  # Adjust as needed
     )
-    #next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
-    #next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
-    #    sa.DateTime(timezone=True),  # Set timezone=True to indicate storing UTC datetimes
-    #    index=True,
-    #    nullable=True
-    #)
 
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    #completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
     completed: so.Mapped[datetime] = so.mapped_column(
         sa.String(),  # Use String type to store ISO strings
         index=True,
@@ -139,6 +133,7 @@ class GidGud(db.Model):
         return '<GidGud {}>'.format(self.body)
 
     # TODO: sanitizing gidgud attributes (whitespace characters at end or beginning) check other cases for problems
+    # FIXME: rename recurrence to snooze: s_inter, s_unit, s_date
 
 class Category(db.Model):
     """
