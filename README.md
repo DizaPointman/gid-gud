@@ -2,7 +2,7 @@
 
 # Fun
 
-C_Man and G_Man as handlers/managers
+C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
@@ -154,13 +154,6 @@ REPEAT or alter existing for EACH additional feature
 TabNine Pro 90 days free trial
 
 ## PROBLEM
-
-utc
-
-- datetime as isostring
-- new Date().toISOString()
-
-## TODO
 
 ### Next feature
 
