@@ -153,6 +153,8 @@ def edit_gidgud(id):
     elif request.method == 'GET':
         form.body.data = gidgud.body
         form.category.data = gidgud.category.name
+        form.rec_rhythm.data = gidgud.recurrence_rhythm
+        form.time_unit.data = gidgud.time_unit
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
 
 @app.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
