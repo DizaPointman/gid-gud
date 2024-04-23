@@ -5,6 +5,10 @@
     </tr>
     <tr>
         <td>Category: {{ gidgud.category.name }}</td>
+        <td>Recurrence Rhythm: {{ gidgud.recurrence_rhythm }}</td>
+        <td>Time Unit: {{ gidgud.time_unit }}</td>
+        <td>Next Occurrence: {{ gidgud.next_occurrence }}</td>
+        <td>Completed: {{ gidgud.completed }}</td>
     </tr>
     <tr>
         <td><a href="{{ url_for('complete_gidgud', id=gidgud.id) }}">COMPLETED</a></td>
