@@ -280,37 +280,11 @@ def statistics(username):
     # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
     app.logger.info("starting statistics route")
 
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    open_gids = []
-    waiting_gids = []
-    completed_gids = []
-
-    for gidgud in gidguds:
-        if gidgud.completed:
-            completed_gids.append(gidgud)
-        else:
-            if not gidgud.next_occurrence:
-                open_gids.append(gidgud)
-            else:
-                datetime_now = datetime.now(utc)
-                gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
-                if gidgud.next_occurrence and ((gidgud_next_occurrence - datetime_now).total_seconds() <= 0):
-                    open_gids.append(gidgud)
-                else:
-                    waiting_gids.append(gidgud)
-    return render_template('statistics.html', title='My Statistic', gidguds=gidguds, open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
-
-@app.route('/user/<username>/statistics2', methods=['GET'])
-@login_required
-def statistics2(username):
-    # TODO: implement next occurrence check somewhere useful
-    # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
-    app.logger.info("starting statistics route")
-
-    gidguds = gidgud_return_dict_from_choice(['all', 'gids', 'sleep', 'guds'])
+    possible_choices = ['all', 'gids', 'sleep', 'guds']
+    gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
     app.logger.info(f"{gidguds}")
 
-    return render_template('statistics2.html', title='My Statistic', gidguds=gidguds)
+    return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
 
 
 @app.route('/user/<username>')

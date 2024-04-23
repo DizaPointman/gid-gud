@@ -17,7 +17,6 @@
             <a href="{{ url_for('login') }}">Login</a>
             {% else %}
             <a href="{{ url_for('statistics', username=current_user.username) }}">My Stats</a>
-            <a href="{{ url_for('statistics2', username=current_user.username) }}">My Stats 2</a>
             <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
             <a href="{{ url_for('user_categories', username=current_user.username) }}">My Categories</a>
             <a href="{{ url_for('logout') }}">Logout</a>
