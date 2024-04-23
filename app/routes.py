@@ -277,7 +277,6 @@ def delete_category(id):
 @login_required
 def statistics(username):
     # TODO: implement next occurrence check somewhere useful
-    # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
     app.logger.info("starting statistics route")
 
     possible_choices = ['all', 'gids', 'sleep', 'guds']
