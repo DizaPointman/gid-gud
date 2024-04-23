@@ -286,7 +286,6 @@ def statistics(username):
 
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
 
-
 @app.route('/user/<username>')
 @login_required
 def user(username):
