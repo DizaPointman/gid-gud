@@ -148,7 +148,7 @@ def check_and_return_all_categories() -> list:
 # GidGud
 # GidGud - check_and_return
 
-def gidgud_return_dict_from_choice(choice: list) -> dict:
+def gidgud_return_dict_from_choice2(choice: list) -> dict:
 
     def check_sleep(gidgud):
         datetime_now = datetime.now(utc)
@@ -192,6 +192,53 @@ def gidgud_return_dict_from_choice(choice: list) -> dict:
         # Log any exceptions that occur during the process
         log_exception(e)
         return False
+
+def gidgud_return_dict_from_choice(choice: list) -> dict:
+
+    def check_sleep(gidgud):
+        datetime_now = datetime.now(utc)
+        gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
+        sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
+        current_app.logger.info(f"id: {gidgud.id}, sleep: {sleep}, no: {bool(gidgud.next_occurrence)} sleep > 0: {sleep > 0}")
+        return sleep
+
+    choices = ['gids', 'guds', 'sleep', 'all']
+    gidgud_dict = {}
+
+    try:
+        if 'all' in choice:
+            gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
+            gidgud_dict['all'] = gidguds
+
+        if 'guds' in choice:
+            guds = db.session.execute(
+                sa.select(GidGud)
+                .where((current_user == GidGud.author) & (GidGud.completed.isnot(None)))
+            ).scalars().all()
+            current_app.logger.info(f"guds: {guds}")
+            gidgud_dict['guds'] = guds
+
+        if 'gids' in choice or 'sleep' in choice:
+            gids_and_sleep = db.session.scalars(
+                sa.select(GidGud)
+                .where((current_user == GidGud.author) & (GidGud.completed.is_(None)))
+            )
+            if 'gids' in choice:
+                gids = [g for g in gids_and_sleep if not g.next_occurrence or (check_sleep(g) <= 0)]
+                current_app.logger.info(f"gids: {gids}")
+                gidgud_dict['gids'] = gids
+            if 'sleep' in choice:
+                sleep = [g for g in gids_and_sleep if g.next_occurrence and check_sleep(g) > 0]
+                current_app.logger.info(f"sleep: {sleep}")
+                gidgud_dict['sleep'] = sleep
+
+        return gidgud_dict
+
+    except Exception as e:
+        # Log any exceptions that occur during the process
+        log_exception(e)
+        return False
+
 
 
 # GidGud - create_object

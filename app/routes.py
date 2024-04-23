@@ -4,7 +4,7 @@ from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm,
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, gidgud_handle_update, log_exception, log_form_validation_errors, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
@@ -279,6 +279,7 @@ def statistics(username):
     # TODO: implement next occurrence check somewhere useful
     # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
     app.logger.info("starting statistics route")
+
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     open_gids = []
     waiting_gids = []
@@ -298,6 +299,19 @@ def statistics(username):
                 else:
                     waiting_gids.append(gidgud)
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds, open_gids=open_gids, waiting_gids=waiting_gids, completed_gids=completed_gids)
+
+@app.route('/user/<username>/statistics2', methods=['GET'])
+@login_required
+def statistics2(username):
+    # TODO: implement next occurrence check somewhere useful
+    # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
+    app.logger.info("starting statistics route")
+
+    gidguds = gidgud_return_dict_from_choice(['all', 'gids', 'sleep', 'guds'])
+    app.logger.info(f"{gidguds}")
+
+    return render_template('statistics2.html', title='My Statistic', gidguds=gidguds)
+
 
 @app.route('/user/<username>')
 @login_required
