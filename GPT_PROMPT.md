@@ -17,16 +17,19 @@
     - All ORM configurations and settings, including database configuration, base class, database initialization, session management, and custom query methods, currently utilize default settings and implementations without any customizations or environment variables
   - **Templating Engine:** Jinja2 (without CSS at the moment)
   - **Database:** SQLite
-  - **Other Relevant Libraries:** aiosmtpd, alembic, atpublic, attrs, blinker, click, dnspython, email-validator, Flask-Login, Flask-Migrate,   Flask-SQLAlchemy, Flask-WTF, greenlet, idna, itsdangerous, Jinja2, Mako, MarkupSafe, python-dotenv, SQLAlchemy, SQLAlchemy-Utils, typing_extensions, Werkzeug, WTForms
+  - **Other Relevant Libraries:** aiosmtpd, alembic, atpublic, attrs, blinker, click, dnspython, email-validator, Flask-Login, Flask-Migrate,   Flask-SQLAlchemy, Flask-WTF, greenlet, idna, itsdangerous, Jinja2, Mako, MarkupSafe, python-dotenv, SQLAlchemy, SQLAlchemy-Utils, typing_extensions, Werkzeug, WTForms, Pytz
 
 - **Models Used:**
 class User(UserMixin, db.Model):
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+
     gidguds: so.WriteOnlyMapped['GidGud'] = so.relationship(back_populates='author')
     categories: so.Mapped[list['Category']] = so.relationship('Category', back_populates='user')
+
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
         default=lambda: datetime.now(timezone.utc))
@@ -45,24 +48,35 @@ class User(UserMixin, db.Model):
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 
 class GidGud(db.Model):
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),  # Use String type to store ISO strings
+        index=True,
+        default=iso_now
+    )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
     time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
-    next_recurrence: so.Mapped[Optional[datetime]] = so.mapped_column(index=True, nullable=True)
+    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True,
+        default=None
+    )
+
     amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    completed: so.Mapped[datetime] = so.mapped_column(index=True, nullable=True)
-    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
-    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
-    category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
-    author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
 
-    def __repr__(self):
-        return '<GidGud {}>'.format(self.body)
+    completed: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True,
+        default=None
+    )
 
 class Category(db.Model):
     id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
@@ -76,6 +90,14 @@ class Category(db.Model):
 
     def __repr__(self):
         return '<Category {}>'.format(self.name)
+    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+
+    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
+    category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
+    author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
+
+    def __repr__(self):
+        return '<GidGud {}>'.format(self.body)
 
 **Expectations:**
 - **Style:** PEP 8, maintain consistent style and syntax for solutions and design patterns

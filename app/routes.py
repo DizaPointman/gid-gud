@@ -4,7 +4,7 @@ from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm,
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, log_exception, log_form_validation_errors, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, gidgud_handle_update, log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
@@ -126,35 +126,19 @@ def create_gud():
 @login_required
 def edit_gidgud(id):
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    # FIXME: implement util fun to check everything in form and return updated gidgud
     # TODO: adjust template to hide recurrence fields when editing completed gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
-        gidgud.body = form.body.data
-        if form.category.data is not gidgud.category.name:
-            updated_category = check_if_category_exists_and_return(form.category.data)
-            if not updated_category:
-                new_category = Category(name=form.category.data, user_id=current_user.id)
-                db.session.add(new_category)
-                gidgud.category = new_category
-            else:
-                gidgud.category = updated_category
-        if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
-            gidgud.recurrence_rhythm = form.rec_rhythm.data
-            if gidgud.next_occurrence is not None:
-                gidgud.next_occurrence = None
-        if form.time_unit.data is not gidgud.time_unit:
-            gidgud.time_unit = form.time_unit.data
-            if gidgud.next_occurrence is not None:
-                gidgud.next_occurrence = None
-        db.session.commit()
+        gidgud_handle_update(gidgud, form)
         flash('Your changes have been saved.')
         return redirect(url_for('index'))
+
     elif request.method == 'GET':
         form.body.data = gidgud.body
         form.category.data = gidgud.category.name
         form.rec_rhythm.data = gidgud.recurrence_rhythm
         form.time_unit.data = gidgud.time_unit
+
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
 
 @app.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
