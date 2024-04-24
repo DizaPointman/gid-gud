@@ -72,7 +72,7 @@ class UserModelCase(unittest.TestCase):
         c4 = Category(name='default', user=u4)
         db.session.add_all([c1, c2, c3, c4])
 
-        # create four gidguds
+        # create four guds
         now = datetime.now(timezone.utc)
         g1 = GidGud(body="post from john", author=u1, category=c1,
                     timestamp=((now + timedelta(seconds=1)).isoformat()),
@@ -86,7 +86,12 @@ class UserModelCase(unittest.TestCase):
         g4 = GidGud(body="post from david", author=u4, category=c4,
                     timestamp=((now + timedelta(seconds=2)).isoformat()),
                     completed=((now + timedelta(seconds=20)).isoformat()))
-        db.session.add_all([g1, g2, g3, g4])
+        
+        # create one gid
+        g5 = GidGud(body="uncompleted post from david", author=u4, category=c4,
+                    timestamp=((now + timedelta(seconds=2)).isoformat()),
+                    completed=None)
+        db.session.add_all([g1, g2, g3, g4, g5])
         db.session.commit()
 
         # setup the followers
@@ -96,7 +101,7 @@ class UserModelCase(unittest.TestCase):
         u3.follow(u4)  # mary follows david
         db.session.commit()
 
-        # check the following posts of each user
+        # check the following guds of each user
         f1 = db.session.scalars(u1.following_guds()).all()
         f2 = db.session.scalars(u2.following_guds()).all()
         f3 = db.session.scalars(u3.following_guds()).all()
@@ -105,6 +110,9 @@ class UserModelCase(unittest.TestCase):
         self.assertEqual(f2, [g2, g3])
         self.assertEqual(f3, [g3, g4])
         self.assertEqual(f4, [g4])
+
+        # check that gid g5 is not in following guds
+        self.assertNotIn(g5, f4)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
