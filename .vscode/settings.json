@@ -1,19 +1,21 @@
 {
     "cSpell.words": [
-        "rythm",
-        "sqlalchemy",
-        "selectinload",
-        "gidgud",
-		"gidguds",
         "gid",
-		"gids",
-		"gud",
-		"guds",
+        "gidgud",
+        "gidguds",
+        "gids",
+        "gud",
+        "guds",
+        "primaryjoin",
         "pytz",
-        "werkzeug",
-        "wtforms",
+        "secondaryjoin",
+        "selectinload",
+        "sqlalchemy",
         "uncategorized",
+        "unfollow",
         "uselist",
+        "werkzeug",
+        "wtforms"
     ],
     "python.analysis.autoImportCompletions": true
 }
