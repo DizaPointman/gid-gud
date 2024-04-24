@@ -8,8 +8,6 @@ from flask_login import UserMixin
 from hashlib import md5
 from pytz import utc
 
-from app.utils import log_exception
-
 # Define a function to generate ISO 8601 formatted strings as timestamps
 def iso_now():
     return datetime.now(utc).isoformat()
@@ -162,45 +160,44 @@ class Category(db.Model):
 
     def possible_parents(self) -> list[str]:
 
-        try:
-            possible_parents = []
+        # TODO: adjust queries to work like utils function
 
-            # Check if the category has no children
-            if not self.children:
-                # Fetch potential parent categories
-                possible_parents_query = (
-                    db.session.query(Category)
-                    .filter(Category.parent.has(parent_id=None))  # Grandparent is not allowed to have a parent
-                    .filter(~Category.name.in_([self.name, 'default']))  # Exclude current category and default category
-                )
-                possible_parents = [category.name for category in possible_parents_query.all()]
+        possible_parents = []
 
-            return possible_parents
+        if not self.children:
 
-        except Exception as e:
-            log_exception(e)
-            return []
+            possible_parents_query = (
+                db.session.query(Category)
+                .filter(~Category.name.in_([self.name, 'default']))
+                .filter(Category.parent.has(parent_id=None))
+            )
+
+        if self.children:
+            possible_parents_query = (
+                db.session.query(Category)
+                .filter(~Category.name.in_([self.name, 'default']))
+                .filter(sa.not_(Category.parent))
+            )
+
+        possible_parents = [category.name for category in possible_parents_query.all()]
+
+        return possible_parents
 
     def possible_children(self) -> list[str]:
 
-        try:
-            possible_children = []
+        # TODO: adjust queries to work like utils function
 
-            # Fetch categories with no parent, excluding the default category, the current category, and categories with grandchildren
-            categories_query = (
-                db.session.query(Category)
-                .filter(Category.name != 'default')  # Exclude default category
-                .filter(Category.id != self.id)  # Exclude current category by ID
-                .filter(~Category.children.any(Category.children != None))  # Exclude categories with grandchildren
-            )
-            possible_children = [category.name for category in categories_query.all()]
+        possible_children = []
 
-            return possible_children
+        # Fetch categories with no parent, excluding the default category, the current category, and categories with grandchildren
+        categories_query = (
+            db.session.query(Category)
+            .filter(~Category.name.in_([self.name, 'default']))  # Exclude current category and default category
+            .filter(~Category.children.any(Category.children != None))  # Exclude categories with grandchildren
+        )
+        possible_children = [category.name for category in categories_query.all()]
 
-        except Exception as e:
-            # Log any exceptions that occur during the process
-            log_exception(e)
-            return []
+        return possible_children
 
     # TODO: implement functions with queries to return possible parents, children, etc
 
