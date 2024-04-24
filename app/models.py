@@ -141,8 +141,8 @@ class GidGud(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
-    # TODO: sanitizing gidgud attributes (whitespace characters at end or beginning) check other cases for problems
     # FIXME: rename recurrence to snooze: s_inter, s_unit, s_date
+    # TODO: implement return next occurrence and delta for next occurrence
 
 class Category(db.Model):
 
@@ -158,10 +158,7 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    # TODO: implement functions to return possible parents, children, etc
-    # TODO: add protection for default?
-    # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
-    # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
+    # TODO: implement functions with queries to return possible parents, children, etc
 
 @login.user_loader
 def load_user(id):

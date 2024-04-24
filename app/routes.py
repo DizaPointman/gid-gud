@@ -276,8 +276,6 @@ def delete_category(id):
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
-    # TODO: implement next occurrence check somewhere useful
-    app.logger.info("starting statistics route")
 
     possible_choices = ['all', 'gids', 'sleep', 'guds']
     gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])

@@ -87,6 +87,10 @@ class CreateCategoryForm(FlaskForm):
         if category is not None:
             raise ValidationError('This category already exists.')
 
+    # add not allowed names
+    # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
+    # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
+
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
     parent = SelectField('New Parent:')
