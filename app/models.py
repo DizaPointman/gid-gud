@@ -81,6 +81,25 @@ class User(UserMixin, db.Model):
         query = sa.select(sa.func.count()).select_from(
             self.following.select().subquery())
         return db.session.scalar(query)
+    
+    def following_guds(self):
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        # using sa.func.datetime() to convert the ISO string timestamp to a datetime object
+        # within the SQL query before performing the desc() ordering operation
+        # filter out gids and return only guds by: '& (GidGud.completed != None)'
+        return (
+            sa.select(GidGud)
+            .join(GidGud.author.of_type(Author))
+            .join(Author.followers.of_type(Follower), isouter=True)
+            .where(sa.or_(
+                Follower.id == self.id,
+                Author.id == self.id
+            ) &
+                sa.not_(GidGud.completed.is_(None)))
+            .group_by(GidGud)
+            .order_by(sa.func.datetime(GidGud.timestamp).desc())
+        )
 
 class GidGud(db.Model):
 
@@ -139,6 +158,7 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
+    # TODO: implement functions to return possible parents, children, etc
     # TODO: add protection for default?
     # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
     # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
