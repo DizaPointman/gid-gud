@@ -8,6 +8,9 @@ from app.models import Category, User, GidGud
 from pytz import utc
 
 class UserModelCase(unittest.TestCase):
+
+    print("Test: UserModelCase")
+
     def setUp(self):
         self.app_context = app.app_context()
         self.app_context.push()
@@ -86,7 +89,7 @@ class UserModelCase(unittest.TestCase):
         g4 = GidGud(body="post from david", author=u4, category=c4,
                     timestamp=((now + timedelta(seconds=2)).isoformat()),
                     completed=((now + timedelta(seconds=20)).isoformat()))
-        
+
         # create one gid
         g5 = GidGud(body="uncompleted post from david", author=u4, category=c4,
                     timestamp=((now + timedelta(seconds=2)).isoformat()),
