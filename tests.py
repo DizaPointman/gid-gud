@@ -75,17 +75,17 @@ class UserModelCase(unittest.TestCase):
         # create four gidguds
         now = datetime.now(timezone.utc)
         g1 = GidGud(body="post from john", author=u1, category=c1,
-                    timestamp=(now + timedelta(seconds=1).isoformat()),
-                    completed=(now + timedelta(seconds=10).isoformat()))
+                    timestamp=((now + timedelta(seconds=1)).isoformat()),
+                    completed=((now + timedelta(seconds=10)).isoformat()))
         g2 = GidGud(body="post from susan", author=u2, category=c2,
-                    timestamp=(now + timedelta(seconds=4).isoformat()),
-                    completed=(now + timedelta(seconds=40).isoformat()))
+                    timestamp=((now + timedelta(seconds=4)).isoformat()),
+                    completed=((now + timedelta(seconds=40)).isoformat()))
         g3 = GidGud(body="post from mary", author=u3, category=c3,
-                    timestamp=(now + timedelta(seconds=3).isoformat()),
-                    completed=(now + timedelta(seconds=30).isoformat()))
+                    timestamp=((now + timedelta(seconds=3)).isoformat()),
+                    completed=((now + timedelta(seconds=30)).isoformat()))
         g4 = GidGud(body="post from david", author=u4, category=c4,
-                    timestamp=(now + timedelta(seconds=2).isoformat()),
-                    completed=(now + timedelta(seconds=20).isoformat()))
+                    timestamp=((now + timedelta(seconds=2)).isoformat()),
+                    completed=((now + timedelta(seconds=20)).isoformat()))
         db.session.add_all([g1, g2, g3, g4])
         db.session.commit()
 
