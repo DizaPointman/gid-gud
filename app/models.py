@@ -1,3 +1,4 @@
+import string
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from typing import Optional
@@ -158,29 +159,84 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    def possible_parents(self) -> list[str]:
+    def get_tree_depth(self):
+        """
+        Recursively calculate the depth of the category tree starting from this category.
+
+        Returns:
+            int: The depth of the category tree.
+        """
+        if not self.children:  # Base case: if the category has no children, return 0
+            return 0
+        else:
+            # Recursively calculate the depth of each child and find the maximum depth
+            max_child_depth = max(child.get_tree_depth() for child in self.children)
+            return 1 + max_child_depth  # Increment depth by 1 for the current category
+
+    def get_possible_parents(self) -> list[dict]:
+        """
+        Get a list of possible parent categories based on the category tree depth.
+
+        Returns:
+            list[dict]: A list of dictionaries containing category IDs and names.
+        """
+        possible_parents = []
+
+        tree_depth = self.get_tree_depth()
+
+        # Base query to select all categories except the current one
+        base_query = (
+            db.session.query(Category.id, Category.name)
+            .filter(Category.id != self.id)
+        )
+
+        if tree_depth == 2:
+            # No parent possible except 'default'
+            categories_query = base_query.filter(Category.name == 'default')
+
+        elif tree_depth == 1:
+            # Parent without grandparent possible, only 'default' category as grandparent allowed
+            categories_query = base_query.filter(~Category.parent.has(parent_id=None))
+
+        else:  # tree_depth == 0
+            # Parent with grandparent possible, only 'default' category as great grandparent allowed
+            categories_query = base_query.filter(~Category.parent.has(Category.parent.has(parent_id=None)))
+
+        possible_parents = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
+        return possible_parents
+
+    def get_possible_parents_old(self) -> list[dict[int, str]]:
 
         # TODO: adjust queries to work like utils function
 
         possible_parents = []
 
-        if not self.children:
+        tree_depth = self.get_tree_depth()
 
-            possible_parents_query = (
-                db.session.query(Category)
-                .filter(~Category.name.in_([self.name, 'default']))
-                .filter(Category.parent.has(parent_id=None))
+        if tree_depth == 2:
+            # No parent possible except 'default'
+            categories_query = (
+                db.session.query(Category.id, Category.name)
+                .filter(Category.name == 'default')
             )
 
-        if self.children:
-            possible_parents_query = (
-                db.session.query(Category)
-                .filter(~Category.name.in_([self.name, 'default']))
-                .filter(sa.not_(Category.parent))
+        if tree_depth == 1:
+            # Parent without grandparent possible, only 'default' category as grandparent allowed
+            categories_query = (
+                db.session.query(Category.id, Category.name)
+                .filter(~Category.parent.has(Category.parent.has(Category.name != 'default')))  # Exclude categories with a grandparent that is not 'default'
+                .filter(Category.parent_id != self.id)   # Exclude the current category as a potential parent
             )
 
-        possible_parents = [category.name for category in possible_parents_query.all()]
+        if tree_depth == 0:
+            # Parent with grandparent possible, only 'default' category as great grandparent allowed
+            categories_query = (
+                db.session.query(Category.id, Category.name)
+                .filter(~Category.parent.has(Category.parent.has(Category.parent.has(Category.name != 'default'))))  # Exclude categories with a great grandparent that is not 'default'
+                .filter(Category.parent_id != self.id)   # Exclude the current category as a potential parent
+            )
 
+        possible_parents = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
         return possible_parents
 
     def possible_children(self) -> list[str]:

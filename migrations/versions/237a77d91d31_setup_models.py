@@ -1,8 +1,8 @@
-"""setup models with followers
+"""setup models
 
-Revision ID: c6d09ca3b409
+Revision ID: 237a77d91d31
 Revises: 
-Create Date: 2024-04-24 17:25:04.370940
+Create Date: 2024-04-25 21:04:26.658292
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c6d09ca3b409'
+revision = '237a77d91d31'
 down_revision = None
 branch_labels = None
 depends_on = None
