@@ -6,6 +6,19 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
+# TODO
+
+create add/remove parent and child functions
+create bulk reassign gidguds and children functions
+
+make default the parent on category creation
+restrict giving a parent to default
+
+for children:
+create tree height function
+create possible children
+implement add children function with multiple selectfield
+
 # Security
 
 ## Requests
