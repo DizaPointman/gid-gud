@@ -46,6 +46,9 @@ class EditProfileForm(FlaskForm):
                 User.username == self.username.data))
             if user is not None:
                 raise ValidationError('Please use a different username.')
+            
+class EmptyForm(FlaskForm):
+    submit = SubmitField('Submit')
 
 class EditGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
@@ -86,6 +89,10 @@ class CreateCategoryForm(FlaskForm):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
+
+    # add not allowed names
+    # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
+    # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])

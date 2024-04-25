@@ -342,7 +342,7 @@ def check_and_return_list_of_possible_parents(current_category) -> list[str]:
         Exception: Any exception that occurs during the process is logged and an empty list is returned.
 
     Notes:
-        - Case A: Categories with no children allow parents that have no parent (i.e., no grandparent).
+        - Case A: Categories with no children allow parents that have a parent (i.e., grandparent). But the grandparents must not have parents
         - Case B: Categories with children (but children have no children themselves) allow parents with no parent.
         - Case C: Categories with children that have children do not allow parents.
 

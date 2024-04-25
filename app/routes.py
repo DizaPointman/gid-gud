@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.forms import CreateGidForm, CreateGudForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
@@ -81,6 +81,46 @@ def edit_profile():
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
+
+@app.route('/follow/<username>', methods=['POST'])
+@login_required
+def follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = db.session.scalar(
+            sa.select(User).where(User.username == username))
+        if user is None:
+            flash(f'User {username} not found.')
+            return redirect(url_for('index'))
+        if user == current_user:
+            flash('You cannot follow yourself you fucking narcissist!')
+            return redirect(url_for('user', username=username))
+        current_user.follow(user)
+        db.session.commit()
+        flash(f'You are following {username}!')
+        return redirect(url_for('user', username=username))
+    else:
+        return redirect(url_for('index'))
+
+@app.route('/unfollow/<username>', methods=['POST'])
+@login_required
+def unfollow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = db.session.scalar(
+            sa.select(User).where(User.username == username))
+        if user is None:
+            flash(f'User {username} not found.')
+            return redirect(url_for('index'))
+        if user == current_user:
+            flash('You cannot unfollow yourself you fucking narcissist!')
+            return redirect(url_for('user', username=username))
+        current_user.unfollow(user)
+        db.session.commit()
+        flash(f'You are not following {username} anymore.')
+        return redirect(url_for('user', username=username))
+    else:
+        return redirect(url_for('index'))
 
 @app.route('/create_gid', methods=['GET', 'POST'])
 @login_required
@@ -276,9 +316,6 @@ def delete_category(id):
 @app.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
-    # TODO: implement next occurrence check somewhere useful
-    # TODO: create return gidguds_function that returns open, waiting, completed and all depending on param
-    app.logger.info("starting statistics route")
 
     possible_choices = ['all', 'gids', 'sleep', 'guds']
     gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
@@ -286,13 +323,13 @@ def statistics(username):
 
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
 
-
 @app.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    return render_template('user.html', user=user, gidguds=gidguds)
+    form = EmptyForm()
+    return render_template('user.html', user=user, gidguds=gidguds, form=form)
 
 @app.before_request
 def before_request():

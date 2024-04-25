@@ -12,6 +12,15 @@ from pytz import utc
 def iso_now():
     return datetime.now(utc).isoformat()
 
+followers = sa.Table(
+    'followers',
+    db.metadata,
+    sa.Column('follower_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True),
+    sa.Column('followed_id', sa.Integer, sa.ForeignKey('user.id'),
+              primary_key=True)
+)
+
 class User(UserMixin, db.Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -29,6 +38,15 @@ class User(UserMixin, db.Model):
         default=iso_now
     )
 
+    following: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers, primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        back_populates='followers')
+    followers: so.WriteOnlyMapped['User'] = so.relationship(
+        secondary=followers, primaryjoin=(followers.c.followed_id == id),
+        secondaryjoin=(followers.c.follower_id == id),
+        back_populates='following')
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
@@ -41,6 +59,47 @@ class User(UserMixin, db.Model):
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.following.add(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.following.remove(user)
+
+    def is_following(self, user):
+        query = self.following.select().where(User.id == user.id)
+        return db.session.scalar(query) is not None
+
+    def followers_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.followers.select().subquery())
+        return db.session.scalar(query)
+
+    def following_count(self):
+        query = sa.select(sa.func.count()).select_from(
+            self.following.select().subquery())
+        return db.session.scalar(query)
+
+    def following_guds(self):
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        # using sa.func.datetime() to convert the ISO string timestamp to a datetime object
+        # within the SQL query before performing the desc() ordering operation
+        # filter out gids and return only guds by: '& (GidGud.completed != None)'
+        return (
+            sa.select(GidGud)
+            .join(GidGud.author.of_type(Author))
+            .join(Author.followers.of_type(Follower), isouter=True)
+            .where(sa.or_(
+                Follower.id == self.id,
+                Author.id == self.id
+            ) &
+                sa.not_(GidGud.completed.is_(None)))
+            .group_by(GidGud)
+            .order_by(sa.func.datetime(GidGud.timestamp).desc())
+        )
 
 class GidGud(db.Model):
 
@@ -82,8 +141,8 @@ class GidGud(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
-    # TODO: sanitizing gidgud attributes (whitespace characters at end or beginning) check other cases for problems
     # FIXME: rename recurrence to snooze: s_inter, s_unit, s_date
+    # TODO: implement return next occurrence and delta for next occurrence
 
 class Category(db.Model):
 
@@ -99,9 +158,48 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    # TODO: add protection for default?
-    # TODO: prevent user from naming categories 0, Null, default, No Parent, No Children, None
-    # TODO: assure prevented names can't be achieved by tricks, like other encodings, ASCII etc
+    def possible_parents(self) -> list[str]:
+
+        # TODO: adjust queries to work like utils function
+
+        possible_parents = []
+
+        if not self.children:
+
+            possible_parents_query = (
+                db.session.query(Category)
+                .filter(~Category.name.in_([self.name, 'default']))
+                .filter(Category.parent.has(parent_id=None))
+            )
+
+        if self.children:
+            possible_parents_query = (
+                db.session.query(Category)
+                .filter(~Category.name.in_([self.name, 'default']))
+                .filter(sa.not_(Category.parent))
+            )
+
+        possible_parents = [category.name for category in possible_parents_query.all()]
+
+        return possible_parents
+
+    def possible_children(self) -> list[str]:
+
+        # TODO: adjust queries to work like utils function
+
+        possible_children = []
+
+        # Fetch categories with no parent, excluding the default category, the current category, and categories with grandchildren
+        categories_query = (
+            db.session.query(Category)
+            .filter(~Category.name.in_([self.name, 'default']))  # Exclude current category and default category
+            .filter(~Category.children.any(Category.children != None))  # Exclude categories with grandchildren
+        )
+        possible_children = [category.name for category in categories_query.all()]
+
+        return possible_children
+
+    # TODO: implement functions with queries to return possible parents, children, etc
 
 @login.user_loader
 def load_user(id):
