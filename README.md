@@ -6,6 +6,21 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
+# Security
+
+## Requests
+
+### CSRF
+
+I'm going to implement them as POST requests, which are triggered from the web browser as a result of submitting a web form.
+It would be easier to implement these routes as GET requests, but then they could be exploited in CSRF attacks.
+Because GET requests are harder to protect against CSRF, they should only be used on actions that do not introduce state changes.
+Implementing these as a result of a form submission is better because then a CSRF token can be added to the form.
+
+CSRF: https://en.wikipedia.org/wiki/Cross-site_request_forgery
+Guide: https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-viii-followers
+
+
 # Dropdowns
 https://hackanons.com/2021/09/flask-dropdown-menu-everything-you-need-to-know.html
 
