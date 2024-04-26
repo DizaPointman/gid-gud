@@ -8,7 +8,7 @@ C-Man.inject()
 
 # TODO
 
-Make new tree level field. If child is added. Bump tree Plus, Tree level of child. Give default tree level 4. Category without children has tree Level 1.
+Make new tree level field. If child is added. Bump tree Plus, Tree level of child. Give default tree level 0. Category without children has tree Level 1.
 Add bump tree level function. Awesome.
 for child: tree level has to be < parent tree level
 for parent: child tree level + 1 < 4
@@ -40,6 +40,15 @@ compare default and data and apply necessary logic
             # Form submission logic
             pass
 
+    output:
+    {
+        'name': 'User-submitted name',  # User input, if provided
+        'email': 'User-submitted email',  # User input, if provided
+        # Default values
+        'default_name': 'Real Default Name',
+        'default_email': 'real_default@example.com'
+    }
+
 
 
 create add/remove parent and child functions
@@ -49,6 +58,41 @@ make default the parent on category creation
 restrict giving a parent to default
 
 implement add children function with multiple selectfield
+
+## TODO: Category Manager
+
+    # app/category_manager.py
+
+    from app.models import Category
+
+    class CategoryManager:
+        def __init__(self, db):
+            self.db = db
+
+
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    db = SQLAlchemy(app)
+    migrate = Migrate(app, db)
+    login = LoginManager(app)
+    login.login_view = 'login'
+
+    # Import the CategoryManager class
+    from app.category_manager import CategoryManager
+
+    # Initialize the CategoryManager with the db instance
+    category_manager = CategoryManager(db)
+
+
+    from app import app, category_manager
+
+    @app.route('/')
+    @app.route('/index')
+    def index():
+        # Example usage of the CategoryManager
+        categories = category_manager.get_all_categories()
+        return render_template('index.html', categories=categories)
+
 
 # Security
 
@@ -95,7 +139,10 @@ your_app/
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── user.py
-│   │   └── object_manager.py
+│   │   └── category.py
+│   ├── managers/
+│   │   ├── __init__.py
+│   │   └── category_manager.py
 │   ├── sessions/
 │   │   ├── __init__.py
 │   │   └── session_manager.py
@@ -128,7 +175,7 @@ your_app/
 ├── tests/
 │   ├── __init__.py
 │   ├── test_user.py
-│   ├── test_object_manager.py
+│   ├── test_category_manager.py
 │   ├── test_session_manager.py
 │   └── test_event_manager.py
 │

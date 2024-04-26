@@ -150,6 +150,7 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    level: so.Mapped[int] = so.mapped_column(sa.Integer, default=0)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
@@ -158,88 +159,8 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    def get_tree_depth(self):
-        """
-        Recursively calculate the depth of the category tree starting from this category.
-
-        Returns:
-            int: The depth of the category tree.
-        """
-        if not self.children:  # Base case: if the category has no children, return 0
-            return 0
-        else:
-            # Recursively calculate the depth of each child and find the maximum depth
-            max_child_depth = max(child.get_tree_depth() for child in self.children)
-            return 1 + max_child_depth  # Increment depth by 1 for the current category
-
-    def get_tree_height(self):
-
-        if self.parent == None or self.parent.name == 'default':
-            return 0
-
-        else:
-            max_parent_height = self.parent.get_tree_height()
-            return 1 + max_parent_height
-
-    def get_possible_parents(self) -> list[dict]:
-        """
-        Get a list of possible parent categories based on the category tree depth.
-
-        Returns:
-            list[dict]: A list of dictionaries containing category IDs and names.
-        """
-        possible_parents = []
-
-        tree_depth = self.get_tree_depth()
-
-        # Base query to select all categories except the current one
-        base_query = (
-            db.session.query(Category.id, Category.name)
-            .filter(Category.id != self.id)
-        )
-
-        if tree_depth == 2:
-            # No parent possible except 'default'
-            categories_query = base_query.filter(Category.name == 'default')
-
-        elif tree_depth == 1:
-            # Parent without grandparent possible, only 'default' category as grandparent allowed
-            categories_query = base_query.filter(~Category.parent.has(parent_id=None))
-
-        else:  # tree_depth == 0
-            # Parent with grandparent possible, only 'default' category as great grandparent allowed
-            categories_query = base_query.filter(~Category.parent.has(Category.parent.has(parent_id=None)))
-
-        possible_parents = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
-        return possible_parents
-
-    def get_possible_children(self) -> list[dict]:
-
-        # TODO: adjust queries to work like utils function
-
-        possible_children = []
-
-        tree_height = self.get_tree_height()
-
-        if tree_height == 2:
-            return possible_children
-
-        base_query = (
-            db.session.query(Category.id, Category.name)
-            .filter(Category.id != self.id)
-            .filter(Category.name != 'default')
-        )
-
-        if tree_height == 1:
-            categories_query = base_query.filter(Category.children == None)
-
-        else:
-            categories_query = base_query.filter(~Category.children.any(Category.children != None))
-
-        possible_children = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
-        return possible_children
-
-    # TODO: implement functions with queries to return possible parents, children, etc
+    def get_possible_children_and_parents(self) -> dict:
+        return {}
 
 @login.user_loader
 def load_user(id):
