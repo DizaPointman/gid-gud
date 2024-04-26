@@ -8,15 +8,23 @@ C-Man.inject()
 
 # TODO
 
+Make new tree level field. If child is added. Bump tree Plus, Tree level of child. Give default tree level 4. Category without children has tree Level 1.
+Add bump tree level function. Awesome.
+for child: tree level has to be < parent tree level
+for parent: child tree level + 1 < 4
+
+Define placeholder defaults in Flaskform
+Assign Defaults en route
+Profit
+just send form to edit function
+compare default and data and apply necessary logic
+
 create add/remove parent and child functions
 create bulk reassign gidguds and children functions
 
 make default the parent on category creation
 restrict giving a parent to default
 
-for children:
-create tree height function
-create possible children
 implement add children function with multiple selectfield
 
 # Security
