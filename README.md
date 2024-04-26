@@ -224,3 +224,10 @@ TabNine Pro 90 days free trial
 1. Task breaker 
 
 2. Correct read me and implement development log 
+
+
+user = db.session.scalar(sa.select(User).where(1 == User.id))
+cc = db.session.scalars(sa.select(Category).where(1 == Category.user_id ))
+ccc = [c for c in cc]
+for c in ccc:
+    print(f"name: {c.name}\n tree depth: {c.get_tree_depth()}\n tree height: {c.get_tree_height()} \n children: {c.children} \n possible parents: {[parent['name'] for parent in c.get_possible_parents()]}")

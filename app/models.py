@@ -1,4 +1,3 @@
-import string
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from typing import Optional
@@ -173,6 +172,15 @@ class Category(db.Model):
             max_child_depth = max(child.get_tree_depth() for child in self.children)
             return 1 + max_child_depth  # Increment depth by 1 for the current category
 
+    def get_tree_height(self):
+
+        if self.parent == None or self.parent.name == 'default':
+            return 0
+
+        else:
+            max_parent_height = self.parent.get_tree_height()
+            return 1 + max_parent_height
+
     def get_possible_parents(self) -> list[dict]:
         """
         Get a list of possible parent categories based on the category tree depth.
@@ -205,54 +213,30 @@ class Category(db.Model):
         possible_parents = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
         return possible_parents
 
-    def get_possible_parents_old(self) -> list[dict[int, str]]:
-
-        # TODO: adjust queries to work like utils function
-
-        possible_parents = []
-
-        tree_depth = self.get_tree_depth()
-
-        if tree_depth == 2:
-            # No parent possible except 'default'
-            categories_query = (
-                db.session.query(Category.id, Category.name)
-                .filter(Category.name == 'default')
-            )
-
-        if tree_depth == 1:
-            # Parent without grandparent possible, only 'default' category as grandparent allowed
-            categories_query = (
-                db.session.query(Category.id, Category.name)
-                .filter(~Category.parent.has(Category.parent.has(Category.name != 'default')))  # Exclude categories with a grandparent that is not 'default'
-                .filter(Category.parent_id != self.id)   # Exclude the current category as a potential parent
-            )
-
-        if tree_depth == 0:
-            # Parent with grandparent possible, only 'default' category as great grandparent allowed
-            categories_query = (
-                db.session.query(Category.id, Category.name)
-                .filter(~Category.parent.has(Category.parent.has(Category.parent.has(Category.name != 'default'))))  # Exclude categories with a great grandparent that is not 'default'
-                .filter(Category.parent_id != self.id)   # Exclude the current category as a potential parent
-            )
-
-        possible_parents = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
-        return possible_parents
-
-    def possible_children(self) -> list[str]:
+    def get_possible_children(self) -> list[dict]:
 
         # TODO: adjust queries to work like utils function
 
         possible_children = []
 
-        # Fetch categories with no parent, excluding the default category, the current category, and categories with grandchildren
-        categories_query = (
-            db.session.query(Category)
-            .filter(~Category.name.in_([self.name, 'default']))  # Exclude current category and default category
-            .filter(~Category.children.any(Category.children != None))  # Exclude categories with grandchildren
-        )
-        possible_children = [category.name for category in categories_query.all()]
+        tree_height = self.get_tree_height()
 
+        if tree_height == 2:
+            return possible_children
+
+        base_query = (
+            db.session.query(Category.id, Category.name)
+            .filter(Category.id != self.id)
+            .filter(Category.name != 'default')
+        )
+
+        if tree_height == 1:
+            categories_query = base_query.filter(~Category.children.any(Category.children != None))
+
+        else:
+            categories_query = base_query.filter(~Category.children.any(Category.children.any(Category.children != None)))
+
+        possible_children = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
         return possible_children
 
     # TODO: implement functions with queries to return possible parents, children, etc
