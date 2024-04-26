@@ -6,7 +6,7 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
-# TODO
+# TODO: Placeholder defaults in Flaskform
 
 Make new tree level field. If child is added. Bump tree Plus, Tree level of child. Give default tree level 0. Category without children has tree Level 1.
 Add bump tree level function. Awesome.
