@@ -19,6 +19,29 @@ Profit
 just send form to edit function
 compare default and data and apply necessary logic
 
+    class MyForm(FlaskForm):
+        # Define placeholder defaults
+        default_name = "Default Name"
+        default_email = "default@example.com"
+
+        # Define form fields
+        name = StringField('Name', default=default_name)
+        email = StringField('Email', default=default_email)
+
+    @app.route('/my-form', methods=['GET', 'POST'])
+    def my_form():
+        # Populate with real defaults
+        MyForm.default_name = "Real Default Name"
+        MyForm.default_email = "real_default@example.com"
+
+        form = MyForm()
+        if form.validate_on_submit():
+            -> can send form to function and have default and data values
+            # Form submission logic
+            pass
+
+
+
 create add/remove parent and child functions
 create bulk reassign gidguds and children functions
 
