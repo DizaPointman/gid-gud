@@ -231,10 +231,10 @@ class Category(db.Model):
         )
 
         if tree_height == 1:
-            categories_query = base_query.filter(~Category.children.any(Category.children != None))
+            categories_query = base_query.filter(Category.children == None)
 
         else:
-            categories_query = base_query.filter(~Category.children.any(Category.children.any(Category.children != None)))
+            categories_query = base_query.filter(~Category.children.any(Category.children != None))
 
         possible_children = [{'id': category_id, 'name': category_name} for category_id, category_name in categories_query]
         return possible_children
