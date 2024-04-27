@@ -1,3 +1,5 @@
+from operator import or_
+from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from typing import Optional
@@ -159,8 +161,37 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
+    def update_level(self):
+        # Update the level of the category based on the maximum level among its children
+        max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar_one()
+        self.level = (max_child_level_query or 0) + 1
+
     def get_possible_children_and_parents(self) -> dict:
-        return {}
+        # Retrieve possible children and parents based on level constraints
+        possible_children_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter((Category.level + self.level) <= 3)\
+            .filter(Category.name != 'default')
+
+        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter(or_(Category.level > self.level, (Category.level + self.level) <= 3))
+
+        possible_children = {'possible_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_children_query]}
+        possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+
+        return {**possible_children, **possible_parents}
+
+    def get_all_children(self) -> dict:
+        # Retrieve all children of the category
+        all_children_query = db.session.query(Category.id, Category.name, Category.level).filter(Category.parent_id == self.id)
+        all_children = {'all_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in all_children_query]}
+        return all_children
+
+    def get_possible_parents_for_selected_children(self, max_child_level: int) -> dict:
+        # Retrieve possible parents for selected children based on the maximum level among the children
+        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter(or_(Category.level > max_child_level, (Category.level + max_child_level) <= 3))
+        possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+        return possible_parents
 
 @login.user_loader
 def load_user(id):

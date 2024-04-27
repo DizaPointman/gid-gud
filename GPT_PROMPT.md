@@ -52,7 +52,7 @@ class GidGud(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),  # Use String type to store ISO strings
+        sa.String(),
         index=True,
         default=iso_now
     )
@@ -78,23 +78,25 @@ class GidGud(db.Model):
         default=None
     )
 
-class Category(db.Model):
-    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(20))
-    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
-    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
-    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
-
-    def __repr__(self):
-        return '<Category {}>'.format(self.name)
     archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
     author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
+
+    def __repr__(self):
+        return '<GidGud {}>'.format(self.body)
+
+class Category(db.Model):
+    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(20))
+    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
+    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    level: so.Mapped[int] = so.mapped_column(sa.Integer, default=0)
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
