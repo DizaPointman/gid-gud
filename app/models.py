@@ -162,9 +162,13 @@ class Category(db.Model):
         return '<Category {}>'.format(self.name)
 
     def update_level(self):
-        # Update the level of the category based on the maximum level among its children
-        max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar_one()
-        self.level = (max_child_level_query or 0) + 1
+        if self.name == 'default':
+            # Assure default category level is always 0
+            pass
+        else:
+            # Update the level of the category based on the maximum level among its children
+            max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar_one()
+            self.level = (max_child_level_query or 0) + 1
 
     def get_possible_children_and_parents(self) -> dict:
         # Retrieve possible children and parents based on level constraints
