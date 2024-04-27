@@ -167,7 +167,7 @@ class Category(db.Model):
             pass
         else:
             # Update the level of the category based on the maximum level among its children
-            max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar_one()
+            max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar()
             self.level = (max_child_level_query or 0) + 1
 
     def get_possible_children_and_parents(self) -> dict:

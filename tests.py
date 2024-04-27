@@ -15,11 +15,13 @@ class UserModelCase(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
+        print("Test: UserModelCase - SetUp")
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
+        print("Test: UserModelCase - TearDown")
 
     def test_password_hashing(self):
         u = User(username='susan', email='susan@example.com')
@@ -117,5 +119,65 @@ class UserModelCase(unittest.TestCase):
         # check that gid g5 is not in following guds
         self.assertNotIn(g5, f4)
 
+class CategoryModelCase(unittest.TestCase):
+
+    print("Test: CategoryModelCase")
+
+    def setUp(self):
+        self.app_context = app.app_context()
+        self.app_context.push()
+        db.create_all()
+        print("Test: CategoryModelCase - SetUp")
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+        print("Test: CategoryModelCase - TearDown")
+
+    def test_update_level(self):
+
+        # Create a user
+        self.user = User(username='test_user', email='test@example.com')
+        db.session.add(self.user)
+        db.session.commit()
+
+        # Create the default category for the user
+        self.default_category = Category(name='default', user_id=self.user.id)
+        db.session.add(self.default_category)
+        db.session.commit()
+
+        # Create 6 categories with default as parent
+        self.categories = []
+        for i in range(1, 7):
+            category = Category(name=f'category_{i}', user_id=self.user.id, parent_id=self.default_category.id)
+            db.session.add(category)
+            self.categories.append(category)
+        db.session.commit()
+
+        # Apply update_level on each category once
+        for category in self.categories:
+            category.update_level()
+            db.session.commit()
+
+        # Assert default category level maintains 0
+        default_category_level = Category.query.filter_by(name='default').first().level
+        self.assertEqual(default_category_level, 0)
+
+        # Assert all other categories should have level 1
+        other_categories_levels = [category.level for category in self.categories if category.name != 'default']
+        self.assertEqual(set(other_categories_levels), {1})
+
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    #unittest.main(verbosity=2)
+
+    # Create test suite
+    suite = unittest.TestSuite()
+
+    # Add the test cases to the suite
+    suite.addTest(unittest.makeSuite(UserModelCase))
+    suite.addTest(unittest.makeSuite(CategoryModelCase))
+
+    # Execute the test suite
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
