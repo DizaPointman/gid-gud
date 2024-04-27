@@ -173,11 +173,15 @@ class Category(db.Model):
     def get_possible_children_and_parents(self) -> dict:
         # Retrieve possible children and parents based on level constraints
         possible_children_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter((Category.level + self.level) <= 3)\
-            .filter(Category.name != 'default')
+            .filter(or_(Category.level < self.level, (Category.level + self.level) <= 3))\
+            .filter(Category.name != 'default')\
+            .filter(Category.id != self.id)
 
+        # FIXME: need additional condition for possible children, currently bottom child has level 1 and therefore is considered a possible parent
+        # need to check parents upwards instead
         possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter(or_(Category.level > self.level, (Category.level + self.level) <= 3))
+            .filter(or_(Category.level > self.level, (Category.level + self.level) <= 3))\
+            .filter(Category.id != self.id)
 
         possible_children = {'possible_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_children_query]}
         possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
