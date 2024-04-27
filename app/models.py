@@ -186,12 +186,12 @@ class Category(db.Model):
         all_children = {'all_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in all_children_query]}
         return all_children
 
-    def get_possible_parents_for_selected_children(self, max_child_level: int) -> dict:
+    def get_selection_possible_parents(self, max_level: int) -> dict:
         # Retrieve possible parents for selected children based on the maximum level among the children
         possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter(or_(Category.level > max_child_level, (Category.level + max_child_level) <= 3))
-        possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
-        return possible_parents
+            .filter(or_(Category.level > max_level, (Category.level + max_level) <= 3))
+        selection_possible_parents = {'selection_possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+        return selection_possible_parents
 
 @login.user_loader
 def load_user(id):
