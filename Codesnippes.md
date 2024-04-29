@@ -19,6 +19,90 @@
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
+    def assign_category_levels_with_depth_limit(root_category, max_depth):
+        queue = [(root_category, 0)]  # Initialize queue with root category and its level
+        visited = set()  # Set to keep track of visited categories
+
+        while queue:
+            category, level = queue.pop(0)  # Dequeue a category from the queue
+            category.level = level  # Update the level of the category
+
+            visited.add(category)  # Mark the category as visited
+
+            if level < max_depth:  # Limit the depth of traversal
+                # Enqueue children of the current category with their respective levels
+                for child in category.children:
+                    if child not in visited:
+                        queue.append((child, level + 1))
+
+    # Example usage with depth limit of 3:
+    root_category = Category.query.filter_by(parent_id=None).first()  # Assuming there is only one root category
+    assign_category_levels_with_depth_limit(root_category, max_depth=3)
+
+    def get_max_child_level(self):
+
+                # Define the recursive Common Table Expression (CTE)
+        cte = db.session.query(
+            Category.id.label('category_id'),
+            Category.level.label('max_level')
+        ).filter(Category.parent_id == self.id)
+
+        recursive_cte = cte.cte(recursive=True)
+
+        # Recursive query to traverse the category hierarchy
+        recursive_query = recursive_cte.union_all(
+            sa.select([
+                Category.id,
+                sa.func.coalesce(sa.func.max(recursive_cte.c.max_level), 0)
+            ]).where(Category.parent_id == recursive_cte.c.category_id)
+        )
+
+        # Retrieve the maximum level attained by the children categories
+        max_child_level = db.session.query(sa.func.max(recursive_query.c.max_level)).scalar()
+
+        # Output the highest level attained by the children categories
+        print("Highest level of children categories:", max_child_level)
+
+    def update_level(self):
+        if self.name == 'default':
+            # Assure default category level is always 0
+            pass
+        else:
+            # Update the level of the category based on the maximum level among its children
+            max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar()
+            self.level = (max_child_level_query or 0) + 1
+
+    def get_possible_children_and_parents(self) -> dict:
+        # Retrieve possible children and parents based on level constraints
+        possible_children_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter(or_(Category.level < self.level, (Category.level + self.level) <= 3))\
+            .filter(Category.name != 'default')\
+            .filter(Category.id != self.id)
+
+        # FIXME: need additional condition for possible children, currently bottom child has level 1 and therefore is considered a possible parent
+        # need to check parents upwards instead
+        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter(or_(Category.level > self.level, (Category.level + self.level) <= 3))\
+            .filter(Category.id != self.id)
+
+        possible_children = {'possible_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_children_query]}
+        possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+
+        return {**possible_children, **possible_parents}
+
+    def get_all_children(self) -> dict:
+        # Retrieve all children of the category
+        all_children_query = db.session.query(Category.id, Category.name, Category.level).filter(Category.parent_id == self.id)
+        all_children = {'all_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in all_children_query]}
+        return all_children
+
+    def get_selection_possible_parents(self, max_level: int) -> dict:
+        # Retrieve possible parents for selected children based on the maximum level among the children
+        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
+            .filter(or_(Category.level > max_level, (Category.level + max_level) <= 3))
+        selection_possible_parents = {'selection_possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+        return selection_possible_parents
+
     def get_tree_depth(self):
         """
         Recursively calculate the depth of the category tree starting from this category.

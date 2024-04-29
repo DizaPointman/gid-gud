@@ -8,11 +8,16 @@ C-Man.inject()
 
 # TODO: Placeholder defaults in Flaskform
 
-Make new tree level field. If child is added. Bump tree Plus, Tree level of child. Give default tree level 0. Category without children has tree Level 1.
-Add bump tree level function. Awesome.
-for child: tree level has to be < parent tree level
-for parent: child tree level + 1 < 4
-
+tree level:
+- default 0 > 1 > 2 > 3 > 4 > 5
+- when parent added > set tree level of child to parent +1
+- cascade downwards to bump
+- create auxiliary table for tree level
+- level + tree depth, for example 13 is bottom c of 3 level high tree, 23 is mid of 3, 33 is top
+- level + levels below, for example level 1 is top, has child with child > 12, middle 21, bot 30
+- for 5: 14, 23, 32, 41, 50
+- default 0
+- new c level +10
 Define placeholder defaults in Flaskform
 Assign Defaults en route
 Profit
