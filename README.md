@@ -8,12 +8,12 @@ C-Man.inject()
 
 # TODO: Placeholder defaults in Flaskform
 
+- Define placeholder defaults in Flaskform
+- Assign Defaults en route
+- Buuild Edit Category Function that takes form and category
+- Does every Change by comparing default and data and apply necessary logic
+- Profit
 
-Define placeholder defaults in Flaskform
-Assign Defaults en route
-Profit
-just send form to edit function
-compare default and data and apply necessary logic
 
     class MyForm(FlaskForm):
         # Define placeholder defaults
