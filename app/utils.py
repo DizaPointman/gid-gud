@@ -455,7 +455,6 @@ def category_handle_rename(current_category, form):
         log_exception(e)
         return False
 
-
 def category_handle_change_parent(current_category, form):
     """
     Change the parent category of the current category based on user input.
