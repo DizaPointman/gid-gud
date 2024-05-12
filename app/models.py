@@ -181,11 +181,11 @@ class Category(db.Model):
             self.level = (0, 5)  # Root category level
         else:
             # Update height
-            self.height_depth = (parent.height_depth[0] + 1, 0)  # Increment level height
+            self.height_depth = (parent.height_depth[0] + 1, 0)  # Increment self level height
 
             # Update depth
             if self.children:
-                self.height_depth[1] = max(child.height_depth[1] for child in self.children) + 1  # Increment level depth
+                self.height_depth[1] = max(child.height_depth[1] for child in self.children) + 1  # Increment self level depth
             else:
                 self.height_depth[1] = 1  # No children, depth is 1
 
