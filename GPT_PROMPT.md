@@ -88,18 +88,26 @@ class GidGud(db.Model):
         return '<GidGud {}>'.format(self.body)
 
 class Category(db.Model):
+
     id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    level: so.Mapped[int] = so.mapped_column(sa.Integer, default=0)
+    level: so.Mapped[tuple] = so.mapped_column(sa.Integer, sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
+    MAX_DEPTH = 5
+
     def __repr__(self):
-        return '<GidGud {}>'.format(self.body)
+        return '<Category {}>'.format(self.name)
+
+    def __init__(self, name, parent_id=1, level=(1, 0)):
+        self.name = name
+        self.parent_id = parent_id
+        self.level = level
 
 **Expectations:**
 - **Style:** PEP 8, maintain consistent style and syntax for solutions and design patterns

@@ -1,15 +1,14 @@
-from operator import or_
-from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from sqlalchemy.ext.hybrid import hybrid_property
 from app import db, login
-from flask_login import UserMixin
+from flask_login import UserMixin, current_user
 from hashlib import md5
 from pytz import utc
+
+from app.managers.user_manager import create_default_root_category
 
 # Define a function to generate ISO 8601 formatted strings as timestamps
 def iso_now():
@@ -153,54 +152,62 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    level: so.Mapped[int] = so.mapped_column(sa.Integer, default=0)
+    height_depth: so.Mapped[tuple] = so.mapped_column(sa.Integer, sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
+    # Setting a tree depth limit
+    MAX_DEPTH = 5
+
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    def update_level(self):
-        if self.name == 'default':
-            # Assure default category level is always 0
-            pass
+    def __init__(self, name, parent=None):
+        self.name = name
+
+        if parent is None and name != 'default':
+            # Get or create default root category
+            default_category = create_default_root_category(current_user)
+            self.parent = default_category
+            self.update_height_depth(default_category)
         else:
-            # Update the level of the category based on the maximum level among its children
-            max_child_level_query = db.session.query(sa.func.max(Category.level)).filter(Category.parent_id == self.id).scalar()
-            self.level = (max_child_level_query or 0) + 1
+            self.parent = parent
+            self.update_height_depth(parent)
 
-    def get_possible_children_and_parents(self) -> dict:
-        # Retrieve possible children and parents based on level constraints
-        possible_children_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter(or_(Category.level < self.level, (Category.level + self.level) <= 3))\
-            .filter(Category.name != 'default')\
-            .filter(Category.id != self.id)
+    def update_height_depth(self, parent):
+        if parent is None:
+            self.level = (0, 5)  # Root category level
+        else:
+            # Update height
+            self.height_depth = (parent.height_depth[0] + 1, 0)  # Increment level height
 
-        # FIXME: need additional condition for possible children, currently bottom child has level 1 and therefore is considered a possible parent
-        # need to check parents upwards instead
-        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter(or_(Category.level > self.level, (Category.level + self.level) <= 3))\
-            .filter(Category.id != self.id)
+            # Update depth
+            if self.children:
+                self.height_depth[1] = max(child.height_depth[1] for child in self.children) + 1  # Increment level depth
+            else:
+                self.height_depth[1] = 1  # No children, depth is 1
 
-        possible_children = {'possible_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_children_query]}
-        possible_parents = {'possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
+            # Update parent depth
+            if parent.height_depth[1] <= self.height_depth[1]:
+                parent.height_depth[1] = self.height_depth[1] + 1 # Increment parent level depth
+                self.update_height_depth(parent)
 
-        return {**possible_children, **possible_parents}
+            # Update children height
+            for child in self.children:
+                self.update_height_depth(child)
 
-    def get_all_children(self) -> dict:
-        # Retrieve all children of the category
-        all_children_query = db.session.query(Category.id, Category.name, Category.level).filter(Category.parent_id == self.id)
-        all_children = {'all_children': [{'id': category.id, 'name': category.name, 'level': category.level} for category in all_children_query]}
-        return all_children
+            # Adjust parent's children height_depth
+            for child in parent.children:
+                child.update_height_depth(child.parent)
 
-    def get_selection_possible_parents(self, max_level: int) -> dict:
-        # Retrieve possible parents for selected children based on the maximum level among the children
-        possible_parents_query = db.session.query(Category.id, Category.name, Category.level)\
-            .filter(or_(Category.level > max_level, (Category.level + max_level) <= 3))
-        selection_possible_parents = {'selection_possible_parents': [{'id': category.id, 'name': category.name, 'level': category.level} for category in possible_parents_query]}
-        return selection_possible_parents
+    def get_possible_children(self):
+        return db.session.select(Category).where(Category.height_depth[1] + self.height_depth[0] <= self.MAX_DEPTH).all()
+
+    def get_possible_parents(self):
+        return db.session.select(Category).where(Category.height_depth[0] + self.height_depth[1] <= self.MAX_DEPTH).all()
+
 
 @login.user_loader
 def load_user(id):
