@@ -8,16 +8,7 @@ C-Man.inject()
 
 # TODO: Placeholder defaults in Flaskform
 
-tree level:
-- default 0 > 1 > 2 > 3 > 4 > 5
-- when parent added > set tree level of child to parent +1
-- cascade downwards to bump
-- create auxiliary table for tree level
-- level + tree depth, for example 13 is bottom c of 3 level high tree, 23 is mid of 3, 33 is top
-- level + levels below, for example level 1 is top, has child with child > 12, middle 21, bot 30
-- for 5: 14, 23, 32, 41, 50
-- default 0
-- new c level +10
+
 Define placeholder defaults in Flaskform
 Assign Defaults en route
 Profit
@@ -54,13 +45,8 @@ compare default and data and apply necessary logic
         'default_email': 'real_default@example.com'
     }
 
-
-
 create add/remove parent and child functions
 create bulk reassign gidguds and children functions
-
-make default the parent on category creation
-restrict giving a parent to default
 
 implement add children function with multiple selectfield
 
