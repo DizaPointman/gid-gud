@@ -89,7 +89,7 @@ class CreateCategoryForm(FlaskForm):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
-        if name.lower() in ["none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
+        if name.lower() in ["default", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
             raise ValidationError('This name is not valid.')
 
 class EditCategoryForm(FlaskForm):

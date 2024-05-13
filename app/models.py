@@ -203,10 +203,52 @@ class Category(db.Model):
                 child.update_height_depth(child.parent)
 
     def get_possible_children(self):
-        return db.session.select(Category).where(Category.height_depth[1] + self.height_depth[0] <= self.MAX_DEPTH).all()
+        # Exclude direct ancestors
+        Parent = so.aliased(Category)
+        exclude_ancestors_recursion = (
+            db.session.query(Category.id, Category.parent_id)
+            .filter(Category.id == self.id)
+            .cte(name='exclude_ancestors', recursive=True)
+            .union_all(
+                db.session.query(Parent.id, Parent.parent_id)
+                .filter(Parent.parent_id == 'exclude_ancestors'.c.id)
+            )
+        )
+        exclude_ancestors_query = (db.session.query(exclude_ancestors_recursion.c.id, exclude_ancestors_recursion.c.parent_id)
+                                   .select_from(exclude_ancestors_recursion)
+                                   )
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_ancestors_query.subquery()))
+            .where(Category.height_depth[1] + self.height_depth[0] <= self.MAX_DEPTH)
+            .all()
+            )
+        return final_query
+        #return db.session.select(Category).where(Category.height_depth[1] + self.height_depth[0] <= self.MAX_DEPTH).all()
 
     def get_possible_parents(self):
-        return db.session.select(Category).where(Category.height_depth[0] + self.height_depth[1] <= self.MAX_DEPTH).all()
+        # Exclude direct descendants
+        Child = so.aliased(Category)
+        exclude_descendants_recursion = (
+            db.session.query(Category.id, Category.parent_id)
+            .filter(Category.id == self.id)
+            .cte(name='exclude_descendants', recursive=True)
+            .union_all(
+                db.session.query(Child.id, Child.parent_id)
+                .filter(Child.parent_id == 'exclude_descendants'.c.id)
+            )
+        )
+        exclude_descendants_query = (db.session.query(exclude_descendants_recursion.c.id, exclude_descendants_recursion.c.parent_id)
+                                     .select_from(exclude_descendants_recursion)
+                                   )
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_descendants_query.subquery()))
+            .where(Category.height_depth[0] + self.height_depth[1] <= self.MAX_DEPTH)
+            .all()
+            )
+        return final_query
+        #return db.session.select(Category).where(Category.height_depth[0] + self.height_depth[1] <= self.MAX_DEPTH).all()
 
 
 @login.user_loader
