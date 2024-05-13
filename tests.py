@@ -11,16 +11,12 @@ from functools import wraps
 
 class BullshitGenerator():
 
-    # FIXME: check if update after category creation works if every category is added and committed before
-
     def gen_cat_tree(self, user=None, depth=None):
 
         categories = []
 
         # Creating the default category
         c0 = Category(name='default', user=user, parent=None)
-        db.session.add(c0)
-        c0.update_height_depth(None)
         categories.append(c0)
 
         # Creating categories for each level
@@ -192,7 +188,6 @@ class CategoryModelCase(BaseTestCase):
 
         bs = BullshitGenerator()
         tree = bs.gen_cat_tree(u, 5)
-        
 
         for c in tree:
             print(f"name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}")
