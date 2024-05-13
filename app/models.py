@@ -218,21 +218,24 @@ class Category(db.Model):
                 child.update_height_depth(self)
 
     def get_possible_children(self):
-        # Exclude direct ancestors
+        # Alias for Category to use in recursive queries
         Parent = so.aliased(Category)
-        exclude_ancestors_recursion = (
-            db.session.query(Category.id, Category.parent_id)
-            .filter(Category.id == self.id)
-            .cte(name='exclude_ancestors', recursive=True)
-            .union_all(
-                db.session.query(Parent.id, Parent.parent_id)
-                .filter(Parent.parent_id == exclude_ancestors_recursion.c.id)
-            )
-        )
-        exclude_ancestors_query = (
-            db.session.query(exclude_ancestors_recursion.c.id, exclude_ancestors_recursion.c.parent_id)
-            .select_from(exclude_ancestors_recursion)
-        )
+
+        # Define the initial non-recursive part of the CTE
+        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id)
+        initial_query_cte = initial_query.cte(name='exclude_ancestors', recursive=True)
+        initial_query_subquery = initial_query_cte.alias().subquery()
+
+        # Define the recursive part of the CTE
+        recursive_query = db.session.query(Parent.id, Parent.parent_id).join(
+            initial_query_subquery, Parent.parent_id == initial_query_subquery.c.parent_id)
+
+        # Combine them using a CTE
+        exclude_ancestors_recursion = initial_query_cte.union_all(recursive_query)
+
+        # Use the CTE in the final query
+        exclude_ancestors_query = db.session.query(exclude_ancestors_recursion.c.id)
+
         final_query = (
             db.session.query(Category)
             .filter(~Category.id.in_(exclude_ancestors_query.subquery()))
@@ -242,21 +245,24 @@ class Category(db.Model):
         return final_query
 
     def get_possible_parents(self):
-        # Exclude direct descendants
+        # Alias for Category to use in recursive queries
         Child = so.aliased(Category)
-        exclude_descendants_recursion = (
-            db.session.query(Category.id, Category.parent_id)
-            .filter(Category.id == self.id)
-            .cte(name='exclude_descendants', recursive=True)
-            .union_all(
-                db.session.query(Child.id, Child.parent_id)
-                .filter(Child.parent_id == exclude_descendants_recursion.c.id)
-            )
-        )
-        exclude_descendants_query = (
-            db.session.query(exclude_descendants_recursion.c.id, exclude_descendants_recursion.c.parent_id)
-            .select_from(exclude_descendants_recursion)
-        )
+
+        # Define the initial non-recursive part of the CTE
+        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id)
+        initial_query_cte = initial_query.cte(name='exclude_descendants', recursive=True)
+        initial_query_subquery = initial_query_cte.alias().subquery()
+
+        # Define the recursive part of the CTE
+        recursive_query = db.session.query(Child.id, Child.parent_id).join(
+            initial_query_subquery, Child.parent_id == initial_query_subquery.c.parent_id)
+
+        # Combine them using a CTE
+        exclude_descendants_recursion = initial_query_cte.union_all(recursive_query)
+
+        # Use the CTE in the final query
+        exclude_descendants_query = db.session.query(exclude_descendants_recursion.c.id)
+
         final_query = (
             db.session.query(Category)
             .filter(~Category.id.in_(exclude_descendants_query.subquery()))
@@ -264,6 +270,62 @@ class Category(db.Model):
             .all()
         )
         return final_query
+
+
+
+"""
+    def get_possible_children(self):
+        # Alias for Category to use in recursive queries
+        Parent = so.aliased(Category)
+
+        # Define the initial non-recursive part of the CTE
+        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
+
+        # Define the recursive part of the CTE
+        recursive_query = db.session.query(Parent.id, Parent.parent_id).join(
+            initial_query, Parent.parent_id == initial_query.c.id)
+
+        # Combine them using a CTE
+        exclude_ancestors_recursion = initial_query.cte(name='exclude_ancestors', recursive=True)
+        exclude_ancestors_recursion = exclude_ancestors_recursion.union_all(recursive_query)
+
+        # Use the CTE in the final query
+        exclude_ancestors_query = db.session.query(exclude_ancestors_recursion.c.id)
+
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_ancestors_query.subquery()))
+            .where(Category.depth + self.height <= self.MAX_DEPTH)
+            .all()
+        )
+        return final_query
+
+    def get_possible_parents(self):
+        # Alias for Category to use in recursive queries
+        Child = so.aliased(Category)
+
+        # Define the initial non-recursive part of the CTE
+        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
+
+        # Define the recursive part of the CTE
+        recursive_query = db.session.query(Child.id, Child.parent_id).join(
+            initial_query, Child.parent_id == initial_query.c.id)
+
+        # Combine them using a CTE
+        exclude_descendants_recursion = initial_query.cte(name='exclude_descendants', recursive=True)
+        exclude_descendants_recursion = exclude_descendants_recursion.union_all(recursive_query)
+
+        # Use the CTE in the final query
+        exclude_descendants_query = db.session.query(exclude_descendants_recursion.c.id)
+
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_descendants_query.subquery()))
+            .where(Category.height + self.depth <= self.MAX_DEPTH)
+            .all()
+        )
+        return final_query
+"""
 
 @login.user_loader
 def load_user(id):
