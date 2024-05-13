@@ -6,6 +6,65 @@ import unittest
 from app import app, db
 from app.models import Category, User, GidGud
 from pytz import utc
+from functools import wraps
+
+
+class BullshitGenerator():
+
+    # FIXME: check if update after category creation works if every category is added and committed before
+
+    def gen_cat_tree(self, user=None, depth=None):
+
+        categories = []
+
+        # Creating the default category
+        c0 = Category(name='default', user=user, parent=None)
+        db.session.add(c0)
+        c0.update_height_depth(None)
+        categories.append(c0)
+
+        # Creating categories for each level
+        for i in range(1, depth + 1):
+            cat_name = 'cat' + str(i)
+            parent_category = categories[0]
+            category = Category(name=cat_name, user=user, parent=parent_category)
+            categories.append(category)
+
+            if i > 1:
+                parent = category
+                cat_name = 'cat' + str(i) + str(i)
+                parent_category = parent
+                category = Category(name=cat_name, user=user, parent=parent_category)
+                categories.append(category)
+
+                if i > 2:
+                    parent = category
+                    cat_name = 'cat' + str(i) + str(i) + str(i)
+                    parent_category = parent
+                    category = Category(name=cat_name, user=user, parent=parent_category)
+                    categories.append(category)
+
+                    if i > 3:
+                        parent = category
+                        cat_name = 'cat' + str(i) + str(i) + str(i) + str(i)
+                        parent_category = parent
+                        category = Category(name=cat_name, user=user, parent=parent_category)
+                        categories.append(category)
+
+                        if i > 4:
+                            parent = category
+                            cat_name = 'cat' + str(i) + str(i) + str(i) + str(i) + str(i)
+                            parent_category = parent
+                            category = Category(name=cat_name, user=user, parent=parent_category)
+                            categories.append(category)
+
+        db.session.add_all(categories)
+        db.session.commit()
+
+        for fuck in categories:
+            fuck.update_height_depth(fuck.parent)
+
+        return categories
 
 
 class BaseTestCase(unittest.TestCase):
@@ -124,12 +183,20 @@ class CategoryModelCase(BaseTestCase):
 
     print("Test: CategoryModelCase")
 
-    def test_update_level(self):
+    def test_bullshit_generator(self):
 
         # Create a user
-        self.user = User(username='test_user', email='test@example.com')
-        db.session.add(self.user)
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
         db.session.commit()
+
+        bs = BullshitGenerator()
+        tree = bs.gen_cat_tree(u, 5)
+        
+
+        for c in tree:
+            print(f"name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}")
+
 
 if __name__ == '__main__':
     #unittest.main(verbosity=2)

@@ -8,7 +8,21 @@ from flask_login import UserMixin, current_user
 from hashlib import md5
 from pytz import utc
 
-from app.managers.user_manager import create_default_root_category
+#from app.managers.user_manager import create_default_root_category
+
+
+#Create default category
+def create_default_root_category(user):
+        # Check if 'default' root category exists
+        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
+
+        # If 'default' root category doesn't exist, create it
+        if not default_category:
+            default_category = Category(name='default', user=user)
+            db.session.add(default_category)
+            db.session.commit()
+
+        return default_category
 
 # Define a function to generate ISO 8601 formatted strings as timestamps
 def iso_now():
@@ -152,7 +166,8 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    height_depth: so.Mapped[tuple] = so.mapped_column(sa.Integer, sa.Integer)
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
@@ -164,8 +179,9 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    def __init__(self, name, parent=None):
+    def __init__(self, name, user=None, parent=None):
         self.name = name
+        self.user = user or current_user
 
         if parent is None and name != 'default':
             # Get or create default root category
@@ -176,6 +192,80 @@ class Category(db.Model):
             self.parent = parent
             self.update_height_depth(parent)
 
+    def update_height_depth(self, parent):
+
+        if parent is None:
+            self.height = 0  # Root category height
+            self.depth = 5  # Root category depth
+        else:
+            # Update height
+            self.height = parent.height + 1
+
+            # Update depth
+            if self.children:
+                self.depth = max(child.depth for child in self.children) + 1
+            else:
+                self.depth = 1  # No children, depth is 1
+
+            # Update parent depth
+            # FIXME: This does not recursively wander up the tree
+            if parent.depth <= self.depth:
+                parent.depth = self.depth + 1
+                self.update_height_depth(parent)
+
+            # Update children height
+            for child in self.children:
+                child.update_height_depth(self)
+
+    def get_possible_children(self):
+        # Exclude direct ancestors
+        Parent = so.aliased(Category)
+        exclude_ancestors_recursion = (
+            db.session.query(Category.id, Category.parent_id)
+            .filter(Category.id == self.id)
+            .cte(name='exclude_ancestors', recursive=True)
+            .union_all(
+                db.session.query(Parent.id, Parent.parent_id)
+                .filter(Parent.parent_id == 'exclude_ancestors'.c.id)
+            )
+        )
+        exclude_ancestors_query = (
+            db.session.query(exclude_ancestors_recursion.c.id, exclude_ancestors_recursion.c.parent_id)
+            .select_from(exclude_ancestors_recursion)
+        )
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_ancestors_query.subquery()))
+            .where(Category.depth + self.height <= self.MAX_DEPTH)
+            .all()
+        )
+        return final_query
+
+    def get_possible_parents(self):
+        # Exclude direct descendants
+        Child = so.aliased(Category)
+        exclude_descendants_recursion = (
+            db.session.query(Category.id, Category.parent_id)
+            .filter(Category.id == self.id)
+            .cte(name='exclude_descendants', recursive=True)
+            .union_all(
+                db.session.query(Child.id, Child.parent_id)
+                .filter(Child.parent_id == 'exclude_descendants'.c.id)
+            )
+        )
+        exclude_descendants_query = (
+            db.session.query(exclude_descendants_recursion.c.id, exclude_descendants_recursion.c.parent_id)
+            .select_from(exclude_descendants_recursion)
+        )
+        final_query = (
+            db.session.query(Category)
+            .filter(~Category.id.in_(exclude_descendants_query.subquery()))
+            .where(Category.height + self.depth <= self.MAX_DEPTH)
+            .all()
+        )
+        return final_query
+
+"""
     def update_height_depth(self, parent):
         if parent is None:
             self.level = (0, 5)  # Root category level
@@ -249,7 +339,7 @@ class Category(db.Model):
             )
         return final_query
         #return db.session.select(Category).where(Category.height_depth[0] + self.height_depth[1] <= self.MAX_DEPTH).all()
-
+"""
 
 @login.user_loader
 def load_user(id):
