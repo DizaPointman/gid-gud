@@ -167,8 +167,9 @@ class CategoryModelCase(BaseTestCase):
 
         for c in tree:
             print(f"\n name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}\n")
-            print(f"possible children: {c.get_possible_children()}\n")
-            print(f"possible parents: {c.get_possible_parents()}\n")
+            #print(f"possible children: {c.get_possible_children()}\n")
+            #print(f"possible parents: {c.get_possible_parents()}\n")
+
 
 
 if __name__ == '__main__':
