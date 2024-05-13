@@ -8,6 +8,10 @@ C-Man.inject()
 
 # TODO: Placeholder defaults in Flaskform
 
+- create function that return all parents
+- create function that return all children
+- then create function that returns possible parents/children while leaving out own parents/children
+
 - Define placeholder defaults in Flaskform
 - Assign Defaults en route
 - Buuild Edit Category Function that takes form and category
