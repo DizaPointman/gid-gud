@@ -18,41 +18,16 @@ class BullshitGenerator():
         # Creating the default category
         c0 = Category(name='default', user=user, parent=None)
         categories.append(c0)
+        parent_category = c0
 
-        # Creating categories for each level
-        for i in range(1, depth + 1):
-            cat_name = 'cat' + str(i)
-            parent_category = categories[0]
-            category = Category(name=cat_name, user=user, parent=parent_category)
-            categories.append(category)
-
-            if i > 1:
-                parent = category
-                cat_name = 'cat' + str(i) + str(i)
-                parent_category = parent
+        for j in range(1, depth + 1):
+            for i in range(1, j + 1):
+                cat_name = 'cat' + (str(j) * i)
                 category = Category(name=cat_name, user=user, parent=parent_category)
                 categories.append(category)
-
-                if i > 2:
-                    parent = category
-                    cat_name = 'cat' + str(i) + str(i) + str(i)
-                    parent_category = parent
-                    category = Category(name=cat_name, user=user, parent=parent_category)
-                    categories.append(category)
-
-                    if i > 3:
-                        parent = category
-                        cat_name = 'cat' + str(i) + str(i) + str(i) + str(i)
-                        parent_category = parent
-                        category = Category(name=cat_name, user=user, parent=parent_category)
-                        categories.append(category)
-
-                        if i > 4:
-                            parent = category
-                            cat_name = 'cat' + str(i) + str(i) + str(i) + str(i) + str(i)
-                            parent_category = parent
-                            category = Category(name=cat_name, user=user, parent=parent_category)
-                            categories.append(category)
+                if i != j:
+                    parent_category = category
+            parent_category = c0
 
         db.session.add_all(categories)
         db.session.commit()
@@ -191,7 +166,9 @@ class CategoryModelCase(BaseTestCase):
         tree = bs.gen_cat_tree(u, 5)
 
         for c in tree:
-            print(f"name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}")
+            print(f"\n name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}\n")
+            print(f"possible children: {c.get_possible_children()}\n")
+            print(f"possible parents: {c.get_possible_parents()}\n")
 
 
 if __name__ == '__main__':
