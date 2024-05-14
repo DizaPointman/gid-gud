@@ -214,6 +214,24 @@ class Category(db.Model):
         self.height = parent.height + 1
         self.depth = 1
 
+    def update_height(self):
+        # apply to new parent
+        self.height = self.parent.height + 1
+        for child in self.children:
+            child.update_height()
+
+    def update_depth(self):
+        # apply to old parent
+        # apply to new parent
+        if self.children:
+            children_depth = max(child.depth for child in self.children)
+            if children_depth + 1 != self.depth:
+                self.depth = children_depth + 1
+                if self.parent is not None:
+                    self.parent.update_depth()
+        else:
+            self.depth = 1
+
     def update_height_depth(self, parent):
 
         if parent is None:

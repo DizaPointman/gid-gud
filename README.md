@@ -299,8 +299,75 @@ TabNine Pro 90 days free trial
 2. Correct read me and implement development log 
 
 
-user = db.session.scalar(sa.select(User).where(1 == User.id))
-cc = db.session.scalars(sa.select(Category).where(1 == Category.user_id ))
-ccc = [c for c in cc]
-for c in ccc:
-    print(f"name: {c.name}\n tree depth: {c.get_tree_depth()}\n tree height: {c.get_tree_height()} \n children: {c.children} \n possible parents: {[parent['name'] for parent in c.get_possible_parents()]}")
+# Perplexity
+
+    class Category(db.Model):
+    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(20))
+    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
+    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+
+    # Setting a tree depth limit
+    MAX_DEPTH = 5
+
+    def __repr__(self):
+        return '<Category {}>'.format(self.name)
+
+    def __init__(self, name, user=None, parent=None):
+        self.name = name
+        self.user = user or current_user
+        self.parent = parent
+        self.update_height_depth()
+
+    def update_height_depth(self):
+        self.height = 0 if self.parent is None else self.parent.height + 1
+        self.update_depth()
+
+    def update_depth(self):
+        if not self.children:
+            self.depth = 1
+        else:
+            self.depth = max(child.depth for child in self.children) + 1
+        if self.parent:
+            self.parent.update_depth()
+
+    def get_possible_children(self):
+        blacklist = self.get_ancestors()
+        return [category for category in self.user.categories
+                if category not in blacklist and self.height + category.depth <= self.MAX_DEPTH]
+
+    def get_possible_parents(self):
+        blacklist = self.get_descendants()
+        return [category for category in self.user.categories
+                if category not in blacklist and self.depth + category.height <= self.MAX_DEPTH]
+
+    def get_ancestors(self):
+        ancestors = []
+        current = self.parent
+        while current:
+            ancestors.append(current)
+            current = current.parent
+        return ancestors
+
+    def get_descendants(self):
+        descendants = []
+        stack = [self]
+        while stack:
+            current = stack.pop()
+            descendants.append(current)
+            stack.extend(current.children)
+        return descendants
+
+    @staticmethod
+    def create_default_root_category(user):
+        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
+        if not default_category:
+            default_category = Category(name='default', user=user, height=0, depth=5)
+            db.session.add(default_category)
+            db.session.commit()
+        return default_category
