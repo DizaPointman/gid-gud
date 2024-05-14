@@ -93,25 +93,35 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    level: so.Mapped[tuple] = so.mapped_column(sa.Integer, sa.Integer)
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
+    # Setting a tree depth limit
     MAX_DEPTH = 5
 
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    def __init__(self, name, parent_id=1, level=(1, 0)):
+    def __init__(self, name, user=None, parent=None):
         self.name = name
-        self.parent_id = parent_id
-        self.level = level
+        self.user = user or current_user
+
+        if parent is None and name != 'default':
+            # Get or create default root category
+            default_category = create_default_root_category(current_user)
+            self.parent = default_category
+            self.update_height_depth(default_category)
+        else:
+            self.parent = parent
+            self.update_height_depth(parent)
 
 **Expectations:**
 - **Style:** PEP 8, maintain consistent style and syntax for solutions and design patterns
-- **Expected Level of Solutions:** Best practice, industry-viable solutions
+- **Expected Level of Solutions:** Best practice, industry-viable solutions, Check if Stack allows for use of attempted approach
 - **Optimization:** Optimize Python Code for efficiency, Optimize SQL Queries for execution time
 - **Implement Eager Loading:** Utilize eager loading (e.g., `selectinload`) when suitable to optimize database queries. Explain when and why eager loading is used in the solutions provided in accordance to best practices.
 - **Meaningful Docstrings and Comments:** Ensure all code includes clear and descriptive docstrings and comments to enhance readability and maintainability.

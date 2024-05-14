@@ -1,3 +1,4 @@
+from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from typing import Optional
@@ -21,6 +22,10 @@ def create_default_root_category(user):
         # If 'default' root category doesn't exist, create it
         if not default_category:
             default_category = Category(name='default', user=user)
+            # new
+            default_category.height = 0  # Root category height
+            default_category.depth = 5  # Root category depth
+            # new
             db.session.add(default_category)
             db.session.commit()
 
@@ -181,6 +186,7 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
+    """
     def __init__(self, name, user=None, parent=None):
         self.name = name
         self.user = user or current_user
@@ -193,6 +199,20 @@ class Category(db.Model):
         else:
             self.parent = parent
             self.update_height_depth(parent)
+    """
+
+    def __init__(self, name, user=None, parent=None):
+        self.name = name
+        self.user = user or current_user
+
+        if parent is None and name != 'default':
+            # Get or create default root category
+            default_category = create_default_root_category(current_user)
+            self.parent = default_category
+        else:
+            self.parent = parent
+        self.height = parent.height + 1
+        self.depth = 1
 
     def update_height_depth(self, parent):
 
@@ -211,183 +231,50 @@ class Category(db.Model):
 
             # Update parent depth
             parent.depth = max(parent.depth, self.depth + 1)
-            # FIXME: This does not recursively wander up the tree?
-            #if parent.depth <= self.depth:
-            #    parent.depth = self.depth + 1
-            #    self.update_height_depth(parent)
+            # FIXME: This does not recursively wander up the tree
 
             # Update children height
             for child in self.children:
                 child.update_height_depth(self)
 
-    # Perplexity
     def get_possible_children(self):
-        # Alias for Category to use in recursive queries
-        Parent = so.aliased(Category)
 
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id)
-        initial_query_cte = initial_query.cte(name='exclude_ancestors', recursive=True)
+        # Generate blacklist because ancestors can't be children
+        blacklist = self.generate_blacklist_ancestors()
+        # Filter out blacklisted categories and those that would violate MAX_DEPTH
+        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_DEPTH] or []
 
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Parent.id, Parent.parent_id).join(
-            initial_query_cte, Parent.parent_id == initial_query_cte.c.parent_id)
+    def generate_blacklist_ancestors(self):
 
-        # Combine them using a CTE
-        exclude_ancestors_recursion = initial_query_cte.union_all(recursive_query)
+        # Generate blacklist by adding self and recursively adding parents
+        blacklist = set()
+        category = self
+        while category.parent:
+            blacklist.add(category)
+            category = category.parent
+        blacklist.add(self)  # Add self to the blacklist
+        return blacklist
 
-        # Use the CTE in the final query
-        exclude_ancestors_query = db.session.query(exclude_ancestors_recursion.c.id)
-
-        # Explicitly create a select() construct for the subquery
-        exclude_ancestors_subquery = exclude_ancestors_query.subquery()
-        exclude_ancestors_select = select(exclude_ancestors_subquery.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_ancestors_select))
-            .where(Category.depth + self.height <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
 
     def get_possible_parents(self):
-        # Alias for Category to use in recursive queries
-        Child = so.aliased(Category)
 
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id)
-        initial_query_cte = initial_query.cte(name='exclude_descendants', recursive=True)
+        # Generate blacklist because descendants can't be parents
+        blacklist = self.generate_blacklist_descendants()
+        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_DEPTH]
 
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Child.id, Child.parent_id).join(
-            initial_query_cte, Child.parent_id == initial_query_cte.c.parent_id)
+    def generate_blacklist_descendants(self):
 
-        # Combine them using a CTE
-        exclude_descendants_recursion = initial_query_cte.union_all(recursive_query)
+        # Generate blacklist by adding self and recursively adding children
+        blacklist = set()
+        def blacklist_children(category):
+            if category.children:
+                for child in category.children:
+                    blacklist.add(child)
+                    blacklist_children(child)
+        blacklist.add(self)  # Add self to the blacklist
+        blacklist_children(self)
+        return blacklist
 
-        # Use the CTE in the final query
-        exclude_descendants_query = db.session.query(exclude_descendants_recursion.c.id)
-
-        # Explicitly create a select() construct for the subquery
-        exclude_descendants_subquery = exclude_descendants_query.subquery()
-        exclude_descendants_select = select(exclude_descendants_subquery.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_descendants_select))
-            .where(Category.height + self.depth <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
-
-
-    # GPT
-    def get_possible_children2(self):
-        # Alias for Category to use in recursive queries
-        Parent = so.aliased(Category)
-
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
-
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Parent.id, Parent.parent_id).join(
-            initial_query, Parent.parent_id == initial_query.c.parent_id)
-
-        # Combine them using a CTE
-        exclude_ancestors_recursion = initial_query.cte(name='exclude_ancestors', recursive=True)
-        exclude_ancestors_recursion = exclude_ancestors_recursion.union_all(recursive_query)
-
-        # Use the CTE in the final query
-        exclude_ancestors_query = db.session.query(exclude_ancestors_recursion.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_ancestors_query))
-            .filter(Category.depth + self.height <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
-
-    def get_possible_parents2(self):
-        # Alias for Category to use in recursive queries
-        Child = so.aliased(Category)
-
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
-
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Child.id, Child.parent_id).join(
-            initial_query, Child.parent_id == initial_query.c.parent_id)
-
-        # Combine them using a CTE
-        exclude_descendants_recursion = initial_query.cte(name='exclude_descendants', recursive=True)
-        exclude_descendants_recursion = exclude_descendants_recursion.union_all(recursive_query)
-
-        # Use the CTE in the final query
-        exclude_descendants_query = db.session.query(exclude_descendants_recursion.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_descendants_query))
-            .filter(Category.height + self.depth <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
-
-"""
-    def get_possible_children(self):
-        # Alias for Category to use in recursive queries
-        Parent = so.aliased(Category)
-
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
-
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Parent.id, Parent.parent_id).join(
-            initial_query, Parent.parent_id == initial_query.c.id)
-
-        # Combine them using a CTE
-        exclude_ancestors_recursion = initial_query.cte(name='exclude_ancestors', recursive=True)
-        exclude_ancestors_recursion = exclude_ancestors_recursion.union_all(recursive_query)
-
-        # Use the CTE in the final query
-        exclude_ancestors_query = db.session.query(exclude_ancestors_recursion.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_ancestors_query.subquery()))
-            .where(Category.depth + self.height <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
-
-    def get_possible_parents(self):
-        # Alias for Category to use in recursive queries
-        Child = so.aliased(Category)
-
-        # Define the initial non-recursive part of the CTE
-        initial_query = db.session.query(Category.id, Category.parent_id).filter(Category.id == self.id).subquery()
-
-        # Define the recursive part of the CTE
-        recursive_query = db.session.query(Child.id, Child.parent_id).join(
-            initial_query, Child.parent_id == initial_query.c.id)
-
-        # Combine them using a CTE
-        exclude_descendants_recursion = initial_query.cte(name='exclude_descendants', recursive=True)
-        exclude_descendants_recursion = exclude_descendants_recursion.union_all(recursive_query)
-
-        # Use the CTE in the final query
-        exclude_descendants_query = db.session.query(exclude_descendants_recursion.c.id)
-
-        final_query = (
-            db.session.query(Category)
-            .filter(~Category.id.in_(exclude_descendants_query.subquery()))
-            .where(Category.height + self.depth <= self.MAX_DEPTH)
-            .all()
-        )
-        return final_query
-"""
 
 @login.user_loader
 def load_user(id):
