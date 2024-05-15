@@ -22,10 +22,6 @@ def create_default_root_category(user):
         # If 'default' root category doesn't exist, create it
         if not default_category:
             default_category = Category(name='default', user=user)
-            # new
-            default_category.height = 0  # Root category height
-            default_category.depth = 5  # Root category depth
-            # new
             db.session.add(default_category)
             db.session.commit()
 
@@ -173,15 +169,17 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    # Depth indicates own level
     depth: so.Mapped[int] = so.mapped_column(sa.Integer)
+    # Height indicates level below
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
-    # Setting a tree depth limit
-    MAX_DEPTH = 5
+    # Setting a tree height limit
+    MAX_HEIGHT = 5
 
     def __repr__(self):
         return '<Category {}>'.format(self.name)
@@ -211,26 +209,24 @@ class Category(db.Model):
             self.parent = default_category
         else:
             self.parent = parent
-        self.height = parent.height + 1
-        self.depth = 1
-
-    def update_height(self):
-        # apply to new parent
-        self.height = self.parent.height + 1
-        for child in self.children:
-            child.update_height()
 
     def update_depth(self):
+        # apply to new parent
+        self.depth = self.parent.depth + 1
+        for child in self.children:
+            child.update_depth()
+
+    def update_height(self):
         # apply to old parent
         # apply to new parent
         if self.children:
-            children_depth = max(child.depth for child in self.children)
-            if children_depth + 1 != self.depth:
-                self.depth = children_depth + 1
+            children_height = max(child.height for child in self.children)
+            if children_height + 1 != self.height:
+                self.height = children_height + 1
                 if self.parent is not None:
-                    self.parent.update_depth()
+                    self.parent.update_height()
         else:
-            self.depth = 1
+            self.height = 1
 
     def update_height_depth(self, parent):
 
@@ -260,7 +256,7 @@ class Category(db.Model):
         # Generate blacklist because ancestors can't be children
         blacklist = self.generate_blacklist_ancestors()
         # Filter out blacklisted categories and those that would violate MAX_DEPTH
-        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_DEPTH] or []
+        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_HEIGHT] or []
 
     def generate_blacklist_ancestors(self):
 
@@ -278,7 +274,7 @@ class Category(db.Model):
 
         # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants()
-        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_DEPTH]
+        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_HEIGHT]
 
     def generate_blacklist_descendants(self):
 

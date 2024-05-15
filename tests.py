@@ -19,14 +19,14 @@ class BullshitGenerator():
 
     #FIXME: add complete tree as comment for visualization
 
-    def gen_cat_tree(self, user=None, tree_depth=None):
+    def gen_cat_tree(self, user=None, tree_height=None):
 
         categories = []
 
         # Creating the default category
         c0 = Category(name='default', user=user, parent=None)
-        c0.height = 0
-        c0.depth = tree_depth
+        c0.depth = 0
+        c0.height = tree_height
         categories.append(c0)
         parent_category = c0
 
@@ -38,12 +38,12 @@ class BullshitGenerator():
         # tree_depth=3 will generate 3 categories: <cat3> with default as parent, <cat33> with <cat3> as parent, <cat333> with <cat33> as parent
         # and categories for tree_depth 1 and 2
 
-        for j in range(1, tree_depth + 1):
+        for j in range(1, tree_height + 1):
             for i in range(1, j + 1):
                 cat_name = 'cat' + (str(j) * i)
                 category = Category(name=cat_name, user=user, parent=parent_category)
-                category.height = len(str(j) * i)
-                category.depth = 1 + j - i
+                category.depth = len(str(j) * i)
+                category.height = 1 + j - i
                 categories.append(category)
                 if i != j:
                     parent_category = category
@@ -180,16 +180,16 @@ class CategoryModelCase(BaseTestCase):
 
         # Create category tree
         bs = BullshitGenerator()
-        tree_depth = 5
-        triangular_number = (tree_depth * (tree_depth + 1)) // 2
-        tree = bs.gen_cat_tree(u, tree_depth)
+        tree_height = 5
+        triangular_number = (tree_height * (tree_height + 1)) // 2
+        tree = bs.gen_cat_tree(u, tree_height)
 
         # Check that the correct amount of categories is generated
         # + 1 for the default category
         self.assertTrue(len(tree) == triangular_number + 1)
         self.assertTrue(tree[0].name == 'default')
-        self.assertTrue(tree[-1].name == f"cat{(str(tree_depth) * tree_depth)}")
-        self.assertTrue(tree[-1].depth == 1)
+        self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
+        self.assertTrue(tree[-1].height == 1)
 
     def test_possible_parents_and_children(self):
 
@@ -254,30 +254,30 @@ class CategoryModelCase(BaseTestCase):
         cat5 = get_category_by_name(u, 'cat5')
 
         # Assert height and depth of cat1 and cat2
-        self.assertEqual(cat1.height, 1)
         self.assertEqual(cat1.depth, 1)
-        self.assertEqual(cat2.height, 1)
-        self.assertEqual(cat2.depth, 2)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 2)
 
         # Change parent of cat1 from default to cat2
         cat1.parent = cat2
         cat1.update_height_depth(cat2)
 
-        self.assertEqual(cat1.height, 2)
-        self.assertEqual(cat1.depth, 1)
-        self.assertEqual(cat2.height, 1)
-        self.assertEqual(cat2.depth, 2)
+        self.assertEqual(cat1.depth, 2)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 2)
 
         # Change parent of cat1 from cat2 to cat22
         cat1.parent = cat22
         cat1.update_height_depth(cat22)
 
-        self.assertEqual(cat1.height, 3)
-        self.assertEqual(cat1.depth, 1)
-        self.assertEqual(cat2.height, 1)
-        self.assertEqual(cat2.depth, 3)
-        self.assertEqual(cat22.height, 2)
+        self.assertEqual(cat1.depth, 3)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 3)
         self.assertEqual(cat22.depth, 2)
+        self.assertEqual(cat22.height, 2)
 
 
 
