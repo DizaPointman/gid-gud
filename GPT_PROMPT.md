@@ -93,15 +93,17 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    # Depth indicates own level below default
     depth: so.Mapped[int] = so.mapped_column(sa.Integer)
+    # Height indicates levels below including self
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
-    # Setting a tree depth limit
-    MAX_DEPTH = 5
+    # Setting a tree height limit
+    MAX_HEIGHT = 5
 
     def __repr__(self):
         return '<Category {}>'.format(self.name)
@@ -112,12 +114,11 @@ class Category(db.Model):
 
         if parent is None and name != 'default':
             # Get or create default root category
-            default_category = create_default_root_category(current_user)
+            default_category = Category.create_default_root_category(current_user)
             self.parent = default_category
-            self.update_height_depth(default_category)
         else:
             self.parent = parent
-            self.update_height_depth(parent)
+        self.update_height_depth()
 
 **Expectations:**
 - **Style:** PEP 8, maintain consistent style and syntax for solutions and design patterns

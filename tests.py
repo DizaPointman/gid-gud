@@ -248,20 +248,25 @@ class CategoryModelCase(BaseTestCase):
         cat2 = get_category_by_name(u, 'cat2')
         # Cat22 is child of cat2, has no child
         cat22 = get_category_by_name(u, 'cat22')
+        # Cat33 is child of cat3, has tree of ancestors up to cat333
+        cat33 = get_category_by_name(u, 'cat33')
         # Cat4 is child of default, has tree of ancestors up to cat4444
         cat4 = get_category_by_name(u, 'cat4')
         # Cat1 is child of default, has tree of ancestors up to cat55555
         cat5 = get_category_by_name(u, 'cat5')
 
-        # Assert height and depth of cat1 and cat2
+        # Assert height and depth of cat1, cat2, cat5
         self.assertEqual(cat1.depth, 1)
         self.assertEqual(cat1.height, 1)
         self.assertEqual(cat2.depth, 1)
         self.assertEqual(cat2.height, 2)
+        self.assertEqual(cat5.depth, 1)
+        self.assertEqual(cat5.height, 5)
 
         # Change parent of cat1 from default to cat2
         cat1.parent = cat2
-        cat1.update_height_depth(cat2)
+        db.session.commit()
+        cat2.update_depth_and_height()
 
         self.assertEqual(cat1.depth, 2)
         self.assertEqual(cat1.height, 1)
@@ -270,7 +275,8 @@ class CategoryModelCase(BaseTestCase):
 
         # Change parent of cat1 from cat2 to cat22
         cat1.parent = cat22
-        cat1.update_height_depth(cat22)
+        db.session.commit()
+        cat22.update_depth_and_height()
 
         self.assertEqual(cat1.depth, 3)
         self.assertEqual(cat1.height, 1)
@@ -278,6 +284,16 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(cat2.height, 3)
         self.assertEqual(cat22.depth, 2)
         self.assertEqual(cat22.height, 2)
+
+        # Change parent of cat2 to cat33
+        cat2.parent = cat33
+        db.session.commit()
+        cat33.update_depth_and_height()
+
+        self.assertEqual(cat33.depth, 2)
+        self.assertEqual(cat33.height, 4)
+        self.assertEqual(cat1.depth, 5)
+        self.assertEqual(cat1.height, 1)
 
 
 

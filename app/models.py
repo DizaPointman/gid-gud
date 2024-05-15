@@ -4,28 +4,12 @@ from datetime import datetime
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
+from sqlalchemy.orm import validates
 from app import db, login
 from flask_login import UserMixin, current_user
 from hashlib import md5
 from pytz import utc
 
-from sqlalchemy import select
-
-#from app.managers.user_manager import create_default_root_category
-
-
-#Create default category
-def create_default_root_category(user):
-        # Check if 'default' root category exists
-        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
-
-        # If 'default' root category doesn't exist, create it
-        if not default_category:
-            default_category = Category(name='default', user=user)
-            db.session.add(default_category)
-            db.session.commit()
-
-        return default_category
 
 # Define a function to generate ISO 8601 formatted strings as timestamps
 def iso_now():
@@ -169,7 +153,7 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    # Depth indicates own level below default
+    # Depth indicates own level below default including self
     depth: so.Mapped[int] = so.mapped_column(sa.Integer)
     # Height indicates levels below including self
     height: so.Mapped[int] = so.mapped_column(sa.Integer)
@@ -182,7 +166,7 @@ class Category(db.Model):
     MAX_HEIGHT = 5
 
     def __repr__(self):
-        return '<Category {}>'.format(self.name)
+        return f'<Category {self.name}>'
 
     def __init__(self, name, user=None, parent=None):
         self.name = name
@@ -190,35 +174,55 @@ class Category(db.Model):
 
         if parent is None and name != 'default':
             # Get or create default root category
-            default_category = create_default_root_category(current_user)
+            default_category = Category.create_default_root_category(current_user)
             self.parent = default_category
-            self.update_height_depth(default_category)
         else:
             self.parent = parent
-            self.update_height_depth(parent)
+        self.update_depth_and_height()
 
-    def update_depth_and_height(self):
-        # apply to new parent
-        if self.parent is None:
-            self.depth = 0
-            self.height = self.MAX_HEIGHT
-        else:
+    """
+    @validates('parent')
+    def validate_parent(self, key, parent):
+        if parent is not None:
+            if self.name == 'default':
+                raise ValueError("The 'default' category cannot have a parent.")
+            if parent.depth >= self.MAX_DEPTH:
+                raise ValueError(f"Cannot set parent as it would exceed the maximum depth of {self.MAX_DEPTH}.")
+        return parent
+    """
+
+    @staticmethod
+    def create_default_root_category(user):
+        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
+        if not default_category:
+            default_category = Category(name='default', user=user)
+            db.session.add(default_category)
+            db.session.commit()
+        return default_category
+
+    def update_depth(self):
+        if self.parent is not None:
             self.depth = self.parent.depth + 1
-        if self.children:
-            for child in self.children:
-                child.update_depth()
-        self.update_height()
+            if self.children:
+                for child in self.children:
+                    child.update_depth()
 
     def update_height(self):
-        # apply to old parent
-        if self.children:
-            children_height = max(child.height for child in self.children)
-            if children_height + 1 != self.height:
-                self.height = children_height + 1
-                if self.parent is not None:
-                    self.parent.update_height()
-        else:
+        if not self.children:
             self.height = 1
+        else:
+            self.height = max(child.height for child in self.children) + 1
+            if self.parent is not None:
+                self.parent.update_height()
+
+    def update_depth_and_height(self):
+
+        if self.parent is None:
+            self.depth = 0
+            self.height = Category.MAX_HEIGHT
+        else:
+            self.update_depth()
+            self.update_height()
 
     def get_possible_children(self):
 
