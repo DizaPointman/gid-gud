@@ -6,11 +6,15 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
-# TODO: Placeholder defaults in Flaskform
+# TODO: Improve Category model
 
-- create function that return all parents
-- create function that return all children
-- then create function that returns possible parents/children while leaving out own parents/children
+- make init accept height/depth
+- set defaults h/d to 1,1
+- create default cat with 0,5
+- maybe change depth directly on creation
+- apply changes to bullshit generator
+
+# TODO: Placeholder defaults in Flaskform
 
 - Define placeholder defaults in Flaskform
 - Assign Defaults en route
@@ -301,73 +305,83 @@ TabNine Pro 90 days free trial
 
 # Perplexity
 
-    class Category(db.Model):
-    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(20))
-    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
-    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    height: so.Mapped[int] = so.mapped_column(sa.Integer)
-    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
-    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+class Category(db.Model):
+    id = so.mapped_column(sa.Integer, primary_key=True)
+    name = so.mapped_column(sa.String(20))
+    user_id = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
+    user = so.relationship('User', back_populates='categories')
+    depth = so.mapped_column(sa.Integer)
+    height = so.mapped_column(sa.Integer)
+    parent_id = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent = so.relationship('Category', remote_side=[id])
+    children = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    gidguds = so.relationship('GidGud', back_populates='category')
 
-    # Setting a tree depth limit
-    MAX_DEPTH = 5
+    MAX_HEIGHT = 5
 
     def __repr__(self):
-        return '<Category {}>'.format(self.name)
+        return f'<Category {self.name}>'
 
     def __init__(self, name, user=None, parent=None):
         self.name = name
         self.user = user or current_user
-        self.parent = parent
-        self.update_height_depth()
+        self.parent = parent or Category.create_default_root_category(current_user)
+        self.update_depth_and_height()
 
-    def update_height_depth(self):
-        self.height = 0 if self.parent is None else self.parent.height + 1
-        self.update_depth()
-
-    def update_depth(self):
-        if not self.children:
-            self.depth = 1
-        else:
-            self.depth = max(child.depth for child in self.children) + 1
-        if self.parent:
-            self.parent.update_depth()
-
-    def get_possible_children(self):
-        blacklist = self.get_ancestors()
-        return [category for category in self.user.categories
-                if category not in blacklist and self.height + category.depth <= self.MAX_DEPTH]
-
-    def get_possible_parents(self):
-        blacklist = self.get_descendants()
-        return [category for category in self.user.categories
-                if category not in blacklist and self.depth + category.height <= self.MAX_DEPTH]
-
-    def get_ancestors(self):
-        ancestors = []
-        current = self.parent
-        while current:
-            ancestors.append(current)
-            current = current.parent
-        return ancestors
-
-    def get_descendants(self):
-        descendants = []
-        stack = [self]
-        while stack:
-            current = stack.pop()
-            descendants.append(current)
-            stack.extend(current.children)
-        return descendants
-
-    @staticmethod
+        @staticmethod
     def create_default_root_category(user):
+        # Check if the default category exists for the given user
         default_category = Category.query.filter_by(name='default', user_id=user.id).first()
+
+        # If the default category does not exist, create and return it
         if not default_category:
-            default_category = Category(name='default', user=user, height=0, depth=5)
+            default_category = Category(name='default', user=user, depth=0, height=Category.MAX_HEIGHT)
             db.session.add(default_category)
             db.session.commit()
+
+        # Return the existing or newly created default category
         return default_category
+
+    def update_depth_and_height(self):
+        # Simplified update logic to prevent unnecessary recursive updates
+        if self.parent is None:
+            self.depth = 0
+            self.height = Category.MAX_HEIGHT
+        else:
+            self.depth = self.parent.depth + 1
+            self.height = 1 if not self.children else max(child.height for child in self.children) + 1
+            # Update parent height only if necessary
+            if self.parent.height <= self.height:
+                self.parent.height = self.height + 1
+                self.parent.update_height()
+
+    def get_possible_children(self):
+        blacklist = self.generate_blacklist_ancestors()
+        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= Category.MAX_HEIGHT]
+
+    def generate_blacklist_ancestors(self):
+        # More efficient ancestor generation using set comprehension
+        return {ancestor for ancestor in self.iterate_ancestors()}
+
+    def iterate_ancestors(self):
+        # Generator to iterate through ancestors
+        current = self
+        while current.parent:
+            yield current.parent
+            current = current.parent
+
+    def get_possible_parents(self):
+        blacklist = self.generate_blacklist_descendants()
+        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= Category.MAX_HEIGHT]
+
+    def generate_blacklist_descendants(self):
+        # Use set comprehension for more concise code
+        descendants = {descendant for descendant in self.iterate_descendants(self)}
+        descendants.add(self)
+        return descendants
+
+    def iterate_descendants(self, category):
+        # Generator to iterate through descendants
+        for child in category.children:
+            yield child
+            yield from self.iterate_descendants(child)
