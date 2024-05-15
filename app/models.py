@@ -169,9 +169,9 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    # Depth indicates own level
+    # Depth indicates own level below default
     depth: so.Mapped[int] = so.mapped_column(sa.Integer)
-    # Height indicates level below
+    # Height indicates levels below including self
     height: so.Mapped[int] = so.mapped_column(sa.Integer)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
@@ -184,7 +184,6 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category {}>'.format(self.name)
 
-    """
     def __init__(self, name, user=None, parent=None):
         self.name = name
         self.user = user or current_user
@@ -197,28 +196,21 @@ class Category(db.Model):
         else:
             self.parent = parent
             self.update_height_depth(parent)
-    """
 
-    def __init__(self, name, user=None, parent=None):
-        self.name = name
-        self.user = user or current_user
-
-        if parent is None and name != 'default':
-            # Get or create default root category
-            default_category = create_default_root_category(current_user)
-            self.parent = default_category
-        else:
-            self.parent = parent
-
-    def update_depth(self):
+    def update_depth_and_height(self):
         # apply to new parent
-        self.depth = self.parent.depth + 1
-        for child in self.children:
-            child.update_depth()
+        if self.parent is None:
+            self.depth = 0
+            self.height = self.MAX_HEIGHT
+        else:
+            self.depth = self.parent.depth + 1
+        if self.children:
+            for child in self.children:
+                child.update_depth()
+        self.update_height()
 
     def update_height(self):
         # apply to old parent
-        # apply to new parent
         if self.children:
             children_height = max(child.height for child in self.children)
             if children_height + 1 != self.height:
@@ -227,29 +219,6 @@ class Category(db.Model):
                     self.parent.update_height()
         else:
             self.height = 1
-
-    def update_height_depth(self, parent):
-
-        if parent is None:
-            self.height = 0  # Root category height
-            self.depth = 5  # Root category depth
-        else:
-            # Update height
-            self.height = parent.height + 1
-
-            # Update depth
-            if self.children:
-                self.depth = max(child.depth for child in self.children) + 1
-            else:
-                self.depth = 1  # No children, depth is 1
-
-            # Update parent depth
-            parent.depth = max(parent.depth, self.depth + 1)
-            # FIXME: This does not recursively wander up the tree
-
-            # Update children height
-            for child in self.children:
-                child.update_height_depth(self)
 
     def get_possible_children(self):
 
