@@ -228,7 +228,7 @@ class Category(db.Model):
 
         # Generate blacklist because ancestors can't be children
         blacklist = self.generate_blacklist_ancestors()
-        # Filter out blacklisted categories and those that would violate MAX_DEPTH
+        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
         return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_HEIGHT] or []
 
     def generate_blacklist_ancestors(self):
@@ -247,6 +247,7 @@ class Category(db.Model):
 
         # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants()
+        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
         return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_HEIGHT]
 
     def generate_blacklist_descendants(self):
