@@ -50,6 +50,7 @@ class User(UserMixin, db.Model):
         secondaryjoin=(followers.c.follower_id == id),
         back_populates='following')
 
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
@@ -154,9 +155,9 @@ class Category(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
     # Depth indicates own level below default including self
-    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     # Height indicates levels below including self
-    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
@@ -168,37 +169,21 @@ class Category(db.Model):
     def __repr__(self):
         return f'<Category {self.name}>'
 
+
     def __init__(self, name, user=None, parent=None):
         self.name = name
         self.user = user or current_user
 
-        if parent is None and name != 'default':
-            # Get or create default root category
-            default_category = Category.create_default_root_category(current_user)
-            self.parent = default_category
+        if name == 'root':
+
+            self.depth = 0
+            self.height = Category.MAX_HEIGHT
+
         else:
-            self.parent = parent
-        self.update_depth_and_height()
 
-    """
-    @validates('parent')
-    def validate_parent(self, key, parent):
-        if parent is not None:
-            if self.name == 'default':
-                raise ValueError("The 'default' category cannot have a parent.")
-            if parent.depth >= self.MAX_DEPTH:
-                raise ValueError(f"Cannot set parent as it would exceed the maximum depth of {self.MAX_DEPTH}.")
-        return parent
-    """
+            self.parent = parent or Category.query.filter_by(name='root', user_id=user.id).first()
+            self.depth = self.parent.depth + 1
 
-    @staticmethod
-    def create_default_root_category(user):
-        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
-        if not default_category:
-            default_category = Category(name='default', user=user)
-            db.session.add(default_category)
-            db.session.commit()
-        return default_category
 
     def update_depth(self):
         if self.parent is not None:
@@ -208,19 +193,16 @@ class Category(db.Model):
                     child.update_depth()
 
     def update_height(self):
-        if not self.children:
-            self.height = 1
-        else:
-            self.height = max(child.height for child in self.children) + 1
-            if self.parent is not None:
+        if self.parent is not None:
+            if not self.children:
+                self.height = 1
+            else:
+                self.height = max(child.height for child in self.children) + 1
                 self.parent.update_height()
 
     def update_depth_and_height(self):
 
-        if self.parent is None:
-            self.depth = 0
-            self.height = Category.MAX_HEIGHT
-        else:
+        if self.parent is not None:
             self.update_depth()
             self.update_height()
 
@@ -268,3 +250,5 @@ class Category(db.Model):
 def load_user(id):
 
     return db.session.get(User, int(id))
+
+# Event listeners

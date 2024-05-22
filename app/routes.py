@@ -56,12 +56,14 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
+
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
+
         # Setting up the default category
-        # FIXME: set up default cat via event listener
-        def_cat = Category(name='default', user=user)
-        db.session.add(user, def_cat)
+        root_category = Category(name='root', user=user)
+
+        db.session.add(user, root_category)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
@@ -127,10 +129,11 @@ def unfollow(username):
 def create_gid():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     form = CreateGidForm()
+    # TODO: create return_or_create_category() method instead of this
     if form.validate_on_submit():
         category = check_if_category_exists_and_return(form.category.data)
         if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
+            new_category = Category(name=form.category.data, user=current_user)
             db.session.add(new_category)
             category = new_category
         if form.rec_rhythm.data != 0:
@@ -151,7 +154,7 @@ def create_gud():
     if form.validate_on_submit():
         category = check_if_category_exists_and_return(form.category.data)
         if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
+            new_category = Category(name=form.category.data, user=current_user)
             db.session.add(new_category)
             category = new_category
         timestamp = datetime.now(timezone.utc)
@@ -221,7 +224,7 @@ def create_category():
 
     if form.validate_on_submit():
         new_category_name = form.name.data
-        create_new_category(new_category_name, current_user.id)
+        create_new_category(new_category_name, current_user)
         flash('New Category created!')
         return redirect(url_for('user_categories', username=current_user.username))
 

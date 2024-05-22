@@ -312,10 +312,11 @@ def check_if_category_exists_and_return(new_cat_name):
     """
     try:
         # Ensure a default category name if None is provided
-        new_cat_name = new_cat_name or 'default'
+        new_cat_name = new_cat_name or 'root'
 
         # Search for the category with the given name among the current user's categories
         category = next((category for category in current_user.categories if category.name == new_cat_name), None)
+        
 
         # Return the category object if found, otherwise return False
         if category:
@@ -411,7 +412,7 @@ def check_and_return_list_of_possible_parents_for_children(current_category) -> 
 
 # Category - create_object
 
-def create_new_category(name: str, user_id: int) -> Category:
+def create_new_category(name: str, user: int) -> Category:
     """
     Create a new category with the given name and user ID.
 
@@ -422,7 +423,7 @@ def create_new_category(name: str, user_id: int) -> Category:
     Returns:
         Category: The newly created category object.
     """
-    new_category = Category(name=name, user_id=user_id)
+    new_category = Category(name=name, user=user)
     db.session.add(new_category)
     db.session.commit()
     return new_category
@@ -441,8 +442,8 @@ def category_handle_rename(current_category, form):
         bool: True if the operation is successful, False otherwise.
     """
     try:
-        if current_category.name == 'default':
-            flash('The default category may not be renamed.')
+        if current_category.name == 'root':
+            flash('The root category may not be renamed.')
         elif form.name.data in current_user.categories:
             flash('Category already exists. Please choose another name.')
         else:

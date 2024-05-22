@@ -89,7 +89,7 @@ class CreateCategoryForm(FlaskForm):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
-        if name.lower() in ["default", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
+        if name.data.lower() in ["root", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
             raise ValidationError('This name is not valid.')
 
 class EditCategoryForm(FlaskForm):
@@ -98,3 +98,10 @@ class EditCategoryForm(FlaskForm):
     reassign_gidguds = SelectField('Reassign GidGuds to:')
     reassign_children = SelectField('Reassign children to:')
     submit = SubmitField('Save Changes')
+
+    def validate_name(self, name):
+        category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
+        if category is not None:
+            raise ValidationError('This category already exists.')
+        if name.data.lower() in ["root", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
+            raise ValidationError('This name is not valid.')

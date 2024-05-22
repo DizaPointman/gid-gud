@@ -24,7 +24,7 @@ class BullshitGenerator():
         categories = []
 
         # Creating the default category
-        c0 = Category(name='default', user=user, parent=None)
+        c0 = Category(name='root', user=user, parent=None)
         c0.depth = 0
         c0.height = tree_height
         categories.append(c0)
@@ -119,10 +119,10 @@ class UserModelCase(BaseTestCase):
         db.session.add_all([u1, u2, u3, u4])
 
         # create four default categories for users
-        c1 = Category(name='default', user=u1)
-        c2 = Category(name='default', user=u2)
-        c3 = Category(name='default', user=u3)
-        c4 = Category(name='default', user=u4)
+        c1 = Category(name='root', user=u1)
+        c2 = Category(name='root', user=u2)
+        c3 = Category(name='root', user=u3)
+        c4 = Category(name='root', user=u4)
         db.session.add_all([c1, c2, c3, c4])
 
         # create four guds
@@ -187,7 +187,7 @@ class CategoryModelCase(BaseTestCase):
         # Check that the correct amount of categories is generated
         # + 1 for the default category
         self.assertTrue(len(tree) == triangular_number + 1)
-        self.assertTrue(tree[0].name == 'default')
+        self.assertTrue(tree[0].name == 'root')
         self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
         self.assertTrue(tree[-1].height == 1)
 
@@ -202,7 +202,7 @@ class CategoryModelCase(BaseTestCase):
         bs = BullshitGenerator()
         bs.gen_cat_tree(u, 5)
 
-        default_cat = get_category_by_name(u, 'default')
+        default_cat = get_category_by_name(u, 'root')
         # Cat1 is child of default, has no children
         cat1 = get_category_by_name(u, 'cat1')
         # Cat5 is child of default, has tree of ancestors up to cat55555
@@ -241,7 +241,7 @@ class CategoryModelCase(BaseTestCase):
         bs = BullshitGenerator()
         bs.gen_cat_tree(u, 5)
 
-        default_cat = get_category_by_name(u, 'default')
+        default_cat = get_category_by_name(u, 'root')
         # Cat1 is child of default, has no children
         cat1 = get_category_by_name(u, 'cat1')
         # Cat2 is child of default, has child cat22
