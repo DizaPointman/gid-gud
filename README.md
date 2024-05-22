@@ -8,10 +8,6 @@ C-Man.inject()
 
 # TODO: Improve Category model
 
-- make init accept height/depth
-- set defaults h/d to 1,1
-- create default cat with 0,5
-- maybe change depth directly on creation
 - apply changes to bullshit generator
 
 # TODO: Placeholder defaults in Flaskform

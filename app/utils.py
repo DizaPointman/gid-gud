@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import traceback
+from typing import Optional
 from flask import flash, current_app, request
 from flask_login import current_user
 from app.models import User, GidGud, Category
@@ -298,6 +299,49 @@ def gidgud_handle_complete(current_gidgud):
         return False
 
 # Category
+
+def return_or_create_category(name: Optional[str] = None, parent: Optional[Category] = None):
+
+    try:
+        # Start a transaction
+        with db.session.begin():
+            # Check if 'root' category exists and create it if not
+            root = Category.query.filter_by(name='root', user_id=current_user.id).first()
+            if not root:
+                root = Category(name='root', user=current_user, depth=0, height=Category.MAX_HEIGHT)
+                db.session.add(root)
+                db.session.commit()
+
+            # Return 'root' category if no name is provided
+            if not name:
+                return root
+
+            # Check if category with name exists and return it
+            category = Category.query.filter_by(name=name, user_id=current_user.id).first()
+
+            # If the category with name does not exist, create it
+            if not category:
+
+                parent = parent or root
+                category = Category(name=name, user=current_user, parent=parent)
+                db.session.add(category)
+
+                # Update parent's depth and height if necessary
+                if parent != root:
+                    parent.update_depth_and_height()
+                db.session.commit()
+
+            return category
+
+    except SQLAlchemyError as e:
+        log_exception(e)
+        db.session.rollback()
+        return False
+    except Exception as e:
+        log_exception(e)
+        db.session.rollback()
+        return False
+
 # Category - check_and_return
 
 def check_if_category_exists_and_return(new_cat_name):
@@ -316,7 +360,6 @@ def check_if_category_exists_and_return(new_cat_name):
 
         # Search for the category with the given name among the current user's categories
         category = next((category for category in current_user.categories if category.name == new_cat_name), None)
-        
 
         # Return the category object if found, otherwise return False
         if category:

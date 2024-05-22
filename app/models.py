@@ -198,7 +198,8 @@ class Category(db.Model):
                 self.height = 1
             else:
                 self.height = max(child.height for child in self.children) + 1
-                self.parent.update_height()
+                if self.parent.height != self.height + 1:
+                    self.parent.update_height()
 
     def update_depth_and_height(self):
 
