@@ -1,5 +1,5 @@
-from flask import render_template, flash, redirect, url_for, request
-from app import app, db
+from flask import Blueprint, current_app, render_template, flash, redirect, url_for, request
+from app.factory import db
 from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
@@ -10,14 +10,18 @@ from datetime import datetime, timezone
 from pytz import utc
 
 
-@app.route('/')
-@app.route('/index')
+# Create Blueprint
+bp = Blueprint('routes', __name__)
+
+
+@bp.route('/')
+@bp.route('/index')
 @login_required
 def index():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     return render_template('index.html', title='Home', gidguds=gidguds)
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
     The `login` function in this Python code handles user authentication and login functionality,
@@ -28,32 +32,32 @@ def login():
     using the 'LoginForm' class.
     """
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.scalar(
             sa.select(User).where(User.username == form.username.data))
         if user is None or not user.check_password(form.password.data):
-            app.logger.info('%s tried logging in with invalid username or password', user.username)
+            current_app.logger.info('%s tried logging in with invalid username or password', user.username)
             flash('Invalid username or password')
-            return redirect(url_for('login'))
+            return redirect(url_for('routes.login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or urlsplit(next_page).netloc != '':
-            next_page = url_for('index')
-        app.logger.info('%s logged in successfully', user.username)
+            next_page = url_for('routes.index')
+        current_app.logger.info('%s logged in successfully', user.username)
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
-@app.route('/logout')
+@bp.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
-@app.route('/register', methods=['GET', 'POST'])
+@bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
 
@@ -63,10 +67,10 @@ def register():
         db.session.add(user)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
-        return redirect(url_for('login'))
+        return redirect(url_for('routes.login'))
     return render_template('register.html', title='Register', form=form)
 
-@app.route('/edit_profile', methods=['GET', 'POST'])
+@bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     form = EditProfileForm(current_user.username)
@@ -75,13 +79,13 @@ def edit_profile():
         current_user.about_me = form.about_me.data
         db.session.commit()
         flash('Your changes have been saved.')
-        return redirect(url_for('edit_profile'))
+        return redirect(url_for('routes.edit_profile'))
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/follow/<username>', methods=['POST'])
+@bp.route('/follow/<username>', methods=['POST'])
 @login_required
 def follow(username):
     form = EmptyForm()
@@ -90,18 +94,18 @@ def follow(username):
             sa.select(User).where(User.username == username))
         if user is None:
             flash(f'User {username} not found.')
-            return redirect(url_for('index'))
+            return redirect(url_for('routes.index'))
         if user == current_user:
             flash('You cannot follow yourself you fucking narcissist!')
-            return redirect(url_for('user', username=username))
+            return redirect(url_for('routes.user', username=username))
         current_user.follow(user)
         db.session.commit()
         flash(f'You are following {username}!')
-        return redirect(url_for('user', username=username))
+        return redirect(url_for('routes.user', username=username))
     else:
         return redirect(url_for('index'))
 
-@app.route('/unfollow/<username>', methods=['POST'])
+@bp.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):
     form = EmptyForm()
@@ -110,18 +114,18 @@ def unfollow(username):
             sa.select(User).where(User.username == username))
         if user is None:
             flash(f'User {username} not found.')
-            return redirect(url_for('index'))
+            return redirect(url_for('routes.index'))
         if user == current_user:
             flash('You cannot unfollow yourself you fucking narcissist!')
-            return redirect(url_for('user', username=username))
+            return redirect(url_for('routes.user', username=username))
         current_user.unfollow(user)
         db.session.commit()
         flash(f'You are not following {username} anymore.')
-        return redirect(url_for('user', username=username))
+        return redirect(url_for('routes.user', username=username))
     else:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
 
-@app.route('/create_gid', methods=['GET', 'POST'])
+@bp.route('/create_gid', methods=['GET', 'POST'])
 @login_required
 def create_gid():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
@@ -136,10 +140,10 @@ def create_gid():
         db.session.add(gid)
         db.session.commit()
         flash('New Gid created!')
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
 
-@app.route('/create_gud', methods=['GET', 'POST'])
+@bp.route('/create_gud', methods=['GET', 'POST'])
 @login_required
 def create_gud():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
@@ -151,10 +155,10 @@ def create_gud():
         db.session.add(gud)
         db.session.commit()
         flash('New Gud created!')
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
 
-@app.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
+@bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
@@ -163,7 +167,7 @@ def edit_gidgud(id):
     if form.validate_on_submit():
         gidgud_handle_update(gidgud, form)
         flash('Your changes have been saved.')
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
 
     elif request.method == 'GET':
         form.body.data = gidgud.body
@@ -173,31 +177,31 @@ def edit_gidgud(id):
 
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
 
-@app.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
+@bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_gidgud(id):
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     db.session.delete(current_gidgud)
     db.session.commit()
     flash('GidGud deleted!')
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
-@app.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
+@bp.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def complete_gidgud(id):
     # TODO: make recurrence = 1 and timeunit=None instant recurrence
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     gidgud_handle_complete(current_gidgud)
     flash('Gid completed!')
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
-@app.route('/user/<username>/user_categories', methods=['GET'])
+@bp.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
 def user_categories(username):
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
     return render_template('user_categories.html', title='My Categories', categories=categories)
 
-@app.route('/create_category', methods=['GET', 'POST'])
+@bp.route('/create_category', methods=['GET', 'POST'])
 @login_required
 def create_category():
     """
@@ -215,11 +219,11 @@ def create_category():
     if form.validate_on_submit():
         category = return_or_create_category(name=(form.name.data))
         flash('New Category created!')
-        return redirect(url_for('user_categories', username=current_user.username))
+        return redirect(url_for('routes.user_categories', username=current_user.username))
 
     return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
-@app.route('/edit_category/<id>', methods=['GET', 'POST'])
+@bp.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
     # TODO: add multiple children at once
@@ -272,7 +276,7 @@ def edit_category(id):
             #if delete_afterwards:
             if delete_afterwards:
                 return redirect(url_for('delete_category', username=current_user.username, id=id))
-            return redirect(url_for('user_categories', username=current_user.username))
+            return redirect(url_for('routes.user_categories', username=current_user.username))
 
         else:
             # Form validation failed, render the form template again with error messages
@@ -289,33 +293,33 @@ def edit_category(id):
 
     return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 
-@app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
+@bp.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     if current_category.name == 'default':
         flash('The default Category may not be deleted')
-        return redirect(url_for('user_categories', username=current_user.username))
+        return redirect(url_for('routes.user_categories', username=current_user.username))
     elif current_category.gidguds or current_category.children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, dla=True))
+        return redirect(url_for('routes.edit_category', id=id, dla=True))
     else:
         db.session.delete(current_category)
         db.session.commit()
         flash('Category deleted!')
-    return redirect(url_for('user_categories', username=current_user.username))
+    return redirect(url_for('routes.user_categories', username=current_user.username))
 
-@app.route('/user/<username>/statistics', methods=['GET'])
+@bp.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
 
     possible_choices = ['all', 'gids', 'sleep', 'guds']
     gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
-    app.logger.info(f"{gidguds}")
+    current_app.logger.info(f"{gidguds}")
 
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
 
-@app.route('/user/<username>')
+@bp.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
@@ -323,7 +327,7 @@ def user(username):
     form = EmptyForm()
     return render_template('user.html', user=user, gidguds=gidguds, form=form)
 
-@app.before_request
+@bp.before_request
 def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.now(timezone.utc)

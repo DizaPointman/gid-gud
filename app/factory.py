@@ -1,11 +1,13 @@
+from flask import Flask
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
-from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config, TestingConfig
+import sqlalchemy as sa
+import sqlalchemy.orm as so
 
 
 db = SQLAlchemy()
@@ -21,6 +23,9 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
+
+    from .routes import bp as routes_bp
+    app.register_blueprint(routes_bp)
 
 
     if not app.debug and not app.testing:
@@ -97,4 +102,8 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('GidGud Test startup')
 
-    from app import routes, models, errors
+    @app.shell_context_processor
+    def make_shell_context():
+        return {'sa': sa, 'so': so, 'db': db}
+
+    return app

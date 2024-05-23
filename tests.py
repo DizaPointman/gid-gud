@@ -4,7 +4,8 @@ os.environ['DATABASE_URL'] = 'sqlite://'
 
 from datetime import datetime, timezone, timedelta
 import unittest
-from app import create_app, db
+from app.factory import create_app
+from app.factory import db
 from app.models import Category, User, GidGud
 from pytz import utc
 from functools import wraps

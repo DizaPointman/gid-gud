@@ -6,7 +6,7 @@ from typing import Optional
 from flask import flash, current_app, request
 from flask_login import current_user
 from app.models import User, GidGud, Category
-from app import db
+from app.factory import db
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
 from sqlalchemy.orm import selectinload
 import logging

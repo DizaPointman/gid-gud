@@ -5,7 +5,7 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy.orm import validates
-from app import db, login
+from app.factory import db, login
 from flask_login import UserMixin, current_user
 from hashlib import md5
 from pytz import utc
