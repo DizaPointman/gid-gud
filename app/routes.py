@@ -126,7 +126,7 @@ def unfollow(username):
 def create_gid():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     form = CreateGidForm()
-    # TODO: create return_or_create_category() method instead of this
+    # TODO: create flash that informs about recurrence rhythm
     if form.validate_on_submit():
         category = return_or_create_category(name=(form.category.data))
         if form.rec_rhythm.data != 0:

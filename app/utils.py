@@ -282,9 +282,14 @@ def gidgud_handle_complete(current_gidgud):
             return True
         else:
             gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
-            delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
-            next_occurrence = datetime.fromisoformat(timestamp) + delta
-            current_gidgud.next_occurrence = next_occurrence.isoformat()
+
+            if current_gidgud.recurrence_rhythm == 1 and current_gidgud.time_unit == 'None':
+                next_occurrence = iso_now()
+            else:
+                delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
+                next_occurrence = (datetime.fromisoformat(timestamp) + delta).isoformat()
+
+            current_gidgud.next_occurrence = next_occurrence
             db.session.add(gud)
             db.session.commit()
             return True

@@ -71,7 +71,7 @@ class CreateGidForm(FlaskForm):
     submit = SubmitField('Create Gid')
 
     def validate_time_unit(self, time_unit):
-        if self.rec_rhythm.data != 0 and time_unit.data == 'None':
+        if self.rec_rhythm.data != (0 or 1) and time_unit.data == 'None':
             raise ValidationError('Please choose a time unit for recurrence.')
         if self.rec_rhythm.data == 0 and time_unit.data != 'None':
             raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
