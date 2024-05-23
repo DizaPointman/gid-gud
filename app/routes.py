@@ -185,6 +185,7 @@ def delete_gidgud(id):
 @app.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def complete_gidgud(id):
+    # TODO: make recurrence = 1 and timeunit=None instant recurrence
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     gidgud_handle_complete(current_gidgud)
     flash('Gid completed!')

@@ -296,6 +296,8 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(cat1.depth, 5)
         self.assertEqual(cat1.height, 1)
 
+# TODO: implement test for gidgud completion, timedelta and recurrence
+
 
 
 if __name__ == '__main__':
