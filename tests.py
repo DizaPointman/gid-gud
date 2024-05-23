@@ -1,4 +1,6 @@
 import os
+
+from app.utils import return_or_create_category
 os.environ['DATABASE_URL'] = 'sqlite://'
 
 from datetime import datetime, timezone, timedelta
@@ -24,32 +26,29 @@ class BullshitGenerator():
         categories = []
 
         # Creating the default category
-        c0 = Category(name='root', user=user, parent=None)
-        c0.depth = 0
-        c0.height = tree_height
+        c0 = Category(name='root', user=user, depth=0, height=tree_height)
+        db.session.add(c0)
+        db.session.commit()
         categories.append(c0)
         parent_category = c0
 
-        # Generate chain of categories following a triangular number sequence, where the number of items in each row increases by one for each successive row
-        # Example:
-        # tree_depth=1 will generate 1 category: <cat1> with default as parent category
-        # tree_depth=2 will generate 2 categories: <cat2> with default as parent, <cat22> with <cat2> as parent
-        # and categories for tree_depth 1
-        # tree_depth=3 will generate 3 categories: <cat3> with default as parent, <cat33> with <cat3> as parent, <cat333> with <cat33> as parent
-        # and categories for tree_depth 1 and 2
+        # Generate tree for tree_height = 5
+        # 'root'
+        # 'root' -> 'cat1'
+        # 'root' -> 'cat2' -> 'cat22'
+        # 'root' -> 'cat3' -> 'cat33' -> 'cat333'
+        # 'root' -> 'cat4' -> 'cat44' -> 'cat444' -> 'cat4444'
+        # 'root' -> 'cat5' -> 'cat55' -> 'cat555' -> 'cat5555' -> 'cat55555'
 
         for j in range(1, tree_height + 1):
             for i in range(1, j + 1):
                 cat_name = 'cat' + (str(j) * i)
-                category = Category(name=cat_name, user=user, parent=parent_category)
-                category.depth = len(str(j) * i)
-                category.height = 1 + j - i
+                category = return_or_create_category(cat_name, user, parent_category)
                 categories.append(category)
                 if i != j:
                     parent_category = category
             parent_category = c0
 
-        db.session.add_all(categories)
         db.session.commit()
 
         return categories
@@ -118,12 +117,14 @@ class UserModelCase(BaseTestCase):
         u4 = User(username='david', email='david@example.com')
         db.session.add_all([u1, u2, u3, u4])
 
+        # Commit because root category creation is based on existing user
+        db.session.commit()
+
         # create four default categories for users
-        c1 = Category(name='root', user=u1)
-        c2 = Category(name='root', user=u2)
-        c3 = Category(name='root', user=u3)
-        c4 = Category(name='root', user=u4)
-        db.session.add_all([c1, c2, c3, c4])
+        c1 = return_or_create_category(user=u1)
+        c2 = return_or_create_category(user=u2)
+        c3 = return_or_create_category(user=u3)
+        c4 = return_or_create_category(user=u4)
 
         # create four guds
         now = datetime.now(timezone.utc)
@@ -310,13 +311,3 @@ if __name__ == '__main__':
     # Execute the test suite
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
-    """
-        for c in tree:
-            print("\n")
-            print(f"name: {c.name}, height: {c.height}, depth: {c.depth}, parent: {c.parent}, children: {c.children}")
-            print(f"possible children:")
-            print([(f"<{i.name}, {i.height}, {i.depth}>, ") for i in c.get_possible_children()])
-            print(f"possible parents:")
-            print([(f"<{i.name}, {i.height}, {i.depth}>, ") for i in c.get_possible_parents()])
-        """

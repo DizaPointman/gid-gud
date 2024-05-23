@@ -169,7 +169,7 @@ class Category(db.Model):
     def __repr__(self):
         return f'<Category {self.name}>'
 
-
+    """
     def __init__(self, name, user=None, parent=None):
         self.name = name
         self.user = user or current_user
@@ -183,7 +183,7 @@ class Category(db.Model):
 
             self.parent = parent or Category.query.filter_by(name='root', user_id=user.id).first()
             self.depth = self.parent.depth + 1
-
+    """
 
     def update_depth(self):
         if self.parent is not None:

@@ -300,15 +300,18 @@ def gidgud_handle_complete(current_gidgud):
 
 # Category
 
-def return_or_create_category(name: Optional[str] = None, parent: Optional[Category] = None):
+def return_or_create_category(name: Optional[str] = None, user: Optional[User] = None, parent: Optional[Category] = None):
 
     try:
         # Start a transaction
         with db.session.begin():
+
+            user = user or current_user
+
             # Check if 'root' category exists and create it if not
-            root = Category.query.filter_by(name='root', user_id=current_user.id).first()
+            root = Category.query.filter_by(name='root', user_id=user.id).first() or False
             if not root:
-                root = Category(name='root', user=current_user, depth=0, height=Category.MAX_HEIGHT)
+                root = Category(name='root', user=user, depth=0, height=Category.MAX_HEIGHT)
                 db.session.add(root)
                 db.session.commit()
 
@@ -317,13 +320,13 @@ def return_or_create_category(name: Optional[str] = None, parent: Optional[Categ
                 return root
 
             # Check if category with name exists and return it
-            category = Category.query.filter_by(name=name, user_id=current_user.id).first()
+            category = Category.query.filter_by(name=name, user_id=user.id).first()
 
             # If the category with name does not exist, create it
             if not category:
 
                 parent = parent or root
-                category = Category(name=name, user=current_user, parent=parent)
+                category = Category(name=name, user=user, parent=parent)
                 db.session.add(category)
 
                 # Update parent's depth and height if necessary
