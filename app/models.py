@@ -146,7 +146,7 @@ class GidGud(db.Model):
         return '<GidGud {}>'.format(self.body)
 
     # FIXME: rename recurrence to snooze: s_inter, s_unit, s_date
-    # TODO: implement return next occurrence and delta for next occurrence
+    # TODO: take return next occurrence and delta for next occurrence from utils?
 
 class Category(db.Model):
 
