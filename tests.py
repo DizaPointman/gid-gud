@@ -172,6 +172,23 @@ class CategoryModelCase(BaseTestCase):
 
     print("Test: CategoryModelCase")
 
+    def test_return_or_create_category(self):
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Create or return 'root' category
+        root_category = return_or_create_category(user=u)
+        self.assertIsNotNone(root_category)
+        self.assertEqual(root_category.name, 'root')
+
+        # Create or return a new category
+        new_category = return_or_create_category(name='new_category', user=u)
+        self.assertIsNotNone(new_category)
+        self.assertEqual(new_category.name, 'new_category')
+        self.assertEqual(new_category.parent.name, 'root')
+
     def test_bullshit_generator(self):
 
         # Create a user
