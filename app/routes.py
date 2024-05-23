@@ -4,7 +4,7 @@ from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, Regist
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request, return_or_create_category
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
@@ -60,10 +60,7 @@ def register():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
 
-        # Setting up the default category
-        root_category = Category(name='root', user=user)
-
-        db.session.add(user, root_category)
+        db.session.add(user)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
@@ -131,11 +128,7 @@ def create_gid():
     form = CreateGidForm()
     # TODO: create return_or_create_category() method instead of this
     if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user=current_user)
-            db.session.add(new_category)
-            category = new_category
+        category = return_or_create_category(name=(form.category.data))
         if form.rec_rhythm.data != 0:
             gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
         else:
@@ -152,11 +145,7 @@ def create_gud():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     form = CreateGudForm()
     if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user=current_user)
-            db.session.add(new_category)
-            category = new_category
+        category = return_or_create_category(name=(form.category.data))
         timestamp = datetime.now(timezone.utc)
         gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
         db.session.add(gud)
@@ -223,8 +212,7 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        new_category_name = form.name.data
-        create_new_category(new_category_name, current_user)
+        category = return_or_create_category(name=(form.name.data))
         flash('New Category created!')
         return redirect(url_for('user_categories', username=current_user.username))
 

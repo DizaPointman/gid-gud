@@ -117,7 +117,7 @@ class GidGud(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
     recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
+    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('None', 'minutes', 'hours', 'days', 'weeks', 'months', default='None'))
     next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
         sa.String(),
         index=True,
@@ -168,22 +168,6 @@ class Category(db.Model):
 
     def __repr__(self):
         return f'<Category {self.name}>'
-
-    """
-    def __init__(self, name, user=None, parent=None):
-        self.name = name
-        self.user = user or current_user
-
-        if name == 'root':
-
-            self.depth = 0
-            self.height = Category.MAX_HEIGHT
-
-        else:
-
-            self.parent = parent or Category.query.filter_by(name='root', user_id=user.id).first()
-            self.depth = self.parent.depth + 1
-    """
 
     def update_depth(self):
         if self.parent is not None:

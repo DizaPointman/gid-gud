@@ -54,27 +54,27 @@ class EditGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_rhythm = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    time_unit = SelectField('TimeUnit', choices=['', 'days', 'weeks', 'months', 'hours', 'minutes'])
+    time_unit = SelectField('TimeUnit', choices=['None', 'days', 'weeks', 'months', 'hours', 'minutes'])
     submit = SubmitField('Change GidGud')
 
     def validate_time_unit(self, time_unit):
-        if self.rec_rhythm.data != 0 and not time_unit.data:
+        if self.rec_rhythm.data != 0 and time_unit.data == 'None':
             raise ValidationError('Please choose a time unit for recurrence.')
-        if self.rec_rhythm.data == 0 and time_unit.data:
-            raise ValidationError(f'Please fill out Repeat after or remove TimeUnit.')
+        if self.rec_rhythm.data == 0 and time_unit.data != 'None':
+            raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
 
 class CreateGidForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_rhythm = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    time_unit = SelectField('TimeUnit', choices=['', 'days', 'weeks', 'months', 'hours', 'minutes'])
+    time_unit = SelectField('TimeUnit', choices=['None', 'days', 'weeks', 'months', 'hours', 'minutes'])
     submit = SubmitField('Create Gid')
 
     def validate_time_unit(self, time_unit):
-        if self.rec_rhythm.data != 0 and not time_unit.data:
+        if self.rec_rhythm.data != 0 and time_unit.data == 'None':
             raise ValidationError('Please choose a time unit for recurrence.')
-        if self.rec_rhythm.data == 0 and time_unit.data:
-            raise ValidationError(f'Please fill out Repeat after or remove TimeUnit.')
+        if self.rec_rhythm.data == 0 and time_unit.data != 'None':
+            raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
 
 class CreateGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])

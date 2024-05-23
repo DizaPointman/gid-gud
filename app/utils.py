@@ -255,13 +255,8 @@ def gidgud_handle_update(gidgud, form):
     try:
         gidgud.body = form.body.data
         if form.category.data is not gidgud.category.name:
-            updated_category = check_if_category_exists_and_return(form.category.data)
-            if not updated_category:
-                new_category = Category(name=form.category.data, user_id=current_user.id)
-                db.session.add(new_category)
-                gidgud.category = new_category
-            else:
-                gidgud.category = updated_category
+            updated_category = return_or_create_category(name=(form.category.data))
+            gidgud.category = updated_category
         if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
             gidgud.recurrence_rhythm = form.rec_rhythm.data
             if gidgud.next_occurrence is not None:
@@ -300,16 +295,16 @@ def gidgud_handle_complete(current_gidgud):
 
 # Category
 
-def return_or_create_category(name: Optional[str] = None, user: Optional[User] = None, parent: Optional[Category] = None):
+def return_or_create_category(name=None, user=None, parent=None):
 
     try:
         # Start a transaction
-        with db.session.begin():
+        #with db.session.begin():
 
             user = user or current_user
 
             # Check if 'root' category exists and create it if not
-            root = Category.query.filter_by(name='root', user_id=user.id).first() or False
+            root = Category.query.filter_by(name='root', user_id=user.id).first()
             if not root:
                 root = Category(name='root', user=user, depth=0, height=Category.MAX_HEIGHT)
                 db.session.add(root)
@@ -343,35 +338,6 @@ def return_or_create_category(name: Optional[str] = None, user: Optional[User] =
     except Exception as e:
         log_exception(e)
         db.session.rollback()
-        return False
-
-# Category - check_and_return
-
-def check_if_category_exists_and_return(new_cat_name):
-    """
-    Check if a category with the given name exists for the current user and return the category object.
-
-    Args:
-        new_cat_name (str): The name of the category to check.
-
-    Returns:
-        Category or bool: The category object if it exists, otherwise False.
-    """
-    try:
-        # Ensure a default category name if None is provided
-        new_cat_name = new_cat_name or 'root'
-
-        # Search for the category with the given name among the current user's categories
-        category = next((category for category in current_user.categories if category.name == new_cat_name), None)
-
-        # Return the category object if found, otherwise return False
-        if category:
-            return category
-        else:
-            return False
-    except Exception as e:
-        # Log any exceptions that occur during the process
-        log_exception(e)
         return False
 
 def check_and_return_list_of_possible_parents(current_category) -> list[str]:
@@ -455,24 +421,6 @@ def check_and_return_list_of_possible_parents_for_children(current_category) -> 
         # Log the exception with details
         log_exception(f"An error occurred while checking possible parent categories for children: {str(e)}")
         return []
-
-# Category - create_object
-
-def create_new_category(name: str, user: int) -> Category:
-    """
-    Create a new category with the given name and user ID.
-
-    Args:
-        name (str): The name of the new category.
-        user_id (int): The ID of the user who owns the category.
-
-    Returns:
-        Category: The newly created category object.
-    """
-    new_category = Category(name=name, user=user)
-    db.session.add(new_category)
-    db.session.commit()
-    return new_category
 
 # Category - handle_and_update_object
 

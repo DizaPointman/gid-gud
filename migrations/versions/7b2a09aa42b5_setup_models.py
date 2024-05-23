@@ -1,8 +1,8 @@
 """setup models
 
-Revision ID: d94a5a87bbf6
+Revision ID: 7b2a09aa42b5
 Revises: 
-Create Date: 2024-05-22 19:30:26.815215
+Create Date: 2024-05-23 02:45:47.153829
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd94a5a87bbf6'
+revision = '7b2a09aa42b5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -56,7 +56,7 @@ def upgrade():
     sa.Column('timestamp', sa.String(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('recurrence_rhythm', sa.Integer(), nullable=False),
-    sa.Column('time_unit', sa.Enum('minutes', 'hours', 'days', 'weeks', 'months'), nullable=True),
+    sa.Column('time_unit', sa.Enum('None', 'minutes', 'hours', 'days', 'weeks', 'months'), nullable=True),
     sa.Column('next_occurrence', sa.String(), nullable=True),
     sa.Column('amount', sa.Integer(), nullable=False),
     sa.Column('unit', sa.String(length=10), nullable=True),
