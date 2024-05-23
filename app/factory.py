@@ -24,8 +24,9 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login.init_app(app)
 
-    from .routes import bp as routes_bp
-    app.register_blueprint(routes_bp)
+    with app.app_context():
+        from .routes import bp as routes_bp
+        app.register_blueprint(routes_bp)
 
 
     if not app.debug and not app.testing:
