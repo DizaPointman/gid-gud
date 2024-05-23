@@ -4,7 +4,7 @@ os.environ['DATABASE_URL'] = 'sqlite://'
 
 from datetime import datetime, timezone, timedelta
 import unittest
-from app import app, db
+from app import create_app, db
 from app.models import Category, User, GidGud
 from pytz import utc
 from functools import wraps
@@ -18,8 +18,6 @@ def get_category_by_name(user, name):
     return next((c for c in user.categories if c.name == name), None)
 
 class BullshitGenerator():
-
-    #FIXME: add complete tree as comment for visualization
 
     def gen_cat_tree(self, user=None, tree_height=None):
 
@@ -57,11 +55,14 @@ class BullshitGenerator():
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app_context = app.app_context()
+        self.app = create_app(config_class='config.TestingConfig')
+        self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
     def tearDown(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
@@ -71,18 +72,21 @@ class UserModelCase(BaseTestCase):
     print("Test: UserModelCase")
 
     def test_password_hashing(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u = User(username='susan', email='susan@example.com')
         u.set_password('cat')
         self.assertFalse(u.check_password('dog'))
         self.assertTrue(u.check_password('cat'))
 
     def test_avatar(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u = User(username='john', email='john@example.com')
         self.assertEqual(u.avatar(128), ('https://www.gravatar.com/avatar/'
                                          'd4c74594d841139328695756648b6bd6'
                                          '?d=identicon&s=128'))
 
     def test_follow(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u1 = User(username='john', email='john@example.com')
         u2 = User(username='susan', email='susan@example.com')
         db.session.add(u1)
@@ -110,6 +114,7 @@ class UserModelCase(BaseTestCase):
         self.assertEqual(u2.followers_count(), 0)
 
     def test_follow_gidguds(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         # create four users
         u1 = User(username='john', email='john@example.com')
         u2 = User(username='susan', email='susan@example.com')
@@ -173,6 +178,7 @@ class CategoryModelCase(BaseTestCase):
     print("Test: CategoryModelCase")
 
     def test_return_or_create_category(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         # Create a user
         u = User(username='test_user', email='test@example.com')
         db.session.add(u)
@@ -189,8 +195,8 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(new_category.name, 'new_category')
         self.assertEqual(new_category.parent.name, 'root')
 
-    """
     def test_bullshit_generator(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -211,6 +217,7 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(tree[-1].height == 1)
 
     def test_possible_parents_and_children(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -250,6 +257,7 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(len(cat55555.get_possible_parents()) == len(u.categories) - 1)
 
     def test_update_height_depth(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -314,10 +322,7 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(cat1.depth, 5)
         self.assertEqual(cat1.height, 1)
 
-    """
-
 # TODO: implement test for gidgud completion, timedelta and recurrence
-
 
 
 if __name__ == '__main__':

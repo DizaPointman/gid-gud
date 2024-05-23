@@ -308,6 +308,10 @@ def return_or_create_category(name=None, user=None, parent=None):
 
             user = user or current_user
 
+            # BUG: added this for bug hunt
+            if not user or not hasattr(user, 'id'):
+                raise ValueError("A valid user must be provided")
+
             # Check if 'root' category exists and create it if not
             root = Category.query.filter_by(name='root', user_id=user.id).first()
             if not root:
