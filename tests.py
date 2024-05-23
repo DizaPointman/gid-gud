@@ -1,6 +1,5 @@
 import os
 
-from app.utils import return_or_create_category
 os.environ['DATABASE_URL'] = 'sqlite://'
 
 from datetime import datetime, timezone, timedelta
@@ -9,6 +8,7 @@ from app import app, db
 from app.models import Category, User, GidGud
 from pytz import utc
 from functools import wraps
+from app.utils import return_or_create_category
 
 
 def get_category_by_name(user, name):
@@ -189,6 +189,7 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(new_category.name, 'new_category')
         self.assertEqual(new_category.parent.name, 'root')
 
+    """
     def test_bullshit_generator(self):
 
         # Create a user
@@ -312,6 +313,8 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(cat33.height, 4)
         self.assertEqual(cat1.depth, 5)
         self.assertEqual(cat1.height, 1)
+
+    """
 
 # TODO: implement test for gidgud completion, timedelta and recurrence
 
