@@ -12,14 +12,14 @@
     <body>
         <div>
             GidGud:
-            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('routes.index') }}">Home</a>
             {% if current_user.is_anonymous %}
-            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('routes.login') }}">Login</a>
             {% else %}
-            <a href="{{ url_for('statistics', username=current_user.username) }}">My Stats</a>
-            <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
-            <a href="{{ url_for('user_categories', username=current_user.username) }}">My Categories</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('routes.statistics', username=current_user.username) }}">My Stats</a>
+            <a href="{{ url_for('routes.user', username=current_user.username) }}">Profile</a>
+            <a href="{{ url_for('routes.user_categories', username=current_user.username) }}">My Categories</a>
+            <a href="{{ url_for('routes.logout') }}">Logout</a>
             {% endif %}
         </div>
         <hr>

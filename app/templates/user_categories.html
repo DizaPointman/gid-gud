@@ -2,7 +2,7 @@
 
 {% block content %}
     <h1>Hello, {{ current_user.username }}! These are your Categories</h1>
-    <a href="{{ url_for('create_category') }}">New Category!</a>
+    <a href="{{ url_for('routes.create_category') }}">New Category!</a>
     <hr>
 {% endblock %}
 {% block feed %}

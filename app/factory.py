@@ -13,7 +13,7 @@ import sqlalchemy.orm as so
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
-login.login_view = 'login'
+login.login_view = 'routes.login'
 
 
 def create_app(config_class=Config):
