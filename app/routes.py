@@ -22,6 +22,7 @@ c_man = CategoryManager()
 @bp.route('/index')
 @login_required
 def index():
+    c_man.test_cm()
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     return render_template('index.html', title='Home', gidguds=gidguds)
 

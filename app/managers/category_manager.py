@@ -1,5 +1,6 @@
 
 
+from flask import current_app
 from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
 from app.utils import log_exception
@@ -8,14 +9,18 @@ from app.factory import db
 
 class CategoryManager:
 
+    MAX_HEIGHT = 5  # Setting a maximum height for categories tree
+
 
     def __init__(self, db=None):
 
         self.db = db
 
+    def test_cm(self):
+        return current_app.logger.info("Testing category manager initialization")
 
-    @staticmethod
-    def return_or_create_category(name=None, user=None, parent=None):
+
+    def return_or_create_category(self, name=None, user=None, parent=None):
 
         try:
             # Start a transaction
@@ -30,7 +35,7 @@ class CategoryManager:
             # Check if 'root' category exists and create it if not
             root = Category.query.filter_by(name='root', user_id=user.id).first()
             if not root:
-                root = Category(name='root', user=user, depth=0, height=Category.MAX_HEIGHT)
+                root = Category(name='root', user=user, depth=0, height=CategoryManager.MAX_HEIGHT)
                 db.session.add(root)
                 db.session.commit()
 
@@ -50,7 +55,7 @@ class CategoryManager:
 
                 # Update parent's depth and height if necessary
                 if parent != root:
-                    parent.update_depth_and_height()
+                    CategoryManager.update_depth_and_height(parent)
                 db.session.commit()
 
             return category
@@ -64,89 +69,89 @@ class CategoryManager:
             db.session.rollback()
             return False
 
-    def update_depth(self):
-        if self.parent is not None:
-            self.depth = self.parent.depth + 1
-            if self.children:
-                for child in self.children:
-                    child.update_depth()
+    def update_depth(self, category):
+        if category.parent is not None:
+            category.depth = category.parent.depth + 1
+            if category.children:
+                for child in category.children:
+                    CategoryManager.update_depth(child)
 
-    def update_height(self):
-        if self.parent is not None:
-            if not self.children:
-                self.height = 1
+    def update_height(self, category):
+        if category.parent is not None:
+            if not category.children:
+                category.height = 1
             else:
-                self.height = max(child.height for child in self.children) + 1
-                if self.parent.height != self.height + 1:
-                    self.parent.update_height()
+                category.height = max(child.height for child in category.children) + 1
+                if category.parent.height != category.height + 1:
+                    category.parent.update_height(category)
 
-    def update_depth_and_height(self):
+    def update_depth_and_height(self, category):
 
-        if self.parent is not None:
-            self.update_depth()
-            self.update_height()
+        if category.parent is not None:
+            CategoryManager.update_depth(category)
+            CategoryManager.update_height(category)
 
-    def get_possible_children(self):
+    def get_possible_children(self, category):
 
         # Generate blacklist because ancestors can't be children
-        blacklist = self.generate_blacklist_ancestors()
+        blacklist = CategoryManager.generate_blacklist_ancestors(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_HEIGHT] or []
+        return [category for category in category.user.categories if category not in blacklist and category.depth + category.height <= CategoryManager.MAX_HEIGHT] or []
 
-    def generate_blacklist_ancestors(self):
+    def generate_blacklist_ancestors(self, category):
 
-        # Generate blacklist by adding self and recursively adding parents
+        # Generate blacklist by adding category and recursively adding parents
         blacklist = set()
-        category = self
+        blacklist.add(category)  # Add the initial category
         while category.parent:
-            blacklist.add(category)
             category = category.parent
-        blacklist.add(self)  # Add self to the blacklist
+            blacklist.add(category)
         return blacklist
 
 
-    def get_possible_parents(self):
+    def get_possible_parents(self, category):
 
         # Generate blacklist because descendants can't be parents
-        blacklist = self.generate_blacklist_descendants()
+        blacklist = CategoryManager.generate_blacklist_descendants(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_HEIGHT]
+        return [category for category in category.user.categories if category not in blacklist and category.height + category.depth <= CategoryManager.MAX_HEIGHT]
 
-    def generate_blacklist_descendants(self):
+    def generate_blacklist_descendants(self, category):
 
-        # Generate blacklist by adding self and recursively adding children
+        # Generate blacklist by adding category and recursively adding children
         blacklist = set()
+        blacklist.add(category)  # Add category to the blacklist
+
         def blacklist_children(category):
             if category.children:
                 for child in category.children:
                     blacklist.add(child)
                     blacklist_children(child)
-        blacklist.add(self)  # Add self to the blacklist
-        blacklist_children(self)
+
         return blacklist
 
-    def create_category_from_form(self, form_data):
+    def create_category_from_form(category, form_data):
         """
         Create a new category based on the form data.
         """
         # Implement logic to create a category from the form data
         pass
 
-    def update_category_from_form(self, category_id, form_data):
+    def update_category_from_form(category, category_id, form_data):
         """
         Update an existing category based on the form data.
         """
         # Implement logic to update a category from the form data
         pass
 
-    def delete_category(self, category_id):
+    def delete_category(category, category_id):
         """
         Delete a category.
         """
         # Implement logic to delete a category
         pass
 
-    def get_category(self, category_id):
+    def get_category(category, category_id):
         """
         Retrieve a category from the database by its ID.
         """
