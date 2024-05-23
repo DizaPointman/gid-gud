@@ -5,6 +5,12 @@ from app.utils import log_exception
 from app.models import Category
 from app.factory import db
 
+
+# BUG: generate blacklist needs instantiated CategoryManager
+#factory.py
+#with app.app_context():
+#        c_man = CategoryManager()
+
 class CategoryManager:
 
     MAX_HEIGHT = 5  # Setting a maximum height for categories tree
@@ -91,10 +97,12 @@ class CategoryManager:
 
     def get_possible_children(self, category):
 
+        bl_cat = category
         # Generate blacklist because ancestors can't be children
-        blacklist = CategoryManager.generate_blacklist_ancestors(category)
+        blacklist = CategoryManager.generate_blacklist_ancestors(bl_cat)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in category.user.categories if category not in blacklist and category.depth + category.height <= CategoryManager.MAX_HEIGHT] or []
+        return [cat for cat in category.user.categories if cat not in blacklist and cat.depth + cat.height <= CategoryManager.MAX_HEIGHT] or []
+
 
     def generate_blacklist_ancestors(self, category):
 
@@ -109,10 +117,12 @@ class CategoryManager:
 
     def get_possible_parents(self, category):
 
+        bl_cat = category
         # Generate blacklist because descendants can't be parents
-        blacklist = CategoryManager.generate_blacklist_descendants(category)
+        blacklist = CategoryManager.generate_blacklist_descendants(bl_cat)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in category.user.categories if category not in blacklist and category.height + category.depth <= CategoryManager.MAX_HEIGHT]
+        return [cat for cat in category.user.categories if cat not in blacklist and cat.height + cat.depth <= CategoryManager.MAX_HEIGHT]
+
 
     def generate_blacklist_descendants(self, category):
 
@@ -120,12 +130,13 @@ class CategoryManager:
         blacklist = set()
         blacklist.add(category)  # Add category to the blacklist
 
-        def blacklist_children(category):
-            if category.children:
-                for child in category.children:
+        def blacklist_children(cat):
+            if cat.children:
+                for child in cat.children:
                     blacklist.add(child)
                     blacklist_children(child)
 
+        blacklist_children(category)
         return blacklist
 
     def create_category_from_form(category, form_data):

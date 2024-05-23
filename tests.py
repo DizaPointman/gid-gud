@@ -1,5 +1,7 @@
 import os
 
+from app.managers.category_manager import CategoryManager
+
 os.environ['DATABASE_URL'] = 'sqlite://'
 
 from datetime import datetime, timezone, timedelta
@@ -53,6 +55,41 @@ class BullshitGenerator():
         return categories
 
 
+class BullshitGenerator2():
+
+    def __init__(self, c_man):
+        self.c_man = c_man
+
+    def gen_cat_tree(self, user=None, tree_height=None):
+        categories = []
+
+        # Creating the default category
+        c0 = self.c_man.return_or_create_category(user=user)
+        categories.append(c0)
+        parent_category = c0
+
+        # Generate tree for tree_height = 5
+        # 'root'
+        # 'root' -> 'cat1'
+        # 'root' -> 'cat2' -> 'cat22'
+        # 'root' -> 'cat3' -> 'cat33' -> 'cat333'
+        # 'root' -> 'cat4' -> 'cat44' -> 'cat444' -> 'cat4444'
+        # 'root' -> 'cat5' -> 'cat55' -> 'cat555' -> 'cat5555' -> 'cat55555'
+
+        for j in range(1, tree_height + 1):
+            for i in range(1, j + 1):
+                cat_name = 'cat' + (str(j) * i)
+                category = self.c_man.return_or_create_category(cat_name, user, parent_category)
+                categories.append(category)
+                if i != j:
+                    parent_category = category
+            parent_category = c0
+
+        db.session.commit()
+
+        return categories
+
+
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -61,6 +98,8 @@ class BaseTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        #self.c_man = CategoryManager()  # Initialize CategoryManager instance
 
     def tearDown(self):
         print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
@@ -326,6 +365,168 @@ class CategoryModelCase(BaseTestCase):
 # TODO: implement test for gidgud completion, timedelta and recurrence
 
 
+class CategoryModelCase2(BaseTestCase):
+
+    print("Test: CategoryModelCase")
+
+    def test_return_or_create_category2(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Initialize CategoryManager
+        c_man = CategoryManager()
+
+        # Create or return 'root' category
+        root_category = c_man.return_or_create_category(user=u)
+        self.assertIsNotNone(root_category)
+        self.assertEqual(root_category.name, 'root')
+
+        # Create or return a new category
+        new_category = c_man.return_or_create_category(name='new_category', user=u)
+        self.assertIsNotNone(new_category)
+        self.assertEqual(new_category.name, 'new_category')
+        self.assertEqual(new_category.parent.name, 'root')
+
+    def test_bullshit_generator2(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Initialize CategoryManager
+        c_man = CategoryManager()
+
+        # Create category tree
+        bs = BullshitGenerator2(c_man)
+        tree_height = 5
+        triangular_number = (tree_height * (tree_height + 1)) // 2
+        tree = bs.gen_cat_tree(u, tree_height)
+
+        # Check that the correct amount of categories is generated
+        # + 1 for the default category
+        self.assertTrue(len(tree) == triangular_number + 1)
+        self.assertTrue(tree[0].name == 'root')
+        self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
+        self.assertTrue(tree[-1].height == 1)
+
+    def test_possible_parents_and_children2(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Initialize CategoryManager
+        c_man = CategoryManager()
+
+        # Create category tree
+        bs = BullshitGenerator2(c_man)
+        bs.gen_cat_tree(u, 5)
+
+        default_cat = get_category_by_name(u, 'root')
+        # Cat1 is child of default, has no children
+        cat1 = get_category_by_name(u, 'cat1')
+        # Cat5 is child of default, has tree of ancestors up to cat55555
+        cat5 = get_category_by_name(u, 'cat5')
+        # Cat55555 is child of cat5555, has no children
+        cat55555 = get_category_by_name(u, 'cat55555')
+
+        # Default must not return any possible parent since it is root category
+        self.assertTrue(c_man.get_possible_parents(default_cat) == [])
+
+        # Default should return any categories except itself as possible children
+        self.assertTrue(len(c_man.get_possible_children(default_cat)))
+
+        # Cat1
+        self.assertNotIn(cat55555, c_man.get_possible_parents(cat1))
+        self.assertNotIn(default_cat, c_man.get_possible_children(cat1))
+        self.assertNotIn(cat5, c_man.get_possible_children(cat1))
+
+        # Cat5
+        self.assertTrue(c_man.get_possible_parents(cat5) == [default_cat])
+        # All categories possible except cat5 and default_cat
+        self.assertTrue(len(c_man.get_possible_children(cat5)) == len(u.categories) - 2)
+
+        # Cat55555
+        self.assertTrue(c_man.get_possible_children(cat55555) == [])
+        self.assertTrue(len(c_man.get_possible_parents(cat55555)) == len(u.categories) - 1)
+
+    def test_update_height_depth2(self):
+        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Initialize CategoryManager
+        c_man = CategoryManager()
+
+        # Create category tree
+        bs = BullshitGenerator2(c_man)
+        bs.gen_cat_tree(u, 5)
+
+        default_cat = get_category_by_name(u, 'root')
+        # Cat1 is child of default, has no children
+        cat1 = get_category_by_name(u, 'cat1')
+        # Cat2 is child of default, has child cat22
+        cat2 = get_category_by_name(u, 'cat2')
+        # Cat22 is child of cat2, has no child
+        cat22 = get_category_by_name(u, 'cat22')
+        # Cat33 is child of cat3, has tree of ancestors up to cat333
+        cat33 = get_category_by_name(u, 'cat33')
+        # Cat4 is child of default, has tree of ancestors up to cat4444
+        cat4 = get_category_by_name(u, 'cat4')
+        # Cat1 is child of default, has tree of ancestors up to cat55555
+        cat5 = get_category_by_name(u, 'cat5')
+
+        # Assert height and depth of cat1, cat2, cat5
+        self.assertEqual(cat1.depth, 1)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 2)
+        self.assertEqual(cat5.depth, 1)
+        self.assertEqual(cat5.height, 5)
+
+        # Change parent of cat1 from default to cat2
+        cat1.parent = cat2
+        db.session.commit()
+        c_man.update_depth_and_height(cat2)
+
+        self.assertEqual(cat1.depth, 2)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 2)
+
+        # Change parent of cat1 from cat2 to cat22
+        cat1.parent = cat22
+        db.session.commit()
+        c_man.update_depth_and_height(cat22)
+
+        self.assertEqual(cat1.depth, 3)
+        self.assertEqual(cat1.height, 1)
+        self.assertEqual(cat2.depth, 1)
+        self.assertEqual(cat2.height, 3)
+        self.assertEqual(cat22.depth, 2)
+        self.assertEqual(cat22.height, 2)
+
+        # Change parent of cat2 to cat33
+        cat2.parent = cat33
+        db.session.commit()
+        c_man.update_depth_and_height(cat33)
+
+        self.assertEqual(cat33.depth, 2)
+        self.assertEqual(cat33.height, 4)
+        self.assertEqual(cat1.depth, 5)
+        self.assertEqual(cat1.height, 1)
+
+
 if __name__ == '__main__':
     #unittest.main(verbosity=2)
 
@@ -335,6 +536,7 @@ if __name__ == '__main__':
     # Add the test cases to the suite
     suite.addTest(unittest.makeSuite(UserModelCase))
     suite.addTest(unittest.makeSuite(CategoryModelCase))
+    suite.addTest(unittest.makeSuite(CategoryModelCase2))
 
     # Execute the test suite
     runner = unittest.TextTestRunner(verbosity=2)
