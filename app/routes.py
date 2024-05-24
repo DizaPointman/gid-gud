@@ -302,8 +302,8 @@ def edit_category(id):
 @login_required
 def delete_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-    if current_category.name == 'default':
-        flash('The default Category may not be deleted')
+    if current_category.name == 'root':
+        flash('The root Category may not be deleted')
         return redirect(url_for('routes.user_categories', username=current_user.username))
     elif current_category.gidguds or current_category.children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')

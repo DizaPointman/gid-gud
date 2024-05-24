@@ -1,8 +1,9 @@
-from flask import current_app
+from flask import current_app, flash
 from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
+import sqlalchemy as sa
 from app.utils import log_exception
-from app.models import Category
+from app.models import Category, GidGud
 from app.factory import db
 
 
@@ -19,6 +20,12 @@ class CategoryManager:
     def test_cm(self):
         print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
+
+    def get_category_by_id(self, category_id):
+        return db.session.scalar(sa.select(Category).where(category_id == Category.id))
+
+    def get_category_by_name(self, category_name):
+        return db.session.scalar(sa.select(Category).where(category_name == Category.name))
 
     def return_or_create_root_category(self, user):
         """
@@ -96,7 +103,6 @@ class CategoryManager:
 
     def get_possible_children(self, category):
 
-        #bl_cat = category
         # Generate blacklist because ancestors can't be children
         blacklist = self.generate_blacklist_ancestors(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
@@ -112,10 +118,8 @@ class CategoryManager:
             blacklist.add(category)
         return blacklist
 
-
     def get_possible_parents(self, category):
 
-        #bl_cat = category
         # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
@@ -136,19 +140,59 @@ class CategoryManager:
         blacklist_children(category)
         return blacklist
 
-    def create_category_from_form(category, form_data):
-        """
-        Create a new category based on the form data.
-        """
-        # Implement logic to create a category from the form data
-        pass
-
-    def update_category_from_form(category, category_id, form_data):
+    def update_category_from_form(self, category_id, form_data):
         """
         Update an existing category based on the form data.
         """
-        # Implement logic to update a category from the form data
-        pass
+        try:
+
+            category = self.get_category_by_id(category_id)
+            old_name = category.name
+
+            # Change parent category
+            if category.parent != form_data.parent.data:
+                old_parent_name = category.parent.name
+                new_parent = self.get_category_by_name(form_data.parent.data)
+                category.parent = new_parent
+
+                flash(f"Parent changed from <{old_parent_name}> to <{new_parent.name}>!")
+
+            # Reassign GidGuds to new category
+            if old_name != form_data.reassign_gidguds.data:
+                relocate_gg = self.get_category_by_name(form_data.reassign_gidguds.data)
+                db.session.query(GidGud).filter(GidGud.category_id == category_id).update(
+                    {GidGud.category_id: relocate_gg.id}, synchronize_session=False)
+
+                flash(f"GidGuds from <{old_name}> reassigned to <{relocate_gg.name}>!")
+
+            # Reassign child categories
+            if old_name != form_data.reassign_children.data:
+                relocate_cc = self.get_category_by_name(form_data.reassign_children.data)
+                db.session.query(Category).filter(Category.parent_id == category_id).update(
+                    {Category.parent_id: relocate_cc.id}, synchronize_session=False)
+
+                flash(f"Child categories from <{old_name}> reassigned to <{relocate_gg.name}>!")
+
+            # Rename the category
+            if old_name != form_data.name.data:
+                new_name = form_data.name.data
+                category.name = new_name
+
+                flash(f"Name changed from <{old_name}> to <{new_name}>!")
+
+            # Commit the transaction
+            db.session.commit()
+
+            return True
+
+        except SQLAlchemyError as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
+        except Exception as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
 
     def delete_category(category, category_id):
         """
@@ -156,12 +200,3 @@ class CategoryManager:
         """
         # Implement logic to delete a category
         pass
-
-    def get_category(category, category_id):
-        """
-        Retrieve a category from the database by its ID.
-        """
-        # Implement logic to retrieve a category by its ID from the database
-        pass
-
-    # Additional methods for database operations or form logic as needed
