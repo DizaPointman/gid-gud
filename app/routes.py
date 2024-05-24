@@ -5,7 +5,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.managers.category_manager import CategoryManager
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request, return_or_create_category
+from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
@@ -137,7 +137,7 @@ def create_gid():
     form = CreateGidForm()
     # TODO: create flash that informs about recurrence rhythm
     if form.validate_on_submit():
-        category = return_or_create_category(name=(form.category.data))
+        category = c_man.return_or_create_category(name=(form.category.data))
         if form.rec_rhythm.data != 0:
             gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
         else:
@@ -154,7 +154,7 @@ def create_gud():
     gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
     form = CreateGudForm()
     if form.validate_on_submit():
-        category = return_or_create_category(name=(form.category.data))
+        category = c_man.return_or_create_category(name=(form.category.data))
         timestamp = datetime.now(timezone.utc)
         gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
         db.session.add(gud)
@@ -170,7 +170,7 @@ def edit_gidgud(id):
     # TODO: adjust template to hide recurrence fields when editing completed gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
-        gidgud_handle_update(gidgud, form)
+        gidgud_handle_update(gidgud, form, c_man)
         flash('Your changes have been saved.')
         return redirect(url_for('routes.index'))
 
@@ -222,7 +222,7 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        category = return_or_create_category(name=(form.name.data))
+        category = c_man.return_or_create_category(name=(form.name.data))
         flash('New Category created!')
         return redirect(url_for('routes.user_categories', username=current_user.username))
 

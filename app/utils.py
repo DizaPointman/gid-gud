@@ -250,12 +250,12 @@ def gidgud_return_dict_from_choice(choice: list) -> dict:
 # GidGud - create_object
 # GidGud - handle_and_update_object
 
-def gidgud_handle_update(gidgud, form):
+def gidgud_handle_update(gidgud, form, c_man):
 
     try:
         gidgud.body = form.body.data
         if form.category.data is not gidgud.category.name:
-            updated_category = return_or_create_category(name=(form.category.data))
+            updated_category = c_man.return_or_create_category(name=(form.category.data))
             gidgud.category = updated_category
         if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
             gidgud.recurrence_rhythm = form.rec_rhythm.data
