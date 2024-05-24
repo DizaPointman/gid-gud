@@ -22,10 +22,10 @@ class CategoryManager:
         return current_app.logger.info("Testing category manager initialization")
 
     def get_category_by_id(self, category_id):
-        return db.session.scalar(sa.select(Category).where(category_id == Category.id))
+        return Category.query.filter_by(id=category_id).first()
 
     def get_category_by_name(self, category_name):
-        return db.session.scalar(sa.select(Category).where(category_name == Category.name))
+        return Category.query.filter_by(name=category_name).first()
 
     def return_or_create_root_category(self, user):
         """
@@ -140,6 +140,7 @@ class CategoryManager:
         else:
             max_height_children = max(child.height for child in category.children)
             blacklist = set()
+            blacklist.add(category.name)
             for child in category.children:
                 temp_blacklist = self.generate_blacklist_descendants(child)
                 blacklist.update(temp_blacklist)
@@ -179,7 +180,7 @@ class CategoryManager:
                 flash(f"Parent changed from <{old_parent_name}> to <{new_parent.name}>!")
 
             # Reassign GidGuds to new category
-            if form_data.reassign_gidguds.data != old_name or 'No GidGuds':
+            if form_data.reassign_gidguds.data not in [old_name, 'No GidGuds']:
                 relocate_gg = self.get_category_by_name(form_data.reassign_gidguds.data)
                 db.session.query(GidGud).filter(GidGud.category_id == category_id).update(
                     {GidGud.category_id: relocate_gg.id}, synchronize_session=False)
@@ -187,7 +188,7 @@ class CategoryManager:
                 flash(f"GidGuds from <{old_name}> reassigned to <{relocate_gg.name}>!")
 
             # Reassign child categories
-            if form_data.reassign_children.data != old_name or 'No Children':
+            if form_data.reassign_children.data not in [old_name, 'No Children']:
                 relocate_cc = self.get_category_by_name(form_data.reassign_children.data)
                 db.session.query(Category).filter(Category.parent_id == category_id).update(
                     {Category.parent_id: relocate_cc.id}, synchronize_session=False)

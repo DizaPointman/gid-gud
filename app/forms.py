@@ -99,7 +99,14 @@ class EditCategoryForm(FlaskForm):
     reassign_children = SelectField('Reassign children to:')
     submit = SubmitField('Save Changes')
 
+    def __init__(self, *args, **kwargs):
+        self.current_name = kwargs.pop('current_name', None)
+        super(EditCategoryForm, self).__init__(*args, **kwargs)
+
     def validate_name(self, name):
+        if name.data == self.current_name:
+            return  # Skip validation if the submitted name matches the current name
+
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')

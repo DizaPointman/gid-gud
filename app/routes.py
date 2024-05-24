@@ -238,6 +238,61 @@ def edit_category(id):
 
     # Choices: all categories except the current category
 
+    parent_choices = [current_category.parent.name] + c_man.get_possible_parents(current_category)
+
+    if current_category.gidguds:
+        gidgud_reassignment_choices = [current_category.name, 'root'] + [c.name for c in current_user.categories if c.name not in [current_category.name, 'root']]
+    else:
+        gidgud_reassignment_choices = ['No GidGuds']
+
+    if current_category.children:
+        parent_choices_for_children = [current_category.name] + c_man.get_possible_parents_for_children(current_category)
+    else:
+        parent_choices_for_children = ['No Children']
+
+    form = EditCategoryForm(current_name=current_category.name)
+
+    # Assigning choices to selection fields
+    form.parent.choices = parent_choices
+    form.reassign_gidguds.choices = gidgud_reassignment_choices
+    form.reassign_children.choices = parent_choices_for_children
+
+    if request.method == 'POST':
+
+        if form.validate_on_submit():
+
+            c_man.update_category_from_form(id, form)
+
+            #if delete_afterwards:
+            if delete_afterwards:
+                return redirect(url_for('routes.delete_category', username=current_user.username, id=id))
+            return redirect(url_for('routes.user_categories', username=current_user.username))
+
+        else:
+            # Form validation failed, render the form template again with error messages
+            log_form_validation_errors(form)
+            flash('Form validation failed. Please correct the errors and resubmit.')
+            return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
+
+    elif request.method == 'GET':
+        # populating fields for get requests
+        form.name.data = current_category.name
+        form.parent.choices = parent_choices
+        form.reassign_gidguds.choices = gidgud_reassignment_choices
+        form.reassign_children.choices = parent_choices_for_children
+
+    return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
+
+@bp.route('/edit_category2/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_category2(id):
+    # TODO: add multiple children at once
+
+    current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
+    delete_afterwards = bool(request.args.get('dla'))
+
+    # Choices: all categories except the current category
+
     default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
     parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
 
