@@ -433,19 +433,19 @@ class CategoryModelCase2(BaseTestCase):
         # Cat55555 is child of cat5555, has no children
         cat55555 = get_category_by_name(u, 'cat55555')
 
-        # Default must not return any possible parent since it is root category
-        self.assertTrue(c_man.get_possible_parents(default_cat) == [])
+        # Default must only return root since it is added to maintain order in formfields
+        self.assertTrue(c_man.get_possible_parents(default_cat) == ['root'])
 
         # Default should return any categories except itself as possible children
-        self.assertTrue(len(c_man.get_possible_children(default_cat)))
+        self.assertTrue(len(c_man.get_possible_children(default_cat)) == len(u.categories) - 1)
 
         # Cat1
-        self.assertNotIn(cat55555, c_man.get_possible_parents(cat1))
-        self.assertNotIn(default_cat, c_man.get_possible_children(cat1))
-        self.assertNotIn(cat5, c_man.get_possible_children(cat1))
+        self.assertNotIn(cat55555.name, c_man.get_possible_parents(cat1))
+        self.assertNotIn('root', c_man.get_possible_children(cat1))
+        self.assertNotIn(cat5.name, c_man.get_possible_children(cat1))
 
         # Cat5
-        self.assertTrue(c_man.get_possible_parents(cat5) == [default_cat])
+        self.assertTrue(c_man.get_possible_parents(cat5) == ['root'])
         # All categories possible except cat5 and default_cat
         self.assertTrue(len(c_man.get_possible_children(cat5)) == len(u.categories) - 2)
 

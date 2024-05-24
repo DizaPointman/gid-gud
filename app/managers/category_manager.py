@@ -102,20 +102,21 @@ class CategoryManager:
             self.update_height(category)
 
     def get_possible_children(self, category):
+        # Return list of category names for potential children
 
         # Generate blacklist because ancestors can't be children
         blacklist = self.generate_blacklist_ancestors(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [cat for cat in category.user.categories if cat not in blacklist and category.depth + cat.height <= self.MAX_HEIGHT] or []
+        return [cat.name for cat in category.user.categories if cat.name not in blacklist and category.depth + cat.height <= self.MAX_HEIGHT] or []
 
     def generate_blacklist_ancestors(self, category):
 
         # Generate blacklist by adding category and recursively adding parents
         blacklist = set()
-        blacklist.add(category)  # Add the initial category
+        blacklist.add(category.name)  # Add the initial category
         while category.parent:
             category = category.parent
-            blacklist.add(category)
+            blacklist.add(category.name)
         return blacklist
 
     def get_possible_parents(self, category):
@@ -123,19 +124,33 @@ class CategoryManager:
 
         # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants(category)
+
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [cat for cat in category.user.categories if cat not in blacklist and category.height + cat.depth <= self.MAX_HEIGHT]
+        # Exclude and add root to install order
+        return ['root'] + [cat.name for cat in category.user.categories if cat.name not in blacklist and category.height + cat.depth <= self.MAX_HEIGHT]
+
+    def get_possible_parents_for_children(self, category):
+        # Return list of category names for potential new parents for children
+
+        # Generate blacklist because descendants can't be parents
+        blacklist = self.generate_blacklist_descendants(category)
+
+        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
+        # subtract 1 from category height to allow categories of same level as current parent
+        # Add self and root to install order
+        return [category.name, 'root'] + [cat.name for cat in category.user.categories if cat not in blacklist and (category.height - 1) + cat.depth <= self.MAX_HEIGHT]
 
     def generate_blacklist_descendants(self, category):
 
         # Generate blacklist by adding category and recursively adding children
         blacklist = set()
-        blacklist.add(category)  # Add category to the blacklist
+        blacklist.add(category.name)  # Add category to the blacklist
+        blacklist.add('root')   # Remove root to later add in correct order
 
         def blacklist_children(cat):
             if cat.children:
                 for child in cat.children:
-                    blacklist.add(child)
+                    blacklist.add(child.name)
                     blacklist_children(child)
 
         blacklist_children(category)
