@@ -522,6 +522,56 @@ class CategoryModelCase2(BaseTestCase):
         self.assertEqual(cat1.height, 1)
 
 
+    def test_get_possible_parents_for_children(self):
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
+
+        # Initialize CategoryManager
+        c_man = self.c_man
+
+        # Create category tree
+        bs = BullshitGenerator2(c_man)
+        bs.gen_cat_tree(u, 5)
+
+        # Retrieve categories
+        default_cat = get_category_by_name(u, 'root')
+        cat1 = get_category_by_name(u, 'cat1')
+        cat2 = get_category_by_name(u, 'cat2')
+        cat22 = get_category_by_name(u, 'cat22')
+        cat3 = get_category_by_name(u, 'cat3')
+        cat4 = get_category_by_name(u, 'cat4')
+        cat5 = get_category_by_name(u, 'cat5')
+        cat55555 = get_category_by_name(u, 'cat55555')
+
+        # Test possible parents for children of root (should raise ValueError)
+        with self.assertRaises(ValueError):
+            c_man.get_possible_parents_for_children(default_cat)
+
+        # Test possible parents for children of cat1 (should return empty since it has no children)
+        possible_parents_cat1 = c_man.get_possible_parents_for_children(cat1)
+        self.assertEqual(possible_parents_cat1, [])
+
+        # Test possible parents for children of cat5 (should return a flat list of unique possible parents)
+        possible_parents_cat5 = c_man.get_possible_parents_for_children(cat5)
+        expected_parents = {'root', 'cat1', 'cat2', 'cat3', 'cat4', 'cat5'}
+        self.assertIsInstance(possible_parents_cat5, list)
+        self.assertTrue(expected_parents.issubset(possible_parents_cat5))
+
+        # Test possible parents for children of cat55555 (should return empty since it has no children)
+        possible_parents_cat55555 = c_man.get_possible_parents_for_children(cat55555)
+        self.assertEqual(possible_parents_cat55555, [])
+
+        # Test possible parents for children of cat2 (should return a flat list of unique possible parents)
+        possible_parents_cat2 = c_man.get_possible_parents_for_children(cat2)
+        self.assertIsInstance(possible_parents_cat2, list)
+        self.assertTrue(all(isinstance(name, str) for name in possible_parents_cat2))
+        # Ensure that cat 22 and cat55555 are not in the possible parents list
+        self.assertTrue(len(possible_parents_cat2) == len(u.categories) - 2)
+
+
+
 if __name__ == '__main__':
     #unittest.main(verbosity=2)
 

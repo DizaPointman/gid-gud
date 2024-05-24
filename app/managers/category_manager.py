@@ -132,13 +132,18 @@ class CategoryManager:
     def get_possible_parents_for_children(self, category):
         # Return list of category names for potential new parents for children
 
-        # Generate blacklist because descendants can't be parents
-        blacklist = self.generate_blacklist_descendants(category)
+        if category.name == 'root':
+            raise ValueError("You can't reassign all children of the root category at once!")
 
-        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        # subtract 1 from category height to allow categories of same level as current parent
-        # Add self and root to install order
-        return [category.name, 'root'] + [cat.name for cat in category.user.categories if cat not in blacklist and (category.height - 1) + cat.depth <= self.MAX_HEIGHT]
+        if not category.children:
+            return []
+        else:
+            max_height_children = max(child.height for child in category.children)
+            blacklist = set()
+            for child in category.children:
+                temp_blacklist = self.generate_blacklist_descendants(child)
+                blacklist.update(temp_blacklist)
+            return ['root'] + [cat.name for cat in category.user.categories if cat.name not in blacklist and max_height_children + cat.depth <= self.MAX_HEIGHT]
 
     def generate_blacklist_descendants(self, category):
 
