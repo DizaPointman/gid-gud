@@ -119,6 +119,7 @@ class CategoryManager:
         return blacklist
 
     def get_possible_parents(self, category):
+        # Return list of category names for potential parents
 
         # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants(category)
@@ -150,7 +151,7 @@ class CategoryManager:
             old_name = category.name
 
             # Change parent category
-            if category.parent != form_data.parent.data:
+            if form_data.parent.data != category.parent.name:
                 old_parent_name = category.parent.name
                 new_parent = self.get_category_by_name(form_data.parent.data)
                 category.parent = new_parent
@@ -158,7 +159,7 @@ class CategoryManager:
                 flash(f"Parent changed from <{old_parent_name}> to <{new_parent.name}>!")
 
             # Reassign GidGuds to new category
-            if old_name != form_data.reassign_gidguds.data:
+            if form_data.reassign_gidguds.data != old_name or 'No GidGuds':
                 relocate_gg = self.get_category_by_name(form_data.reassign_gidguds.data)
                 db.session.query(GidGud).filter(GidGud.category_id == category_id).update(
                     {GidGud.category_id: relocate_gg.id}, synchronize_session=False)
@@ -166,15 +167,15 @@ class CategoryManager:
                 flash(f"GidGuds from <{old_name}> reassigned to <{relocate_gg.name}>!")
 
             # Reassign child categories
-            if old_name != form_data.reassign_children.data:
+            if form_data.reassign_children.data != old_name or 'No Children':
                 relocate_cc = self.get_category_by_name(form_data.reassign_children.data)
                 db.session.query(Category).filter(Category.parent_id == category_id).update(
                     {Category.parent_id: relocate_cc.id}, synchronize_session=False)
 
-                flash(f"Child categories from <{old_name}> reassigned to <{relocate_gg.name}>!")
+                flash(f"Child categories from <{old_name}> reassigned to <{relocate_cc.name}>!")
 
             # Rename the category
-            if old_name != form_data.name.data:
+            if form_data.name.data != old_name:
                 new_name = form_data.name.data
                 category.name = new_name
 
@@ -194,7 +195,7 @@ class CategoryManager:
             db.session.rollback()
             return False
 
-    def delete_category(category, category_id):
+    def delete_category(self, category_id):
         """
         Delete a category.
         """
