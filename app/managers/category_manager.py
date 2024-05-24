@@ -140,7 +140,6 @@ class CategoryManager:
         else:
             max_height_children = max(child.height for child in category.children)
             blacklist = set()
-            blacklist.add(category.name)
             for child in category.children:
                 temp_blacklist = self.generate_blacklist_descendants(child)
                 blacklist.update(temp_blacklist)

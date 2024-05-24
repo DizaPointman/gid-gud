@@ -11,7 +11,6 @@ from app.factory import db
 from app.models import Category, User, GidGud
 from pytz import utc
 from functools import wraps
-from app.utils import return_or_create_category
 
 
 def get_category_by_name(user, name):
@@ -21,41 +20,6 @@ def get_category_by_name(user, name):
     return next((c for c in user.categories if c.name == name), None)
 
 class BullshitGenerator():
-
-    def gen_cat_tree(self, user=None, tree_height=None):
-
-        categories = []
-
-        # Creating the default category
-        c0 = Category(name='root', user=user, depth=0, height=tree_height)
-        db.session.add(c0)
-        db.session.commit()
-        categories.append(c0)
-        parent_category = c0
-
-        # Generate tree for tree_height = 5
-        # 'root'
-        # 'root' -> 'cat1'
-        # 'root' -> 'cat2' -> 'cat22'
-        # 'root' -> 'cat3' -> 'cat33' -> 'cat333'
-        # 'root' -> 'cat4' -> 'cat44' -> 'cat444' -> 'cat4444'
-        # 'root' -> 'cat5' -> 'cat55' -> 'cat555' -> 'cat5555' -> 'cat55555'
-
-        for j in range(1, tree_height + 1):
-            for i in range(1, j + 1):
-                cat_name = 'cat' + (str(j) * i)
-                category = return_or_create_category(cat_name, user, parent_category)
-                categories.append(category)
-                if i != j:
-                    parent_category = category
-            parent_category = c0
-
-        db.session.commit()
-
-        return categories
-
-
-class BullshitGenerator2():
 
     def __init__(self, c_man):
         self.c_man = c_man
@@ -216,159 +180,14 @@ class UserModelCase(BaseTestCase):
         # check that gid g5 is not in following guds
         self.assertNotIn(g5, f4)
 
+# TODO: implement test for gidgud completion, timedelta and recurrence
+
+
 class CategoryModelCase(BaseTestCase):
 
     print("Test: CategoryModelCase")
 
     def test_return_or_create_category(self):
-        # Create a user
-        u = User(username='test_user', email='test@example.com')
-        db.session.add(u)
-        db.session.commit()
-
-        # Create or return 'root' category
-        root_category = return_or_create_category(user=u)
-        self.assertIsNotNone(root_category)
-        self.assertEqual(root_category.name, 'root')
-
-        # Create or return a new category
-        new_category = return_or_create_category(name='new_category', user=u)
-        self.assertIsNotNone(new_category)
-        self.assertEqual(new_category.name, 'new_category')
-        self.assertEqual(new_category.parent.name, 'root')
-
-    def test_bullshit_generator(self):
-
-        # Create a user
-        u = User(username='test_user', email='test@example.com')
-        db.session.add(u)
-        db.session.commit()
-
-        # Create category tree
-        bs = BullshitGenerator()
-        tree_height = 5
-        triangular_number = (tree_height * (tree_height + 1)) // 2
-        tree = bs.gen_cat_tree(u, tree_height)
-
-        # Check that the correct amount of categories is generated
-        # + 1 for the default category
-        self.assertTrue(len(tree) == triangular_number + 1)
-        self.assertTrue(tree[0].name == 'root')
-        self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
-        self.assertTrue(tree[-1].height == 1)
-
-    def test_possible_parents_and_children(self):
-
-        # Create a user
-        u = User(username='test_user', email='test@example.com')
-        db.session.add(u)
-        db.session.commit()
-
-        # Create category tree
-        bs = BullshitGenerator()
-        bs.gen_cat_tree(u, 5)
-
-        default_cat = get_category_by_name(u, 'root')
-        # Cat1 is child of default, has no children
-        cat1 = get_category_by_name(u, 'cat1')
-        # Cat5 is child of default, has tree of ancestors up to cat55555
-        cat5 = get_category_by_name(u, 'cat5')
-        # Cat55555 is child of cat5555, has no children
-        cat55555 = get_category_by_name(u, 'cat55555')
-
-        # Default must not return any possible parent since it is root category
-        self.assertTrue(default_cat.get_possible_parents() == [])
-
-        # Default should return any categories except itself as possible children
-        self.assertTrue(len(default_cat.get_possible_children()))
-
-        # Cat1
-        self.assertNotIn(cat55555, cat1.get_possible_parents())
-        self.assertNotIn(default_cat, cat1.get_possible_children())
-        self.assertNotIn(cat5, cat1.get_possible_children())
-
-        # Cat5
-        self.assertTrue(cat5.get_possible_parents() == [default_cat])
-        # All categories possible except cat5 and default_cat
-        self.assertTrue(len(cat5.get_possible_children()) == len(u.categories) - 2)
-
-        # Cat55555
-        self.assertTrue(cat55555.get_possible_children() == [])
-        self.assertTrue(len(cat55555.get_possible_parents()) == len(u.categories) - 1)
-
-    def test_update_height_depth(self):
-
-        # Create a user
-        u = User(username='test_user', email='test@example.com')
-        db.session.add(u)
-        db.session.commit()
-
-        # Create category tree
-        bs = BullshitGenerator()
-        bs.gen_cat_tree(u, 5)
-
-        default_cat = get_category_by_name(u, 'root')
-        # Cat1 is child of default, has no children
-        cat1 = get_category_by_name(u, 'cat1')
-        # Cat2 is child of default, has child cat22
-        cat2 = get_category_by_name(u, 'cat2')
-        # Cat22 is child of cat2, has no child
-        cat22 = get_category_by_name(u, 'cat22')
-        # Cat33 is child of cat3, has tree of ancestors up to cat333
-        cat33 = get_category_by_name(u, 'cat33')
-        # Cat4 is child of default, has tree of ancestors up to cat4444
-        cat4 = get_category_by_name(u, 'cat4')
-        # Cat1 is child of default, has tree of ancestors up to cat55555
-        cat5 = get_category_by_name(u, 'cat5')
-
-        # Assert height and depth of cat1, cat2, cat5
-        self.assertEqual(cat1.depth, 1)
-        self.assertEqual(cat1.height, 1)
-        self.assertEqual(cat2.depth, 1)
-        self.assertEqual(cat2.height, 2)
-        self.assertEqual(cat5.depth, 1)
-        self.assertEqual(cat5.height, 5)
-
-        # Change parent of cat1 from default to cat2
-        cat1.parent = cat2
-        db.session.commit()
-        cat2.update_depth_and_height()
-
-        self.assertEqual(cat1.depth, 2)
-        self.assertEqual(cat1.height, 1)
-        self.assertEqual(cat2.depth, 1)
-        self.assertEqual(cat2.height, 2)
-
-        # Change parent of cat1 from cat2 to cat22
-        cat1.parent = cat22
-        db.session.commit()
-        cat22.update_depth_and_height()
-
-        self.assertEqual(cat1.depth, 3)
-        self.assertEqual(cat1.height, 1)
-        self.assertEqual(cat2.depth, 1)
-        self.assertEqual(cat2.height, 3)
-        self.assertEqual(cat22.depth, 2)
-        self.assertEqual(cat22.height, 2)
-
-        # Change parent of cat2 to cat33
-        cat2.parent = cat33
-        db.session.commit()
-        cat33.update_depth_and_height()
-
-        self.assertEqual(cat33.depth, 2)
-        self.assertEqual(cat33.height, 4)
-        self.assertEqual(cat1.depth, 5)
-        self.assertEqual(cat1.height, 1)
-
-# TODO: implement test for gidgud completion, timedelta and recurrence
-
-
-class CategoryModelCase2(BaseTestCase):
-
-    print("Test: CategoryModelCase")
-
-    def test_return_or_create_category2(self):
         # Create a user
         u = User(username='test_user', email='test@example.com')
         db.session.add(u)
@@ -388,7 +207,7 @@ class CategoryModelCase2(BaseTestCase):
         self.assertEqual(new_category.name, 'new_category')
         self.assertEqual(new_category.parent.name, 'root')
 
-    def test_bullshit_generator2(self):
+    def test_bullshit_generator(self):
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -399,7 +218,7 @@ class CategoryModelCase2(BaseTestCase):
         c_man = self.c_man
 
         # Create category tree
-        bs = BullshitGenerator2(c_man)
+        bs = BullshitGenerator(c_man)
         tree_height = 5
         triangular_number = (tree_height * (tree_height + 1)) // 2
         tree = bs.gen_cat_tree(u, tree_height)
@@ -411,7 +230,7 @@ class CategoryModelCase2(BaseTestCase):
         self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
         self.assertTrue(tree[-1].height == 1)
 
-    def test_possible_parents_and_children2(self):
+    def test_possible_parents_and_children(self):
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -422,7 +241,7 @@ class CategoryModelCase2(BaseTestCase):
         c_man = self.c_man
 
         # Create category tree
-        bs = BullshitGenerator2(c_man)
+        bs = BullshitGenerator(c_man)
         bs.gen_cat_tree(u, 5)
 
         default_cat = get_category_by_name(u, 'root')
@@ -453,7 +272,7 @@ class CategoryModelCase2(BaseTestCase):
         self.assertTrue(c_man.get_possible_children(cat55555) == [])
         self.assertTrue(len(c_man.get_possible_parents(cat55555)) == len(u.categories) - 1)
 
-    def test_update_height_depth2(self):
+    def test_update_height_depth(self):
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -464,7 +283,7 @@ class CategoryModelCase2(BaseTestCase):
         c_man = self.c_man
 
         # Create category tree
-        bs = BullshitGenerator2(c_man)
+        bs = BullshitGenerator(c_man)
         bs.gen_cat_tree(u, 5)
 
         default_cat = get_category_by_name(u, 'root')
@@ -532,7 +351,7 @@ class CategoryModelCase2(BaseTestCase):
         c_man = self.c_man
 
         # Create category tree
-        bs = BullshitGenerator2(c_man)
+        bs = BullshitGenerator(c_man)
         bs.gen_cat_tree(u, 5)
 
         # Retrieve categories
@@ -555,6 +374,7 @@ class CategoryModelCase2(BaseTestCase):
 
         # Test possible parents for children of cat5 (should return a flat list of unique possible parents)
         possible_parents_cat5 = c_man.get_possible_parents_for_children(cat5)
+        print(f"possible_parents_cat5: {possible_parents_cat5}")
         expected_parents = {'root', 'cat1', 'cat2', 'cat3', 'cat4', 'cat5'}
         self.assertIsInstance(possible_parents_cat5, list)
         self.assertTrue(expected_parents.issubset(possible_parents_cat5))
