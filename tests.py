@@ -100,13 +100,11 @@ class BaseTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Initialize CategoryManager instance
         self.c_man = CategoryManager()
 
     def tearDown(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
@@ -115,22 +113,20 @@ class UserModelCase(BaseTestCase):
 
     print("Test: UserModelCase")
 
+
     def test_password_hashing(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u = User(username='susan', email='susan@example.com')
         u.set_password('cat')
         self.assertFalse(u.check_password('dog'))
         self.assertTrue(u.check_password('cat'))
 
     def test_avatar(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u = User(username='john', email='john@example.com')
         self.assertEqual(u.avatar(128), ('https://www.gravatar.com/avatar/'
                                          'd4c74594d841139328695756648b6bd6'
                                          '?d=identicon&s=128'))
 
     def test_follow(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         u1 = User(username='john', email='john@example.com')
         u2 = User(username='susan', email='susan@example.com')
         db.session.add(u1)
@@ -158,7 +154,10 @@ class UserModelCase(BaseTestCase):
         self.assertEqual(u2.followers_count(), 0)
 
     def test_follow_gidguds(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
+
+        # Initialize CategoryManager
+        c_man = self.c_man
+
         # create four users
         u1 = User(username='john', email='john@example.com')
         u2 = User(username='susan', email='susan@example.com')
@@ -170,10 +169,10 @@ class UserModelCase(BaseTestCase):
         db.session.commit()
 
         # create four default categories for users
-        c1 = return_or_create_category(user=u1)
-        c2 = return_or_create_category(user=u2)
-        c3 = return_or_create_category(user=u3)
-        c4 = return_or_create_category(user=u4)
+        c1 = c_man.return_or_create_category(user=u1)
+        c2 = c_man.return_or_create_category(user=u2)
+        c3 = c_man.return_or_create_category(user=u3)
+        c4 = c_man.return_or_create_category(user=u4)
 
         # create four guds
         now = datetime.now(timezone.utc)
@@ -222,7 +221,6 @@ class CategoryModelCase(BaseTestCase):
     print("Test: CategoryModelCase")
 
     def test_return_or_create_category(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         # Create a user
         u = User(username='test_user', email='test@example.com')
         db.session.add(u)
@@ -240,7 +238,6 @@ class CategoryModelCase(BaseTestCase):
         self.assertEqual(new_category.parent.name, 'root')
 
     def test_bullshit_generator(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -261,7 +258,6 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(tree[-1].height == 1)
 
     def test_possible_parents_and_children(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -301,7 +297,6 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(len(cat55555.get_possible_parents()) == len(u.categories) - 1)
 
     def test_update_height_depth(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -374,7 +369,6 @@ class CategoryModelCase2(BaseTestCase):
     print("Test: CategoryModelCase")
 
     def test_return_or_create_category2(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
         # Create a user
         u = User(username='test_user', email='test@example.com')
         db.session.add(u)
@@ -395,7 +389,6 @@ class CategoryModelCase2(BaseTestCase):
         self.assertEqual(new_category.parent.name, 'root')
 
     def test_bullshit_generator2(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -419,7 +412,6 @@ class CategoryModelCase2(BaseTestCase):
         self.assertTrue(tree[-1].height == 1)
 
     def test_possible_parents_and_children2(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
@@ -462,7 +454,6 @@ class CategoryModelCase2(BaseTestCase):
         self.assertTrue(len(c_man.get_possible_parents(cat55555)) == len(u.categories) - 1)
 
     def test_update_height_depth2(self):
-        print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
         # Create a user
         u = User(username='test_user', email='test@example.com')
