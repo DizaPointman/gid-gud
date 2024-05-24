@@ -6,87 +6,10 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
-# TODO: Improve Category model
-
-- apply changes to bullshit generator
-
-# TODO: Placeholder defaults in Flaskform
-
-- Define placeholder defaults in Flaskform
-- Assign Defaults en route
-- Buuild Edit Category Function that takes form and category
-- Does every Change by comparing default and data and apply necessary logic
-- Profit
-
-
-    class MyForm(FlaskForm):
-        # Define placeholder defaults
-        default_name = "Default Name"
-        default_email = "default@example.com"
-
-        # Define form fields
-        name = StringField('Name', default=default_name)
-        email = StringField('Email', default=default_email)
-
-    @app.route('/my-form', methods=['GET', 'POST'])
-    def my_form():
-        # Populate with real defaults
-        MyForm.default_name = "Real Default Name"
-        MyForm.default_email = "real_default@example.com"
-
-        form = MyForm()
-        if form.validate_on_submit():
-            -> can send form to function and have default and data values
-            # Form submission logic
-            pass
-
-    output:
-    {
-        'name': 'User-submitted name',  # User input, if provided
-        'email': 'User-submitted email',  # User input, if provided
-        # Default values
-        'default_name': 'Real Default Name',
-        'default_email': 'real_default@example.com'
-    }
-
-create add/remove parent and child functions
-create bulk reassign gidguds and children functions
-
-implement add children function with multiple selectfield
-
-## TODO: Category Manager
-
-    # app/category_manager.py
-
-    from app.models import Category
-
-    class CategoryManager:
-        def __init__(self, db):
-            self.db = db
-
-
-    app = Flask(__name__)
-    app.config.from_object(Config)
-    db = SQLAlchemy(app)
-    migrate = Migrate(app, db)
-    login = LoginManager(app)
-    login.login_view = 'login'
-
-    # Import the CategoryManager class
-    from app.category_manager import CategoryManager
-
-    # Initialize the CategoryManager with the db instance
-    category_manager = CategoryManager(db)
-
-
-    from app import app, category_manager
-
-    @app.route('/')
-    @app.route('/index')
-    def index():
-        # Example usage of the CategoryManager
-        categories = category_manager.get_all_categories()
-        return render_template('index.html', categories=categories)
+# TODO: GidGud Manager
+# TODO: Tests for GidGud Manager
+# TODO: Tests for routes
+# TODO: implement add children function with multiple selectfield
 
 
 # Security
