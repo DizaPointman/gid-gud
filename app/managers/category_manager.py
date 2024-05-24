@@ -8,7 +8,8 @@ from app.factory import db
 
 class CategoryManager:
 
-    MAX_HEIGHT = Category.MAX_HEIGHT  # Setting a maximum height for categories tree
+    # Setting a maximum height for categories tree
+    MAX_HEIGHT = Category.MAX_HEIGHT
 
 
     def __init__(self, db=None):
@@ -19,44 +20,46 @@ class CategoryManager:
         print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
 
+    def return_or_create_root_category(self, user):
+        """
+        Return or create the root category for the given user.
+        """
+        root = Category.query.filter_by(name='root', user_id=user.id).first()
+        if not root:
+            root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
+            db.session.add(root)
+            db.session.commit()
+        return root
+
+    def create_category(self, name, user, parent):
+        """
+        Create a new category with the given name, user, and parent.
+        """
+        category = Category(name=name, user=user, parent=parent)
+        db.session.add(category)
+        self.update_depth_and_height(parent)
+        db.session.commit()
+        return category
 
     def return_or_create_category(self, name=None, user=None, parent=None):
-
+        """
+        Return or create a category with the given name and user. If no name is provided, return the root category.
+        """
         try:
-            # Start a transaction
-            #with self.db.session.begin():
-
             user = user or current_user
 
-            # BUG: added this for bug hunt
             if not user or not hasattr(user, 'id'):
                 raise ValueError("A valid user must be provided")
 
-            # Check if 'root' category exists and create it if not
-            root = Category.query.filter_by(name='root', user_id=user.id).first()
-            if not root:
-                root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
-                db.session.add(root)
-                db.session.commit()
+            root = self.return_or_create_root_category(user)
 
-            # Return 'root' category if no name is provided
             if not name:
                 return root
 
-            # Check if category with name exists and return it
             category = Category.query.filter_by(name=name, user_id=user.id).first()
-
-            # If the category with name does not exist, create it
             if not category:
-
                 parent = parent or root
-                category = Category(name=name, user=user, parent=parent)
-                db.session.add(category)
-
-                # Update parent's depth and height if necessary
-                if parent != root:
-                    self.update_depth_and_height(parent)
-                db.session.commit()
+                category = self.create_category(name, user, parent)
 
             return category
 
