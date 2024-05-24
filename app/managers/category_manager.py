@@ -6,14 +6,9 @@ from app.models import Category
 from app.factory import db
 
 
-# BUG: generate blacklist needs instantiated CategoryManager
-#factory.py
-#with app.app_context():
-#        c_man = CategoryManager()
-
 class CategoryManager:
 
-    MAX_HEIGHT = 5  # Setting a maximum height for categories tree
+    MAX_HEIGHT = Category.MAX_HEIGHT  # Setting a maximum height for categories tree
 
 
     def __init__(self, db=None):
@@ -21,6 +16,7 @@ class CategoryManager:
         self.db = db
 
     def test_cm(self):
+        print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
 
 
@@ -39,7 +35,7 @@ class CategoryManager:
             # Check if 'root' category exists and create it if not
             root = Category.query.filter_by(name='root', user_id=user.id).first()
             if not root:
-                root = Category(name='root', user=user, depth=0, height=CategoryManager.MAX_HEIGHT)
+                root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
                 db.session.add(root)
                 db.session.commit()
 
@@ -59,7 +55,7 @@ class CategoryManager:
 
                 # Update parent's depth and height if necessary
                 if parent != root:
-                    CategoryManager.update_depth_and_height(parent)
+                    self.update_depth_and_height(parent)
                 db.session.commit()
 
             return category
@@ -78,7 +74,7 @@ class CategoryManager:
             category.depth = category.parent.depth + 1
             if category.children:
                 for child in category.children:
-                    CategoryManager.update_depth(child)
+                    self.update_depth(child)
 
     def update_height(self, category):
         if category.parent is not None:
@@ -87,22 +83,21 @@ class CategoryManager:
             else:
                 category.height = max(child.height for child in category.children) + 1
                 if category.parent.height != category.height + 1:
-                    category.parent.update_height(category)
+                    self.update_height(category.parent)
 
     def update_depth_and_height(self, category):
 
         if category.parent is not None:
-            CategoryManager.update_depth(category)
-            CategoryManager.update_height(category)
+            self.update_depth(category)
+            self.update_height(category)
 
     def get_possible_children(self, category):
 
-        bl_cat = category
+        #bl_cat = category
         # Generate blacklist because ancestors can't be children
-        blacklist = CategoryManager.generate_blacklist_ancestors(bl_cat)
+        blacklist = self.generate_blacklist_ancestors(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [cat for cat in category.user.categories if cat not in blacklist and cat.depth + cat.height <= CategoryManager.MAX_HEIGHT] or []
-
+        return [cat for cat in category.user.categories if cat not in blacklist and category.depth + cat.height <= self.MAX_HEIGHT] or []
 
     def generate_blacklist_ancestors(self, category):
 
@@ -117,12 +112,11 @@ class CategoryManager:
 
     def get_possible_parents(self, category):
 
-        bl_cat = category
+        #bl_cat = category
         # Generate blacklist because descendants can't be parents
-        blacklist = CategoryManager.generate_blacklist_descendants(bl_cat)
+        blacklist = self.generate_blacklist_descendants(category)
         # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [cat for cat in category.user.categories if cat not in blacklist and cat.height + cat.depth <= CategoryManager.MAX_HEIGHT]
-
+        return [cat for cat in category.user.categories if cat not in blacklist and category.height + cat.depth <= self.MAX_HEIGHT]
 
     def generate_blacklist_descendants(self, category):
 

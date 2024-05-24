@@ -89,6 +89,9 @@ class BullshitGenerator2():
 
         return categories
 
+    def c_man_alive(self):
+        return self.c_man.test_cm()
+
 
 class BaseTestCase(unittest.TestCase):
 
@@ -99,7 +102,8 @@ class BaseTestCase(unittest.TestCase):
         db.create_all()
         print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
 
-        #self.c_man = CategoryManager()  # Initialize CategoryManager instance
+        # Initialize CategoryManager instance
+        self.c_man = CategoryManager()
 
     def tearDown(self):
         print(f"Database URI: {self.app.config['SQLALCHEMY_DATABASE_URI']}")
@@ -377,7 +381,7 @@ class CategoryModelCase2(BaseTestCase):
         db.session.commit()
 
         # Initialize CategoryManager
-        c_man = CategoryManager()
+        c_man = self.c_man
 
         # Create or return 'root' category
         root_category = c_man.return_or_create_category(user=u)
@@ -399,7 +403,7 @@ class CategoryModelCase2(BaseTestCase):
         db.session.commit()
 
         # Initialize CategoryManager
-        c_man = CategoryManager()
+        c_man = self.c_man
 
         # Create category tree
         bs = BullshitGenerator2(c_man)
@@ -423,7 +427,7 @@ class CategoryModelCase2(BaseTestCase):
         db.session.commit()
 
         # Initialize CategoryManager
-        c_man = CategoryManager()
+        c_man = self.c_man
 
         # Create category tree
         bs = BullshitGenerator2(c_man)
@@ -466,7 +470,7 @@ class CategoryModelCase2(BaseTestCase):
         db.session.commit()
 
         # Initialize CategoryManager
-        c_man = CategoryManager()
+        c_man = self.c_man
 
         # Create category tree
         bs = BullshitGenerator2(c_man)
