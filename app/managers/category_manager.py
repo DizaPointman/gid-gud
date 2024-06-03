@@ -23,7 +23,7 @@ class CategoryManager:
         print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
 
-    def iso_now():
+    def iso_now(self):
         return datetime.now(utc).isoformat()
 
     def get_category_by_id(self, category_id):
@@ -251,6 +251,8 @@ class CategoryManager:
 
     def gidgud_handle_update(self, gidgud, form):
 
+        # TODO: if gidgud.completed is not None, create a new gidgud and return it, archive old gidgud
+
         try:
             gidgud.body = form.body.data
             if form.category.data is not gidgud.category.name:
@@ -298,7 +300,7 @@ class CategoryManager:
             log_exception(e)
             return False
 
-    def gidgud_return_dict_from_choice(self, choice: list) -> dict:
+    def gidgud_return_dict_from_choice(self, choice):
 
         choices = ['gids', 'guds', 'sleep', 'all']
         gidgud_dict = {}
@@ -344,7 +346,7 @@ class CategoryManager:
             return False
 
     def check_sleep(self, gidgud):
-        datetime_now = self.iso_now()
+        datetime_now = datetime.fromisoformat(self.iso_now())
         gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
         sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
         return sleep

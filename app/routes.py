@@ -170,7 +170,7 @@ def edit_gidgud(id):
     # TODO: adjust template to hide recurrence fields when editing completed gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
-        gidgud_handle_update(gidgud, form, c_man)
+        c_man.gidgud_handle_update(gidgud, form)
         flash('Your changes have been saved.')
         return redirect(url_for('routes.index'))
 
@@ -196,7 +196,7 @@ def delete_gidgud(id):
 def complete_gidgud(id):
     # TODO: make recurrence = 1 and timeunit=None instant recurrence
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    gidgud_handle_complete(current_gidgud)
+    c_man.gidgud_handle_complete(current_gidgud)
     flash('Gid completed!')
     return redirect(url_for('routes.index'))
 
@@ -304,7 +304,7 @@ def delete_category(id):
 def statistics(username):
 
     possible_choices = ['all', 'gids', 'sleep', 'guds']
-    gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
+    gidguds = c_man.gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
     current_app.logger.info(f"{gidguds}")
 
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
