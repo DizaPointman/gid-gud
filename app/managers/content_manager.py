@@ -9,7 +9,7 @@ from app.models import Category, GidGud
 from app.factory import db
 
 
-class CategoryManager:
+class ContentManager:
 
     # Setting a maximum height for categories tree
     MAX_HEIGHT = Category.MAX_HEIGHT

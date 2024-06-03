@@ -3,9 +3,9 @@ from app.factory import db
 from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app.managers.category_manager import CategoryManager
+from app.managers.content_manager import ContentManager
 from app.models import User, GidGud, Category
-from app.utils import  gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request
+from app.utils import log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
@@ -14,8 +14,8 @@ from pytz import utc
 # Create Blueprint
 bp = Blueprint('routes', __name__)
 
-# Initialize CategoryManager
-c_man = CategoryManager()
+# Initialize ContentManager
+c_man = ContentManager()
 
 
 @bp.route('/')

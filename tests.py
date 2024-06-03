@@ -1,6 +1,6 @@
 import os
 
-from app.managers.category_manager import CategoryManager
+from app.managers.content_manager import ContentManager
 
 os.environ['DATABASE_URL'] = 'sqlite://'
 
@@ -65,8 +65,8 @@ class BaseTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        # Initialize CategoryManager instance
-        self.c_man = CategoryManager()
+        # Initialize ContentManager instance
+        self.c_man = ContentManager()
 
     def tearDown(self):
         db.session.remove()
@@ -119,7 +119,7 @@ class UserModelCase(BaseTestCase):
 
     def test_follow_gidguds(self):
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # create four users
@@ -193,7 +193,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.add(u)
         db.session.commit()
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # Create or return 'root' category
@@ -214,7 +214,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.add(u)
         db.session.commit()
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # Create category tree
@@ -237,7 +237,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.add(u)
         db.session.commit()
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # Create category tree
@@ -279,7 +279,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.add(u)
         db.session.commit()
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # Create category tree
@@ -347,7 +347,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.add(u)
         db.session.commit()
 
-        # Initialize CategoryManager
+        # Initialize ContentManager
         c_man = self.c_man
 
         # Create category tree
