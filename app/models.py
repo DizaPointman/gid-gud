@@ -129,7 +129,7 @@ class GidGud(db.Model):
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    completed: so.Mapped[datetime] = so.mapped_column(
+    completed: so.Mapped[list[datetime]] = so.mapped_column(
         sa.String(),
         index=True,
         nullable=True,
