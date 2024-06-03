@@ -401,7 +401,6 @@ if __name__ == '__main__':
     # Add the test cases to the suite
     suite.addTest(unittest.makeSuite(UserModelCase))
     suite.addTest(unittest.makeSuite(CategoryModelCase))
-    suite.addTest(unittest.makeSuite(CategoryModelCase2))
 
     # Execute the test suite
     runner = unittest.TextTestRunner(verbosity=2)

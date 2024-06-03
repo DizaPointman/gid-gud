@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 from flask import current_app, flash
 from flask_login import current_user
+from pytz import utc
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
 import sqlalchemy as sa
 from app.utils import log_exception
@@ -20,6 +22,9 @@ class CategoryManager:
     def test_cm(self):
         print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
+
+    def iso_now():
+        return datetime.now(utc).isoformat()
 
     def get_category_by_id(self, category_id):
         return Category.query.filter_by(id=category_id).first()
@@ -95,11 +100,24 @@ class CategoryManager:
                 if category.parent.height != category.height + 1:
                     self.update_height(category.parent)
 
-    def update_depth_and_height(self, category):
+    def update_depth_and_height(self, *args):
 
-        if category.parent is not None:
-            self.update_depth(category)
-            self.update_height(category)
+        try:
+            for category in args:
+
+                if category.parent is not None:
+                    self.update_depth(category)
+                    self.update_height(category)
+
+        except SQLAlchemyError as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
+        except Exception as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
+
 
     def get_possible_children(self, category):
         # Return list of category names for potential children
@@ -162,10 +180,6 @@ class CategoryManager:
         return blacklist
 
     def update_category_from_form(self, category_id, form_data):
-        test = form_data
-        test = [t for t in test]
-        test = [str(t) for t in test]
-        print(test)
         """
         Update an existing category based on the form data.
         """
@@ -177,11 +191,14 @@ class CategoryManager:
             # Change parent category
             # TODO: update height depth for old and new parent
             if form_data.parent.data != category.parent.name:
-                old_parent_name = category.parent.name
+                old_parent = category.parent
                 new_parent = self.get_category_by_name(form_data.parent.data)
                 category.parent = new_parent
 
-                flash(f"Parent changed from <{old_parent_name}> to <{new_parent.name}>!")
+                # Updating old parent and new parent to maintain tree structure
+                self.update_depth_and_height(old_parent, new_parent)
+
+                flash(f"Parent changed from <{old_parent.name}> to <{new_parent.name}>!")
 
             # Reassign GidGuds to new category
             if form_data.reassign_gidguds.data not in [old_name, 'No GidGuds']:
@@ -196,6 +213,9 @@ class CategoryManager:
                 relocate_cc = self.get_category_by_name(form_data.reassign_children.data)
                 db.session.query(Category).filter(Category.parent_id == category_id).update(
                     {Category.parent_id: relocate_cc.id}, synchronize_session=False)
+
+                # Updating the category and new parent to maintain tree structure
+                self.update_depth_and_height(category, relocate_cc)
 
                 flash(f"Child categories from <{old_name}> reassigned to <{relocate_cc.name}>!")
 
@@ -226,3 +246,105 @@ class CategoryManager:
         """
         # Implement logic to delete a category
         pass
+
+    # GidGud
+
+    def gidgud_handle_update(self, gidgud, form):
+
+        try:
+            gidgud.body = form.body.data
+            if form.category.data is not gidgud.category.name:
+                updated_category = self.return_or_create_category(name=(form.category.data))
+                gidgud.category = updated_category
+            if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
+                gidgud.recurrence_rhythm = form.rec_rhythm.data
+                if gidgud.next_occurrence is not None:
+                    gidgud.next_occurrence = None
+            if form.time_unit.data is not gidgud.time_unit:
+                gidgud.time_unit = form.time_unit.data
+                if gidgud.next_occurrence is not None:
+                    gidgud.next_occurrence = None
+            db.session.commit()
+            return True
+
+        except Exception as e:
+            # Log any exceptions that occur during the process
+            log_exception(e)
+            return False
+
+    def gidgud_handle_complete(self, gidgud):
+        try:
+            timestamp = self.iso_now()
+            if gidgud.recurrence_rhythm == 0:
+                gidgud.completed = timestamp
+                db.session.commit()
+                return True
+            else:
+                gud = GidGud(body=gidgud.body, user_id=gidgud.user_id, category=gidgud.category, completed=timestamp)
+
+                if gidgud.recurrence_rhythm == 1 and gidgud.time_unit == 'None':
+                    next_occurrence = timestamp
+                else:
+                    delta = timedelta(**{gidgud.time_unit: gidgud.recurrence_rhythm})
+                    next_occurrence = (datetime.fromisoformat(timestamp) + delta).isoformat()
+
+                gidgud.next_occurrence = next_occurrence
+                db.session.add(gud)
+                db.session.commit()
+                return True
+
+        except Exception as e:
+            # Log any exceptions that occur during the process
+            log_exception(e)
+            return False
+
+    def gidgud_return_dict_from_choice(self, choice: list) -> dict:
+
+        choices = ['gids', 'guds', 'sleep', 'all']
+        gidgud_dict = {}
+
+        try:
+            if 'all' in choice:
+                gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
+                gidgud_dict['all'] = gidguds
+
+            if 'guds' in choice:
+                guds = db.session.execute(
+                    sa.select(GidGud)
+                    .where((current_user == GidGud.author) & (GidGud.completed.isnot(None)))
+                ).scalars().all()
+                gidgud_dict['guds'] = guds
+
+            if 'gids' in choice or 'sleep' in choice:
+                gids_and_sleep = db.session.scalars(
+                    sa.select(GidGud)
+                    .where((current_user == GidGud.author) & (GidGud.completed.is_(None)))
+                )
+                gids = []
+                sleep = []
+
+                for gidgud in gids_and_sleep:
+                    if 'gids' in choice:
+                        if not gidgud.next_occurrence or (self.check_sleep(gidgud) <= 0):
+                            gids.append(gidgud)
+                    if 'sleep' in choice:
+                        if gidgud.next_occurrence and self.check_sleep(gidgud) > 0:
+                            sleep.append(gidgud)
+
+                if 'gids' in choice:
+                    gidgud_dict['gids'] = gids
+                if 'sleep' in choice:
+                    gidgud_dict['sleep'] = sleep
+
+            return gidgud_dict
+
+        except Exception as e:
+            # Log any exceptions that occur during the process
+            log_exception(e)
+            return False
+
+    def check_sleep(self, gidgud):
+        datetime_now = self.iso_now()
+        gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
+        sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
+        return sleep

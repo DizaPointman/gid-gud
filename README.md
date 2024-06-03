@@ -6,6 +6,8 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
+# FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
+
 # TODO: GidGud Manager
 # TODO: Tests for GidGud Manager
 # TODO: Tests for routes

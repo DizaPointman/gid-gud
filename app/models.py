@@ -169,66 +169,7 @@ class Category(db.Model):
     def __repr__(self):
         return f'<Category {self.name}>'
 
-    def update_depth(self):
-        if self.parent is not None:
-            self.depth = self.parent.depth + 1
-            if self.children:
-                for child in self.children:
-                    child.update_depth()
 
-    def update_height(self):
-        if self.parent is not None:
-            if not self.children:
-                self.height = 1
-            else:
-                self.height = max(child.height for child in self.children) + 1
-                if self.parent.height != self.height + 1:
-                    self.parent.update_height()
-
-    def update_depth_and_height(self):
-
-        if self.parent is not None:
-            self.update_depth()
-            self.update_height()
-
-    def get_possible_children(self):
-
-        # Generate blacklist because ancestors can't be children
-        blacklist = self.generate_blacklist_ancestors()
-        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= self.MAX_HEIGHT] or []
-
-    def generate_blacklist_ancestors(self):
-
-        # Generate blacklist by adding self and recursively adding parents
-        blacklist = set()
-        category = self
-        while category.parent:
-            blacklist.add(category)
-            category = category.parent
-        blacklist.add(self)  # Add self to the blacklist
-        return blacklist
-
-
-    def get_possible_parents(self):
-
-        # Generate blacklist because descendants can't be parents
-        blacklist = self.generate_blacklist_descendants()
-        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= self.MAX_HEIGHT]
-
-    def generate_blacklist_descendants(self):
-
-        # Generate blacklist by adding self and recursively adding children
-        blacklist = set()
-        def blacklist_children(category):
-            if category.children:
-                for child in category.children:
-                    blacklist.add(child)
-                    blacklist_children(child)
-        blacklist.add(self)  # Add self to the blacklist
-        blacklist_children(self)
-        return blacklist
 
 
 @login.user_loader
