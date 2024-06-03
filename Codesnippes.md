@@ -339,3 +339,19 @@ In your Jinja2 template (example.html), you can then render the custom composite
     </form>
 
 By employing this approach, you can seamlessly integrate a StringField with a SelectField in accordance with the Bootstrap styling conventions, harmonizing form elements with grace and precision. Should further guidance be needed, do not hesitate to beckon!
+
+
+
+# Formdata Example
+
+[Markup('<input id="name" maxlength="20" minlength="1" name="name" required type="text" value="cman test 568">'),
+
+Markup('<select id="parent" name="parent"><option selected value="root">root</option><option selected value="root">root</option><option value="testcategoryformdata">testcategoryformdata</option><option value="health">health</option><option value="features3">features3</option></select>'),
+
+Markup('<select id="reassign_gidguds" name="reassign_gidguds"><option selected value="No GidGuds">No GidGuds</option></select>'),
+
+Markup('<select id="reassign_children" name="reassign_children"><option selected value="No Children">No Children</option></select>'),
+
+Markup('<input id="submit" name="submit" type="submit" value="Save Changes">'),
+
+Markup('<input id="csrf_token" name="csrf_token" type="hidden" value="Ijg3ZTFlNzcwMjFjY2UzZmQ2NzkxYjg2ZmVjNWM1ZTlmYjdmMjlmMDMi.Zl2nMA.-FGeszgJ6dYatzeKlArp0BAIxSo">')]

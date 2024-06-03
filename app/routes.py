@@ -238,7 +238,7 @@ def edit_category(id):
 
     # Choices: all categories except the current category
 
-    parent_choices = [current_category.parent.name] + c_man.get_possible_parents(current_category)
+    parent_choices = [current_category.parent.name or current_category.name] + c_man.get_possible_parents(current_category)
 
     if current_category.gidguds:
         gidgud_reassignment_choices = [current_category.name, 'root'] + [c.name for c in current_user.categories if c.name not in [current_category.name, 'root']]

@@ -162,6 +162,10 @@ class CategoryManager:
         return blacklist
 
     def update_category_from_form(self, category_id, form_data):
+        test = form_data
+        test = [t for t in test]
+        test = [str(t) for t in test]
+        print(test)
         """
         Update an existing category based on the form data.
         """
@@ -171,6 +175,7 @@ class CategoryManager:
             old_name = category.name
 
             # Change parent category
+            # TODO: update height depth for old and new parent
             if form_data.parent.data != category.parent.name:
                 old_parent_name = category.parent.name
                 new_parent = self.get_category_by_name(form_data.parent.data)
