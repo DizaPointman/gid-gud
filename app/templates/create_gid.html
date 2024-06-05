@@ -18,14 +18,14 @@
         {% endfor %}
     </p>
     <p>
-        {{ form.rec_rhythm.label }} {{ form.rec_rhythm }}<br>
-        {% for error in form.rec_rhythm.errors %}
+        {{ form.rec_val.label }} {{ form.rec_val }}<br>
+        {% for error in form.rec_val.errors %}
         <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
     </p>
     <p>
-        {{ form.time_unit.label }} {{ form.time_unit }}<br>
-        {% for error in form.time_unit.errors %}
+        {{ form.rec_unit.label }} {{ form.rec_unit }}<br>
+        {% for error in form.rec_unit.errors %}
         <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
     </p>

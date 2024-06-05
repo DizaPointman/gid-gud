@@ -24,12 +24,12 @@ class RegistrationForm(FlaskForm):
     def validate_username(self, username):
         user = db.session.scalar(sa.select(User).where(User.username == username.data))
         if user is not None:
-            raise ValidationError('Please choose a different username.')
+            raise ValidationError('An account with this Username already exists. Please choose a different Username.')
 
     def validate_email(self, email):
         user = db.session.scalar(sa.select(User).where(User.email == email.data))
         if user is not None:
-            raise ValidationError('Please choose a different email address.')
+            raise ValidationError('An account with this email address already exists. Please choose a different email address.')
 
 class EditProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -45,35 +45,44 @@ class EditProfileForm(FlaskForm):
             user = db.session.scalar(sa.select(User).where(
                 User.username == self.username.data))
             if user is not None:
-                raise ValidationError('Please use a different username.')
+                raise ValidationError('An account with this email address already exists. Please choose a different email address.')
 
 class EmptyForm(FlaskForm):
+    submit = SubmitField('Submit')
+
+class GidGudForm(FlaskForm):
+    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+    category = StringField('Category', validators=[Length(max=20)])
+    rec_instant = BooleanField('Repeat Task')
+    rec_custom = SubmitField('Custom Schedule')
+    rec_val = IntegerField('Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
+    rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
     submit = SubmitField('Submit')
 
 class EditGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
-    rec_rhythm = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    time_unit = SelectField('TimeUnit', choices=['None', 'days', 'weeks', 'months', 'hours', 'minutes'])
+    rec_val = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
+    rec_unit = SelectField('TimeUnit', choices=['instantly', 'days', 'weeks', 'months', 'hours', 'minutes'])
     submit = SubmitField('Change GidGud')
 
-    def validate_time_unit(self, time_unit):
-        if self.rec_rhythm.data > 1 and time_unit.data == 'None':
+    def validate_rec_unit(self, rec_unit):
+        if self.rec_val.data > 1 and rec_unit.data == 'instantly':
             raise ValidationError('Please choose a time unit for recurrence.')
-        if self.rec_rhythm.data == 0 and time_unit.data != 'None':
+        if self.rec_val.data == 0 and rec_unit.data != 'instantly':
             raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
 
 class CreateGidForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
-    rec_rhythm = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    time_unit = SelectField('TimeUnit', choices=['None', 'days', 'weeks', 'months', 'hours', 'minutes'])
+    rec_val = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
+    rec_unit = SelectField('TimeUnit', choices=['instantly', 'days', 'weeks', 'months', 'hours', 'minutes'])
     submit = SubmitField('Create Gid')
 
-    def validate_time_unit(self, time_unit):
-        if self.rec_rhythm.data > 1 and time_unit.data == 'None':
-            raise ValidationError('Please choose a time unit for recurrence.')
-        if self.rec_rhythm.data == 0 and time_unit.data != 'None':
+    def validate_rec_unit(self, rec_unit):
+        if self.rec_val.data > 1 and rec_unit.data == 'instantly':
+            raise ValidationError('Please choose a TimeUnit for recurrence.')
+        if self.rec_val.data == 0 and rec_unit.data != 'instantly':
             raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
 
 class CreateGudForm(FlaskForm):
@@ -89,7 +98,7 @@ class CreateCategoryForm(FlaskForm):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
-        if name.data.lower() in ["root", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
+        if name.data.lower() in ["root", "default", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
             raise ValidationError('This name is not valid.')
 
 class EditCategoryForm(FlaskForm):
@@ -110,5 +119,5 @@ class EditCategoryForm(FlaskForm):
         category = db.session.scalar(sa.select(Category).where(Category.name == name.data))
         if category is not None:
             raise ValidationError('This category already exists.')
-        if name.data.lower() in ["root", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
+        if name.data.lower() in ["root", "default", "none", "null", "0", "no parent", "no children", "no gidguds", "remove"]:
             raise ValidationError('This name is not valid.')

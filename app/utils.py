@@ -153,8 +153,8 @@ def gidgud_return_dict_from_choice2(choice: list) -> dict:
 
     def check_sleep(gidgud):
         datetime_now = datetime.now(utc)
-        gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
-        sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
+        gidgud_rec_next = datetime.fromisoformat(gidgud.rec_next)
+        sleep = (gidgud_rec_next - datetime_now).total_seconds()
         return sleep
 
     choices = ['gids', 'guds', 'sleep', 'all']
@@ -170,7 +170,7 @@ def gidgud_return_dict_from_choice2(choice: list) -> dict:
             guds = db.session.scalars(
                 sa.select(GidGud)
                 .where(current_user == GidGud.author)
-                .filter(GidGud.completed == True)
+                .filter(GidGud.completed_at == True)
             )
             gidgud_dict['guds'] = guds
 
@@ -178,13 +178,13 @@ def gidgud_return_dict_from_choice2(choice: list) -> dict:
             gids_and_sleep = db.session.scalars(
                 sa.select(GidGud)
                 .where(current_user == GidGud.author)
-                .filter(GidGud.completed == False)
+                .filter(GidGud.completed_at == False)
             )
             if 'gids' in choice:
-                gids = [g for g in gids_and_sleep if not g.next_occurrence or (check_sleep(g) <= 0)]
+                gids = [g for g in gids_and_sleep if not g.rec_next or (check_sleep(g) <= 0)]
                 gidgud_dict['gids'] = gids
             if 'sleep' in choice:
-                sleep = [g for g in gids_and_sleep if not g.next_occurrence or (check_sleep(g) > 0)]
+                sleep = [g for g in gids_and_sleep if not g.rec_next or (check_sleep(g) > 0)]
                 gidgud_dict['sleep'] = sleep
 
         return gidgud_dict
@@ -198,8 +198,8 @@ def gidgud_return_dict_from_choice(choice: list) -> dict:
 
     def check_sleep(gidgud):
         datetime_now = datetime.now(utc)
-        gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
-        sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
+        gidgud_rec_next = datetime.fromisoformat(gidgud.rec_next)
+        sleep = (gidgud_rec_next - datetime_now).total_seconds()
         return sleep
 
     choices = ['gids', 'guds', 'sleep', 'all']
@@ -213,24 +213,24 @@ def gidgud_return_dict_from_choice(choice: list) -> dict:
         if 'guds' in choice:
             guds = db.session.execute(
                 sa.select(GidGud)
-                .where((current_user == GidGud.author) & (GidGud.completed.isnot(None)))
+                .where((current_user == GidGud.author) & (GidGud.completed_at.isnot(None)))
             ).scalars().all()
             gidgud_dict['guds'] = guds
 
         if 'gids' in choice or 'sleep' in choice:
             gids_and_sleep = db.session.scalars(
                 sa.select(GidGud)
-                .where((current_user == GidGud.author) & (GidGud.completed.is_(None)))
+                .where((current_user == GidGud.author) & (GidGud.completed_at.is_(None)))
             )
             gids = []
             sleep = []
 
             for gidgud in gids_and_sleep:
                 if 'gids' in choice:
-                    if not gidgud.next_occurrence or (check_sleep(gidgud) <= 0):
+                    if not gidgud.rec_next or (check_sleep(gidgud) <= 0):
                         gids.append(gidgud)
                 if 'sleep' in choice:
-                    if gidgud.next_occurrence and check_sleep(gidgud) > 0:
+                    if gidgud.rec_next and check_sleep(gidgud) > 0:
                         sleep.append(gidgud)
 
             if 'gids' in choice:
@@ -257,14 +257,14 @@ def gidgud_handle_update(gidgud, form, c_man):
         if form.category.data is not gidgud.category.name:
             updated_category = c_man.return_or_create_category(name=(form.category.data))
             gidgud.category = updated_category
-        if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
-            gidgud.recurrence_rhythm = form.rec_rhythm.data
-            if gidgud.next_occurrence is not None:
-                gidgud.next_occurrence = None
-        if form.time_unit.data is not gidgud.time_unit:
-            gidgud.time_unit = form.time_unit.data
-            if gidgud.next_occurrence is not None:
-                gidgud.next_occurrence = None
+        if form.rec_val.data is not gidgud.rec_val:
+            gidgud.rec_val = form.rec_val.data
+            if gidgud.rec_next is not None:
+                gidgud.rec_next = None
+        if form.rec_unit.data is not gidgud.rec_unit:
+            gidgud.rec_unit = form.rec_unit.data
+            if gidgud.rec_next is not None:
+                gidgud.rec_next = None
         db.session.commit()
         return True
 
@@ -276,20 +276,20 @@ def gidgud_handle_update(gidgud, form, c_man):
 def gidgud_handle_complete(current_gidgud):
     try:
         timestamp = datetime.now(utc).isoformat()
-        if current_gidgud.recurrence_rhythm == 0:
-            current_gidgud.completed = timestamp
+        if current_gidgud.rec_val == 0:
+            current_gidgud.completed_at = timestamp
             db.session.commit()
             return True
         else:
-            gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed=timestamp)
+            gud = GidGud(body=current_gidgud.body, user_id=current_gidgud.user_id, category=current_gidgud.category, completed_at=timestamp)
 
-            if current_gidgud.recurrence_rhythm == 1 and current_gidgud.time_unit == 'None':
-                next_occurrence = iso_now()
+            if current_gidgud.rec_val == 1 and current_gidgud.rec_unit == 'instantly':
+                rec_next = iso_now()
             else:
-                delta = timedelta(**{current_gidgud.time_unit: current_gidgud.recurrence_rhythm})
-                next_occurrence = (datetime.fromisoformat(timestamp) + delta).isoformat()
+                delta = timedelta(**{current_gidgud.rec_unit: current_gidgud.rec_val})
+                rec_next = (datetime.fromisoformat(timestamp) + delta).isoformat()
 
-            current_gidgud.next_occurrence = next_occurrence
+            current_gidgud.rec_next = rec_next
             db.session.add(gud)
             db.session.commit()
             return True

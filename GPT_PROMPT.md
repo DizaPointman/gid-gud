@@ -58,9 +58,9 @@ class GidGud(db.Model):
     )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
-    recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
-    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
+    rec_val: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
+    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(
         sa.String(),
         index=True,
         nullable=True,
@@ -71,14 +71,14 @@ class GidGud(db.Model):
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    completed: so.Mapped[datetime] = so.mapped_column(
+    completed_at: so.Mapped[datetime] = so.mapped_column(
         sa.String(),
         index=True,
         nullable=True,
         default=None
     )
 
-    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    archived_at: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')

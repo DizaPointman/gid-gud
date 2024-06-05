@@ -142,21 +142,21 @@ class UserModelCase(BaseTestCase):
         now = datetime.now(timezone.utc)
         g1 = GidGud(body="post from john", author=u1, category=c1,
                     timestamp=((now + timedelta(seconds=1)).isoformat()),
-                    completed=((now + timedelta(seconds=10)).isoformat()))
+                    completed_at=((now + timedelta(seconds=10)).isoformat()))
         g2 = GidGud(body="post from susan", author=u2, category=c2,
                     timestamp=((now + timedelta(seconds=4)).isoformat()),
-                    completed=((now + timedelta(seconds=40)).isoformat()))
+                    completed_at=((now + timedelta(seconds=40)).isoformat()))
         g3 = GidGud(body="post from mary", author=u3, category=c3,
                     timestamp=((now + timedelta(seconds=3)).isoformat()),
-                    completed=((now + timedelta(seconds=30)).isoformat()))
+                    completed_at=((now + timedelta(seconds=30)).isoformat()))
         g4 = GidGud(body="post from david", author=u4, category=c4,
                     timestamp=((now + timedelta(seconds=2)).isoformat()),
-                    completed=((now + timedelta(seconds=20)).isoformat()))
+                    completed_at=((now + timedelta(seconds=20)).isoformat()))
 
         # create one gid
-        g5 = GidGud(body="uncompleted post from david", author=u4, category=c4,
+        g5 = GidGud(body="uncompleted_at post from david", author=u4, category=c4,
                     timestamp=((now + timedelta(seconds=2)).isoformat()),
-                    completed=None)
+                    completed_at=None)
         db.session.add_all([g1, g2, g3, g4, g5])
         db.session.commit()
 

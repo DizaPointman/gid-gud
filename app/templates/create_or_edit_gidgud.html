@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ title }}</h1>
+<form action="" method="post">
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="customize" value="{{ 'true' if customize else 'false' }}">
+    <p>
+        {{ form.body.label }} {{ form.body }}<br>
+        {% for error in form.body.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.category.label }} {{ form.category }}<br>
+        {% for error in form.category.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>Make the Task reappear again after Completion</p>
+    <p>{{ form.rec_instant() }} {{ form.rec_instant.label }}</p>
+    <p>Customize when the Task reappears after Completion</p>
+    <p>{{ form.rec_custom() }} {{ form.rec_custom.label }}</p>
+
+    {% if customize %}
+        <!-- rec_val and rec_unit to display when rec_custom is checked -->
+        <p>
+            {{ form.rec_val.label }} {{ form.rec_val }}<br>
+            {% for error in form.rec_val.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.rec_unit.label }} {{ form.rec_unit }}<br>
+            {% for error in form.rec_unit.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+    {% endif %}
+
+    <p>{{ form.submit() }}</p>
+</form>
+
+{% endblock %}
+
+{% block feed %}
+    {% include "_gidgud_feed.html" %}
+{% endblock %}

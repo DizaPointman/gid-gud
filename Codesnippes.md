@@ -214,8 +214,8 @@
     def optional_choice(form, field):
         current_app.logger.info("starting optional choice validator")
         current_app.logger.info(f"evaluating: {field}, data: {field.data}, type: {type(field.data)}")
-        current_app.logger.info(f"field data - if field.data is None or 'None': {field.data in (None, 'None')}")
-        if field.data in (None, 'None'):
+        current_app.logger.info(f"field data - if field.data is None or 'instantly': {field.data in (None, 'instantly')}")
+        if field.data in (None, 'instantly'):
             current_app.logger.info("field data - check")
         #if not field.data:
             current_app.logger.info(f"not field data: {field.data}")
@@ -623,3 +623,53 @@ Functions to Manage the Closure Table
                 if depth_to_root <= max_child_depth:
                     valid_children.append(potential_child)
         return valid_children
+
+
+# Dynamic Repeat Field
+
+not really dynamic, because needs server roundtrip, but would work:
+
+    from flask import Flask, render_template, request
+
+    app = Flask(__name__)
+
+    @app.route('/', methods=['GET', 'POST'])
+    def index():
+        show_additional_fields = False
+        if request.method == 'POST':
+            main_field_value = request.form.get('main_field')
+            if main_field_value == 'specific_value':
+                show_additional_fields = True
+
+        return render_template('index.html', show_additional_fields=show_additional_fields)
+
+    if __name__ == '__main__':
+        app.run(debug=True)
+
+        Create your Jinja2 template (index.html):
+
+    html
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Dynamic Form Fields</title>
+    </head>
+    <body>
+        <form method="post">
+            <label for="main_field">Main Field:</label>
+            <input type="text" id="main_field" name="main_field">
+            
+            {% if show_additional_fields %}
+                <label for="additional_field1">Additional Field 1:</label>
+                <input type="text" id="additional_field1" name="additional_field1">
+                
+                <label for="additional_field2">Additional Field 2:</label>
+                <input type="text" id="additional_field2" name="additional_field2">
+            {% endif %}
+            
+            <button type="submit">Submit</button>
+        </form>
+    </body>
+    </html>

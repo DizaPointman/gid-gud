@@ -251,23 +251,30 @@ class ContentManager:
 
     def gidgud_handle_update(self, gidgud, form):
 
-        # TODO: if gidgud.completed is not None, create a new gidgud and return it, archive old gidgud
+        # TODO: if gidgud.completed_at is not None, create a new gidgud and return it, archive old gidgud
+        # TODO: only create new when body, category, unit or times is changed, not on rec rhythm change
+        # TODO: make sure data from edit is correctly applied if rec_val and/or rec_unit is missing (None)
 
         try:
-            if gidgud.completed is None:
+            if gidgud.completed_at is None:
 
                 gidgud.body = form.body.data
                 if form.category.data is not gidgud.category.name:
                     updated_category = self.return_or_create_category(name=(form.category.data))
                     gidgud.category = updated_category
-                if form.rec_rhythm.data is not gidgud.recurrence_rhythm:
-                    gidgud.recurrence_rhythm = form.rec_rhythm.data
-                    if gidgud.next_occurrence is not None:
-                        gidgud.next_occurrence = None
-                if form.time_unit.data is not gidgud.time_unit:
-                    gidgud.time_unit = form.time_unit.data
-                    if gidgud.next_occurrence is not None:
-                        gidgud.next_occurrence = None
+                if form.rec_instant.data:
+                    gidgud.rec_val = 1
+                    gidgud.rec_unit = 'instantly'
+                if form.rec_val.data is not None:
+                    if form.rec_val.data is not gidgud.rec_val:
+                        gidgud.rec_val = form.rec_val.data
+                        if gidgud.rec_next is not None:
+                            gidgud.rec_next = None
+                if form.rec_unit.data is not None:
+                    if form.rec_unit.data is not gidgud.rec_unit:
+                        gidgud.rec_unit = form.rec_unit.data
+                        if gidgud.rec_next is not None:
+                            gidgud.rec_next = None
 
                 db.session.commit()
 
@@ -276,14 +283,14 @@ class ContentManager:
             else:
 
                 # Archive old GidGud
-                gidgud.archived = True
+                gidgud.archived_at = True
                 # Create new GidGud
                 body = form.body.data or gidgud.body
                 category = self.return_or_create_category(name=(form.category.data)) or gidgud.category
-                recurrence_rhythm=form.rec_rhythm.data or gidgud.recurrence_rhythm
-                time_unit = form.time_unit.data or gidgud.time_unit
+                rec_val = form.rec_val.data or gidgud.rec_val
+                rec_unit = form.rec_unit.data or gidgud.rec_unit
 
-                gid = GidGud(body=body, user_id=current_user.id, category=category, recurrence_rhythm=recurrence_rhythm, time_unit=time_unit)
+                gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
                 db.session.add(gid)
                 db.session.commit()
 
@@ -295,23 +302,24 @@ class ContentManager:
             return False
 
     def gidgud_handle_complete(self, gidgud):
+        # TODO: also archive?
         try:
             timestamp = self.iso_now()
 
-            if gidgud.completed is not None:
-                gidgud.completed.append(timestamp)
+            if gidgud.completed_at is not None:
+                gidgud.completed_at.append(timestamp)
             else:
-                gidgud.completed = timestamp
+                gidgud.completed_at = timestamp
 
-            if gidgud.recurrence_rhythm != 0:
+            if gidgud.rec_val != 0:
 
-                if gidgud.recurrence_rhythm == 1 and gidgud.time_unit == 'None':
-                    next_occurrence = timestamp
+                if gidgud.rec_val == 1 and gidgud.rec_unit == 'instantly':
+                    rec_next = timestamp
                 else:
-                    delta = timedelta(**{gidgud.time_unit: gidgud.recurrence_rhythm})
-                    next_occurrence = (datetime.fromisoformat(timestamp) + delta).isoformat()
+                    delta = timedelta(**{gidgud.rec_unit: gidgud.rec_val})
+                    rec_next = (datetime.fromisoformat(timestamp) + delta).isoformat()
 
-                gidgud.next_occurrence = next_occurrence
+                gidgud.rec_next = rec_next
 
             db.session.commit()
             return True
@@ -334,24 +342,24 @@ class ContentManager:
             if 'guds' in choice:
                 guds = db.session.execute(
                     sa.select(GidGud)
-                    .where((current_user == GidGud.author) & (GidGud.completed.isnot(None)))
+                    .where((current_user == GidGud.author) & (GidGud.completed_at.isnot(None)))
                 ).scalars().all()
                 gidgud_dict['guds'] = guds
 
             if 'gids' in choice or 'sleep' in choice:
                 gids_and_sleep = db.session.scalars(
                     sa.select(GidGud)
-                    .where((current_user == GidGud.author) & (GidGud.completed.is_(None)))
+                    .where((current_user == GidGud.author) & (GidGud.completed_at.is_(None)))
                 )
                 gids = []
                 sleep = []
 
                 for gidgud in gids_and_sleep:
                     if 'gids' in choice:
-                        if not gidgud.next_occurrence or (self.check_sleep(gidgud) <= 0):
+                        if not gidgud.rec_next or (self.check_sleep(gidgud) <= 0):
                             gids.append(gidgud)
                     if 'sleep' in choice:
-                        if gidgud.next_occurrence and self.check_sleep(gidgud) > 0:
+                        if gidgud.rec_next and self.check_sleep(gidgud) > 0:
                             sleep.append(gidgud)
 
                 if 'gids' in choice:
@@ -368,43 +376,118 @@ class ContentManager:
 
     def check_sleep(self, gidgud):
         datetime_now = datetime.fromisoformat(self.iso_now())
-        gidgud_next_occurrence = datetime.fromisoformat(gidgud.next_occurrence)
-        sleep = (gidgud_next_occurrence - datetime_now).total_seconds()
+        gidgud_rec_next = datetime.fromisoformat(gidgud.rec_next)
+        sleep = (gidgud_rec_next - datetime_now).total_seconds()
         return sleep
     
-    def gidgud_return_dict_from_choice2(self, user):
+    def gidgud_return_dict_from_choice2(self, choice):
 
-        print("GIDGUD return dict from choice")
-        user = user or current_user
-        gidguds = db.session.execute(sa.select(GidGud).where(user == GidGud.author)).scalars().all()
-        gidgud_dict = {}
+            choices = ['gids', 'guds', 'sleep', 'all']
+            gidgud_dict = {}
+            gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
+
+            try:
+                if 'all' in choice:
+                    gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
+                    gidgud_dict['all'] = gidguds
+
+                if 'guds' in choice:
+                    guds = db.session.execute(
+                        sa.select(GidGud)
+                        .where((current_user == GidGud.author) & (GidGud.completed_at.isnot(None)))
+                    ).scalars().all()
+                    gidgud_dict['guds'] = guds
+
+                if 'gids' in choice or 'sleep' in choice:
+                    gids_and_sleep = db.session.scalars(
+                        sa.select(GidGud)
+                        .where((current_user == GidGud.author) & (GidGud.completed_at.is_(None)))
+                    )
+                    gids = []
+                    sleep = []
+
+                    for gidgud in gids_and_sleep:
+                        if 'gids' in choice:
+                            if not gidgud.rec_next or (self.check_sleep(gidgud) <= 0):
+                                gids.append(gidgud)
+                        if 'sleep' in choice:
+                            if gidgud.rec_next and self.check_sleep(gidgud) > 0:
+                                sleep.append(gidgud)
+
+                    if 'gids' in choice:
+                        gidgud_dict['gids'] = gids
+                    if 'sleep' in choice:
+                        gidgud_dict['sleep'] = sleep
+
+                return gidgud_dict
+
+            except Exception as e:
+                # Log any exceptions that occur during the process
+                log_exception(e)
+                return False
+
+    def gidgud_handle_complete2(self, gidgud):
 
         try:
-            # guds: every completed date is a gud
-            # gids: completed is None or recurrence enabled while next occurrence is enabled
-            # sleep: completed is None or recurrence enabled but next occurrence outstanding
+            timestamp = self.iso_now()
 
-            for g in gidguds:
-                print(f"loop check outer: id: {g.id}, body: {g.body}")
-                for c in g.completed:
-                    print(f"loop check completed: id: {g.id}, body: {g.body}, date: {c}")
-                    gidgud_dict['guds'] = {'body': g.body, 'date_completed': datetime.fromisoformat(c)}
-                if g.completed is None and g.recurrence_rhythm == 0:
-                    print(f"loop check rec 0, comp None: id: {g.id}, body: {g.body}")
-                    gidgud_dict['gids'] = {'body': g.body, 'date_created': datetime.fromisoformat(g.timestamp)}
-                if g.recurrence_rhythm != 0:
-                    print(f"loop check rec not 0: id: {g.id}, body: {g.body}")
-                    if not g.next_occurrence:
-                        gidgud_dict['gids'] = {'body': g.body, 'date_created': datetime.fromisoformat(g.timestamp)}
-                    else:
-                        if self.check_sleep(g) <= 0:
-                            gidgud_dict['gids'] = {'body': g.body, 'date_created': datetime.fromisoformat(g.timestamp)}
-                        else:
-                            gidgud_dict['sleep'] = {'body': g.body, 'date_created': datetime.fromisoformat(g.timestamp)}
+            gidgud.add_completed_at_date(timestamp)
 
-            return gidgud_dict
+            if gidgud.rec_val != 0:
+
+                rec_next = gidgud.set_rec_next(timestamp)
+                gidgud.rec_next = rec_next
+
+            db.session.commit()
+            return True
 
         except Exception as e:
             # Log any exceptions that occur during the process
             log_exception(e)
             return False
+
+    def gidgud_handle_update2(self, gidgud, form):
+
+            # TODO: if gidgud.completed_at is not None, create a new gidgud and return it, archive old gidgud
+            # TODO: only create new when body, category, unit or times is changed, not on rec rhythm change
+
+            try:
+                if gidgud.completed_at is None:
+
+                    gidgud.body = form.body.data
+                    if form.category.data is not gidgud.category.name:
+                        updated_category = self.return_or_create_category(name=(form.category.data))
+                        gidgud.category = updated_category
+                    if form.rec_val.data is not gidgud.rec_val:
+                        gidgud.rec_val = form.rec_val.data
+                        if gidgud.rec_next is not None:
+                            gidgud.rec_next = None
+                    if form.rec_unit.data is not gidgud.rec_unit:
+                        gidgud.rec_unit = form.rec_unit.data
+                        if gidgud.rec_next is not None:
+                            gidgud.rec_next = None
+
+                    db.session.commit()
+
+                    return True
+
+                else:
+
+                    # Archive old GidGud
+                    gidgud.archived_at = True
+                    # Create new GidGud
+                    body = form.body.data or gidgud.body
+                    category = self.return_or_create_category(name=(form.category.data)) or gidgud.category
+                    rec_val=form.rec_val.data or gidgud.rec_val
+                    rec_unit = form.rec_unit.data or gidgud.rec_unit
+
+                    gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
+                    db.session.add(gid)
+                    db.session.commit()
+
+                    return True
+
+            except Exception as e:
+                # Log any exceptions that occur during the process
+                log_exception(e)
+                return False

@@ -9,6 +9,8 @@ C-Man.inject()
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
 # TODO: GidGud Manager
+repeat X
+custom rhythm X
 # TODO: Tests for GidGud Manager
 # TODO: Tests for routes
 # TODO: implement add children function with multiple selectfield

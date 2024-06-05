@@ -1,5 +1,5 @@
 <div>
-    {% for gidgud in gidguds if not gidgud.completed %}
+    {% for gidgud in gidguds if not gidgud.completed_at %}
         {% include '_gidgud.html' %}
     {% endfor %}
 </div>

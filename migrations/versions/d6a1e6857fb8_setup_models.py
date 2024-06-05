@@ -1,8 +1,8 @@
 """setup models
 
-Revision ID: 32aa99f53276
+Revision ID: d6a1e6857fb8
 Revises: 
-Create Date: 2024-05-23 06:06:30.309924
+Create Date: 2024-06-05 20:58:18.528130
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '32aa99f53276'
+revision = 'd6a1e6857fb8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,9 +36,9 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=20), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('parent_id', sa.Integer(), nullable=True),
     sa.Column('depth', sa.Integer(), nullable=False),
     sa.Column('height', sa.Integer(), nullable=False),
-    sa.Column('parent_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['parent_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -55,22 +55,28 @@ def upgrade():
     sa.Column('body', sa.String(length=140), nullable=False),
     sa.Column('timestamp', sa.String(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('recurrence_rhythm', sa.Integer(), nullable=False),
-    sa.Column('time_unit', sa.Enum('None', 'minutes', 'hours', 'days', 'weeks', 'months'), nullable=True),
-    sa.Column('next_occurrence', sa.String(), nullable=True),
+    sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.Column('rec_val', sa.Integer(), nullable=False),
+    sa.Column('rec_unit', sa.Enum('instantly', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'), nullable=True),
+    sa.Column('rec_next', sa.String(), nullable=True),
+    sa.Column('base_amount', sa.Integer(), nullable=False),
     sa.Column('amount', sa.Integer(), nullable=False),
     sa.Column('unit', sa.String(length=10), nullable=True),
     sa.Column('times', sa.Integer(), nullable=False),
-    sa.Column('completed', sa.String(), nullable=True),
-    sa.Column('archived', sa.Boolean(), nullable=False),
-    sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.Column('completed_at', sa.String(), nullable=True),
+    sa.Column('modified_at', sa.String(), nullable=False),
+    sa.Column('archived_at', sa.String(), nullable=False),
+    sa.Column('deleted_at', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('gid_gud', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_gid_gud_completed'), ['completed'], unique=False)
-        batch_op.create_index(batch_op.f('ix_gid_gud_next_occurrence'), ['next_occurrence'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_archived_at'), ['archived_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_completed_at'), ['completed_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_deleted_at'), ['deleted_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_modified_at'), ['modified_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_rec_next'), ['rec_next'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_timestamp'), ['timestamp'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_user_id'), ['user_id'], unique=False)
 
@@ -82,8 +88,11 @@ def downgrade():
     with op.batch_alter_table('gid_gud', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_gid_gud_user_id'))
         batch_op.drop_index(batch_op.f('ix_gid_gud_timestamp'))
-        batch_op.drop_index(batch_op.f('ix_gid_gud_next_occurrence'))
-        batch_op.drop_index(batch_op.f('ix_gid_gud_completed'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_rec_next'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_modified_at'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_deleted_at'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_completed_at'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_archived_at'))
 
     op.drop_table('gid_gud')
     op.drop_table('followers')

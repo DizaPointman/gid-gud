@@ -1,6 +1,6 @@
-from flask import Blueprint, current_app, render_template, flash, redirect, url_for, request
+from flask import Blueprint, current_app, render_template, flash, redirect, session, url_for, request
 from app.factory import db
-from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import CreateGidForm, CreateGudForm, EmptyForm, GidGudForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.managers.content_manager import ContentManager
@@ -9,6 +9,7 @@ from app.utils import log_exception, log_form_validation_errors, log_object, log
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
+from werkzeug.datastructures import MultiDict
 
 
 # Create Blueprint
@@ -130,6 +131,96 @@ def unfollow(username):
     else:
         return redirect(url_for('routes.index'))
 
+@bp.route('/create_gidgud', methods=['GET', 'POST'])
+@login_required
+def create_gidgud():
+    title = 'New GidGud'
+
+    customize = request.args.get('customize', 'false') == 'true'
+
+    # Prepopulate form data from the session
+    if 'form_data' in session:
+        form = GidGudForm(data=session['form_data'])
+    else:
+        form = GidGudForm()
+
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            # Save form data to the session
+            session['form_data'] = {
+                'body': form.body.data,
+                'category': form.category.data,
+                'rec_instant': form.rec_instant.data
+            }
+            if form.rec_custom.data:
+                new_customize_state = 'false' if customize else 'true'
+                return redirect(url_for('routes.create_gidgud', customize=new_customize_state, title=title))
+
+            elif form.submit.data:
+                category = c_man.return_or_create_category(name=(form.category.data))
+                if customize:
+                    gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=form.rec_val.data, rec_unit=form.rec_unit.data)
+                else:
+                    if form.rec_instant.data:
+                        gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=1, rec_unit='instantly')
+                    else:
+                        gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=0, rec_unit='instantly')
+                db.session.add(gid)
+                db.session.commit()
+                flash('New Gid created!')
+                session.pop('form_data', None)  # Clear form data from the session after successful submit
+                return redirect(url_for('routes.index'))
+
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
+
+@bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_gidgud(id):
+
+    # TODO: better display difference between instantly and the rest of repetition, remove repetition with checkbox
+
+    title = 'Edit GidGud'
+    gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
+    customize = request.args.get('customize', 'false') == 'true'
+    if gidgud.rec_val != 0:
+        customize = 'true'
+
+    # Prepopulate form data from the session
+    if 'form_data' in session:
+        form = GidGudForm(data=session['form_data'])
+    else:
+        form = GidGudForm()
+
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            # Save form data to the session
+            session['form_data'] = {
+                'body': form.body.data,
+                'category': form.category.data,
+                'rec_instant': form.rec_instant.data
+            }
+            if form.rec_custom.data:
+                new_customize_state = 'false' if customize else 'true'
+                return redirect(url_for('routes.edit_gidgud', customize=new_customize_state, title=title, id=id))
+
+            elif form.submit.data:
+
+                c_man.gidgud_handle_update(gidgud, form)
+                db.session.commit()
+
+                flash('GidGud successful edited!')
+                session.pop('form_data', None)  # Clear form data from the session after successful submit
+                return redirect(url_for('routes.index'))
+
+    elif request.method == 'GET':
+        form.body.data = gidgud.body
+        form.category.data = gidgud.category.name
+        if gidgud.rec_val != 0:
+            form.rec_val.data = gidgud.rec_val
+            form.rec_unit.data = gidgud.rec_unit
+
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
+
 @bp.route('/create_gid', methods=['GET', 'POST'])
 @login_required
 def create_gid():
@@ -138,8 +229,8 @@ def create_gid():
     # TODO: create flash that informs about recurrence rhythm
     if form.validate_on_submit():
         category = c_man.return_or_create_category(name=(form.category.data))
-        if form.rec_rhythm.data != 0:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
+        if form.rec_val.data != 0:
+            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=form.rec_val.data, rec_unit=form.rec_unit.data)
         else:
             gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
         db.session.add(gid)
@@ -156,18 +247,19 @@ def create_gud():
     if form.validate_on_submit():
         category = c_man.return_or_create_category(name=(form.category.data))
         timestamp = datetime.now(timezone.utc)
-        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
+        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed_at=timestamp)
         db.session.add(gud)
         db.session.commit()
         flash('New Gud created!')
         return redirect(url_for('routes.index'))
     return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
 
+"""
 @bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    # TODO: adjust template to hide recurrence fields when editing completed gidgud
+    # TODO: adjust template to hide recurrence fields when editing completed_at gidgud
     form = EditGidGudForm()
     if form.validate_on_submit():
         c_man.gidgud_handle_update(gidgud, form)
@@ -177,10 +269,11 @@ def edit_gidgud(id):
     elif request.method == 'GET':
         form.body.data = gidgud.body
         form.category.data = gidgud.category.name
-        form.rec_rhythm.data = gidgud.recurrence_rhythm
-        form.time_unit.data = gidgud.time_unit
+        form.rec_val.data = gidgud.rec_val
+        form.rec_unit.data = gidgud.rec_unit
 
     return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
+"""
 
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -197,7 +290,7 @@ def complete_gidgud(id):
     # TODO: make recurrence = 1 and timeunit=None instant recurrence
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     c_man.gidgud_handle_complete(current_gidgud)
-    flash('Gid completed!')
+    flash('Gid completed_at!')
     return redirect(url_for('routes.index'))
 
 @bp.route('/user/<username>/user_categories', methods=['GET'])

@@ -1,6 +1,6 @@
 from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -91,7 +91,7 @@ class User(UserMixin, db.Model):
         Follower = so.aliased(User)
         # using sa.func.datetime() to convert the ISO string timestamp to a datetime object
         # within the SQL query before performing the desc() ordering operation
-        # filter out gids and return only guds by: '& (GidGud.completed != None)'
+        # filter out gids and return only guds by: '& (GidGud.completed_at != None)'
         return (
             sa.select(GidGud)
             .join(GidGud.author.of_type(Author))
@@ -100,7 +100,7 @@ class User(UserMixin, db.Model):
                 Follower.id == self.id,
                 Author.id == self.id
             ) &
-                sa.not_(GidGud.completed.is_(None)))
+                sa.not_(GidGud.completed_at.is_(None)))
             .group_by(GidGud)
             .order_by(sa.func.datetime(GidGud.timestamp).desc())
         )
@@ -115,38 +115,68 @@ class GidGud(db.Model):
         default=iso_now
     )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-
-    recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('None', 'minutes', 'hours', 'days', 'weeks', 'months', default='None'))
-    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True,
-        default=None
-    )
-
-    amount: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
-    times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-
-    completed: so.Mapped[list[datetime]] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True,
-        default=None
-    )
-
-    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
-    author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
+
+    # Recurrence
+    rec_val: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=0)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('instantly', 'minutes', 'hours', 'days', 'weeks', 'months', 'years', default='instantly'))
+    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True,
+        default=None
+    )
+
+    # Specification
+    base_amount: so.Mapped[int] = so.mapped_column(sa.Integer(),nullable=True, default=0)
+    amount: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=1)
+    unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
+    times: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=1)
+
+    completed_at: so.Mapped[list[datetime]] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True)
+
+    modified_at: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True)
+
+    archived_at: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True)
+
+    deleted_at: so.Mapped[datetime] = so.mapped_column(
+        sa.String(),
+        index=True,
+        nullable=True)
+
 
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
+    
+    # TODO: add init function to set correct defaults
 
-    # FIXME: rename recurrence to snooze: s_inter, s_unit, s_date
-    # TODO: take return next occurrence and delta for next occurrence from utils?
+    def add_completed_at_date(self, timestamp):
+        if self.completed_at is None:
+            self.completed_at = []
+        self.completed_at.append(timestamp)
+        return True
+
+    def set_rec_next(self, timestamp):
+
+        if self.rec_val == 1 and self.rec_unit == 'instantly':
+            rec_next = timestamp
+        else:
+            delta = timedelta(**{self.rec_unit: self.rec_val})
+            rec_next = (datetime.fromisoformat(timestamp) + delta).isoformat()
+        return rec_next
+
 
 class Category(db.Model):
 
@@ -154,14 +184,17 @@ class Category(db.Model):
     name: so.Mapped[str] = so.mapped_column(sa.String(20))
     user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    # Depth indicates own level below default including self
-    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    # Height indicates levels below including self
-    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
+
+    # Tree
+    # Depth indicates own level below default including self
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+    # Height indicates levels below including self
+    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
     # Setting a tree height limit
     MAX_HEIGHT = 5

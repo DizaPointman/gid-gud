@@ -5,13 +5,13 @@
     </tr>
     <tr>
         <td>Category: {{ gidgud.category.name }}</td>
-        <td>Recurrence Rhythm: {{ gidgud.recurrence_rhythm }}</td>
-        <td>Time Unit: {{ gidgud.time_unit }}</td>
-        <td>Next Occurrence: {{ gidgud.next_occurrence }}</td>
-        <td>Completed: {{ gidgud.completed }}</td>
+        <td>Recurrence Rhythm: {{ gidgud.rec_val }}</td>
+        <td>Time Unit: {{ gidgud.rec_unit }}</td>
+        <td>Next Occurrence: {{ gidgud.rec_next }}</td>
+        <td>completed_at: {{ gidgud.completed_at }}</td>
     </tr>
     <tr>
-        <td><a href="{{ url_for('routes.complete_gidgud', id=gidgud.id) }}">COMPLETED</a></td>
+        <td><a href="{{ url_for('routes.complete_gidgud', id=gidgud.id) }}">COMPLETE</a></td>
         <td><a href="{{ url_for('routes.edit_gidgud', id=gidgud.id) }}">CHANGE</a></td>
         <td><a href="{{ url_for('routes.delete_gidgud', id=gidgud.id) }}">DELETE</a></td>
     </tr>
