@@ -1,10 +1,8 @@
-from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from sqlalchemy.orm import validates
 from app.factory import db, login
 from flask_login import UserMixin, current_user
 from hashlib import md5
@@ -33,13 +31,8 @@ class User(UserMixin, db.Model):
 
     gidguds: so.WriteOnlyMapped['GidGud'] = so.relationship(back_populates='author')
     categories: so.Mapped[list['Category']] = so.relationship('Category', back_populates='user')
-
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
-    last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
-        sa.String(),
-        index=True,
-        default=iso_now
-    )
+    last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, default=iso_now)
 
     following: so.WriteOnlyMapped['User'] = so.relationship(
         secondary=followers, primaryjoin=(followers.c.follower_id == id),
@@ -50,16 +43,55 @@ class User(UserMixin, db.Model):
         secondaryjoin=(followers.c.follower_id == id),
         back_populates='following')
 
+    created_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, default=iso_now)
+    modified_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
+    # Getters and Setters for datetime attributes
+    @property
+    def created_at_datetime(self) -> datetime:
+        return datetime.fromisoformat(self.created_at) if self.created_at else None
+
+    @created_at_datetime.setter
+    def created_at_datetime(self, value: datetime):
+        self.created_at = value.isoformat() if value else None
+
+    @property
+    def modified_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.modified_at) if self.modified_at else None
+
+    @modified_at_datetime.setter
+    def modified_at_datetime(self, value: Optional[datetime]):
+        self.modified_at = value.isoformat() if value else None
+
+    @property
+    def archived_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.archived_at) if self.archived_at else None
+
+    @archived_at_datetime.setter
+    def archived_at_datetime(self, value: Optional[datetime]):
+        self.archived_at = value.isoformat() if value else None
+
+    @property
+    def deleted_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.deleted_at) if self.deleted_at else None
+
+    @deleted_at_datetime.setter
+    def deleted_at_datetime(self, value: Optional[datetime]):
+        self.deleted_at = value.isoformat() if value else None
+
+    # Password hashing
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    # User profile
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
@@ -105,63 +137,159 @@ class User(UserMixin, db.Model):
             .order_by(sa.func.datetime(GidGud.timestamp).desc())
         )
 
+class Category(db.Model):
+
+    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=False)
+    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey(User.id), index=True)
+    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
+
+    # Tree
+    # Depth indicates own level below default including self
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+    # Height indicates levels below including self
+    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+
+    created_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, default=iso_now)
+    modified_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+
+    # Setting a tree height limit
+    MAX_HEIGHT = 5
+
+    def __repr__(self):
+        return f'<Category {self.name}>'
+
+    # Getters and Setters for datetime attributes
+    @property
+    def created_at_datetime(self) -> datetime:
+        return datetime.fromisoformat(self.created_at) if self.created_at else None
+
+    @created_at_datetime.setter
+    def created_at_datetime(self, value: datetime):
+        self.created_at = value.isoformat() if value else None
+
+    @property
+    def modified_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.modified_at) if self.modified_at else None
+
+    @modified_at_datetime.setter
+    def modified_at_datetime(self, value: Optional[datetime]):
+        self.modified_at = value.isoformat() if value else None
+
+    @property
+    def archived_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.archived_at) if self.archived_at else None
+
+    @archived_at_datetime.setter
+    def archived_at_datetime(self, value: Optional[datetime]):
+        self.archived_at = value.isoformat() if value else None
+
+    @property
+    def deleted_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.deleted_at) if self.deleted_at else None
+
+    @deleted_at_datetime.setter
+    def deleted_at_datetime(self, value: Optional[datetime]):
+        self.deleted_at = value.isoformat() if value else None
+
+
 class GidGud(db.Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),
-        index=True,
-        default=iso_now
-    )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     author: so.Mapped['User'] = so.relationship(back_populates='gidguds')
 
-    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
+    category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey(Category.id), index=True)
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
+    completions: so.Mapped[list['GudsTable']] = so.relationship('GudsTable', back_populates='gidgud', lazy=True)
 
     # Recurrence
-    rec_val: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=0)
-    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('instantly', 'minutes', 'hours', 'days', 'weeks', 'months', 'years', default='instantly'))
-    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True,
-        default=None
-    )
+    rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"))
+    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(),index=True,nullable=True)
 
     # Specification
-    base_amount: so.Mapped[int] = so.mapped_column(sa.Integer(),nullable=True, default=0)
-    amount: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=1)
-    unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
-    times: so.Mapped[int] = so.mapped_column(sa.Integer(), nullable=True, default=1)
+    # Add type (weight, time, money, distance, whatever)
+    # TODO: implement type/unit templates
+    # TODO: implement custom type/unit template creation with own units and exchange rates
+    type_of_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
+    base_amount: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
+    amount: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
+    unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
+    times: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
 
-    completed_at: so.Mapped[list[datetime]] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True)
-
-    modified_at: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True)
-
-    archived_at: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True)
-
-    deleted_at: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),
-        index=True,
-        nullable=True)
-
+    created_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, default=iso_now)
+    modified_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
+    deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
-    
-    # TODO: add init function to set correct defaults
 
+    def __init__(self, body=None, user=None, category=None, rec_val=None, rec_unit=None, rec_next=None):
+
+        if body is None:
+            raise ValueError("body is required")
+        if category is None:
+            raise ValueError("category is required")
+
+        self.body = body
+        self.user = user or current_user
+        self.category = category
+        self.rec_val = rec_val
+        self.rec_unit = rec_unit
+        self.rec_next = rec_next or iso_now()
+
+    # Getters and Setters for datetime attributes
+    @property
+    def rec_next_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.rec_next) if self.rec_next else None
+
+    @rec_next_datetime.setter
+    def rec_next_datetime(self, value: Optional[datetime]):
+        self.rec_next = value.isoformat() if value else None
+
+    @property
+    def created_at_datetime(self) -> datetime:
+        return datetime.fromisoformat(self.created_at) if self.created_at else None
+
+    @created_at_datetime.setter
+    def created_at_datetime(self, value: datetime):
+        self.created_at = value.isoformat() if value else None
+
+    @property
+    def modified_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.modified_at) if self.modified_at else None
+
+    @modified_at_datetime.setter
+    def modified_at_datetime(self, value: Optional[datetime]):
+        self.modified_at = value.isoformat() if value else None
+
+    @property
+    def archived_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.archived_at) if self.archived_at else None
+
+    @archived_at_datetime.setter
+    def archived_at_datetime(self, value: Optional[datetime]):
+        self.archived_at = value.isoformat() if value else None
+
+    @property
+    def deleted_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.deleted_at) if self.deleted_at else None
+
+    @deleted_at_datetime.setter
+    def deleted_at_datetime(self, value: Optional[datetime]):
+        self.deleted_at = value.isoformat() if value else None
+
+    # GidGud methods
     def add_completed_at_date(self, timestamp):
         if self.completed_at is None:
             self.completed_at = []
@@ -178,31 +306,57 @@ class GidGud(db.Model):
         return rec_next
 
 
-class Category(db.Model):
+class GudsTable(db.Model):
 
-    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(20))
-    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
-    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id), nullable=False)
+    gidgud: so.Mapped['GidGud'] = so.relationship('GidGud', back_populates='completions')
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
+    category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
 
-    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
-    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
+    category: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
+    body: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
+    completion_date: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, nullable=False, default=iso_now)
 
-    # Tree
-    # Depth indicates own level below default including self
-    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    # Height indicates levels below including self
-    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
+    # Custom_data
+    type_of_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
+    base_amount: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
+    amount: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
+    unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
+    times: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
 
-    # Setting a tree height limit
-    MAX_HEIGHT = 5
+    def complete_gidgud(gidgud, custom_data=None):
+        if not custom_data:
+            completion = GudsTable(
+                gidgud_id=gidgud.id,
+                user_id=gidgud.user_id,
+                body=gidgud.body,
+                category=gidgud.category.name,
+                category_id=gidgud.category_id,
+                completion_date=iso_now()
+                )
+        else:
+            # TODO: support on the fly custom data for completion
+            # TODO: add miniform for unit and amount to gidgud feed to adjust and send to complete gidgud with custom data
+            completion = GudsTable(
+                gidgud_id=gidgud.id,
+                user_id=gidgud.user_id,
+                body=gidgud.body,
+                category=gidgud.category.name,
+                category_id=gidgud.category_id,
+                type_of_unit=custom_data.get('type_of_unit', gidgud.type_of_unit),
+                base_amount=custom_data.get('base_amount', gidgud.base_amount),
+                amount=custom_data.get('amount', gidgud.amount),
+                unit=custom_data.get('unit', gidgud.unit),
+                times=custom_data.get('times', gidgud.times),
+                completion_date=iso_now()
+            )
 
-    def __repr__(self):
-        return f'<Category {self.name}>'
+        db.session.add(completion)
+        db.session.commit()
 
-
+    def get_completed_gidguds():
+        return db.session.query(GudsTable).order_by(GudsTable.completion_date).all()
 
 
 @login.user_loader
