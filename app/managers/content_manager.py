@@ -335,12 +335,12 @@ class ContentManager:
     def gidgud_handle_complete2(self, id):
 
         timestamp = datetime.now(utc)
-        gidgud = GidGud.query.filter_by(id=id).first()
+        gg = GidGud.query.filter_by(id=id).first()
         custom_data = None
 
-        gidgud.add_completion_entry(timestamp, custom_data)
-        rec_next = gidgud.update_rec_next(timestamp)
-        if not rec_next: gidgud.archived_at_datetime(timestamp)
+        gg.add_completion_entry(timestamp, custom_data)
+        rec_next = gg.update_rec_next(timestamp)
+        if not rec_next: gg.archived_at_datetime(timestamp)
 
         db.session.commit()
         return rec_next
