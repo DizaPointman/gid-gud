@@ -208,12 +208,12 @@ class ContentManager:
             return False
 
     def get_possible_children(self, category):
-        # Return list of category names for potential children
 
-        # Generate blacklist because ancestors can't be children
         blacklist = self.generate_blacklist_ancestors(category)
-        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        return [cat.name for cat in category.user.categories if cat.name not in blacklist and category.depth + cat.height <= self.MAX_HEIGHT] or []
+        # Filter out blacklisted categories, those that would violate MAX_HEIGHT and archived categories
+        is_valid_category = lambda cat: not cat.archived_at and cat.name not in blacklist and category.depth + cat.height <= self.MAX_HEIGHT
+
+        return [cat.name for cat in category.user.categories if is_valid_category(cat)] or []
 
     def generate_blacklist_ancestors(self, category):
 
@@ -226,14 +226,12 @@ class ContentManager:
         return blacklist
 
     def get_possible_parents(self, category):
-        # Return list of category names for potential parents
 
-        # Generate blacklist because descendants can't be parents
         blacklist = self.generate_blacklist_descendants(category)
+        # Filter out blacklisted categories, those that would violate MAX_HEIGHT and archived categories
+        is_valid_category = lambda cat: cat.name not in blacklist and category.height + cat.depth <= self.MAX_HEIGHT and not cat.archived_at
 
-        # Filter out blacklisted categories and those that would violate MAX_HEIGHT
-        # Exclude and add root to install order
-        return ['root'] + [cat.name for cat in category.user.categories if cat.name not in blacklist and category.height + cat.depth <= self.MAX_HEIGHT]
+        return ['root'] + [cat.name for cat in category.user.categories if is_valid_category(cat)]
 
     def get_possible_parents_for_children(self, category):
         # Return list of category names for potential new parents for children
@@ -249,7 +247,10 @@ class ContentManager:
             for child in category.children:
                 temp_blacklist = self.generate_blacklist_descendants(child)
                 blacklist.update(temp_blacklist)
-            return ['root'] + [cat.name for cat in category.user.categories if cat.name not in blacklist and max_height_children + cat.depth <= self.MAX_HEIGHT]
+            # Filter out blacklisted categories, those that would violate MAX_HEIGHT and archived categories
+            is_valid_category_with_max_height = lambda cat: cat.name not in blacklist and max_height_children + cat.depth <= self.MAX_HEIGHT and not cat.archived_at
+
+            return ['root'] + [cat.name for cat in category.user.categories if is_valid_category_with_max_height(cat)]
 
     def generate_blacklist_descendants(self, category):
 
@@ -271,13 +272,16 @@ class ContentManager:
         """
         Update an existing category based on the form data.
         """
+
+        # TODO: new_cc = cc.archive_and_recreate(self, changes)
+        # FIXME: Make this as beautiful as everything I built the last 48h
+
         try:
 
             category = self.get_category_by_id(category_id)
             old_name = category.name
 
             # Change parent category
-            # TODO: update height depth for old and new parent
             if form_data.parent.data != category.parent.name:
                 old_parent = category.parent
                 new_parent = self.get_category_by_name(form_data.parent.data)
@@ -334,6 +338,47 @@ class ContentManager:
         """
         # Implement logic to delete a category
         pass
+
+    def archive_and_recreate_category(self, id, form):
+        """
+        Archive the old Category and create a new one with updated data.
+        """
+        try:
+            old_category = Category.query.get(id)
+
+            # Archive the old Category
+            old_category.archived_at_datetime(datetime.now(utc))
+
+            # Determine changes from form data
+            changes = self.map_form_to_object_changes(old_category, form)
+
+            # Create a new Category with changes
+            new_category = Category(
+                name=old_category.name,
+                user=old_category.user,
+                parent=old_category.parent,
+                **changes
+            )
+
+            db.session.add(new_category)
+
+            if old_category.children:
+
+                db.session.query(Category).filter(Category.parent_id == old_category.id).update(
+                    {Category.parent_id: new_category.id}, synchronize_session=False)
+
+            db.session.commit()
+
+            return new_category
+
+        except SQLAlchemyError as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+        except Exception as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
 
     # GidGud
 
@@ -439,6 +484,8 @@ class ContentManager:
 
     def gidgud_update_from_form(self, gidgud_id, user_id, form):
 
+        # TODO: new_gg = gg.archive_and_recreate(self, changes), on change of body and category fields
+
         gg = self.get_gidgud_from_id(gidgud_id)
         changes = self.map_form_to_object_changes(gg, form)
         changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
@@ -464,6 +511,48 @@ class ContentManager:
         db.session.commit()
         return rec_next
 
+    def archive_and_recreate_gidgud(self, id, form):
+        """
+        Archive the old GidGud and create a new one with updated data.
+        """
+        try:
+            old_gidgud = GidGud.query.get(id)
+
+            # Archive the old GidGud
+            old_gidgud.archived_at_datetime(datetime.now(utc))
+
+            # Set recurrence-related attributes to None
+            old_gidgud.rec_val = None
+            old_gidgud.rec_unit = None
+            old_gidgud.rec_next = None
+
+            # Determine changes from form data
+            changes = self.map_form_to_object_changes(old_gidgud, form)
+
+            # Create a new GidGud with changes
+            new_gidgud = GidGud(
+                body=old_gidgud.body,
+                user=old_gidgud.user,
+                category=old_gidgud.category,
+                rec_val=None,
+                rec_unit=None,
+                rec_next=None,
+                **changes
+            )
+
+            db.session.add(new_gidgud)
+            db.session.commit()
+
+            return new_gidgud
+
+        except SQLAlchemyError as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+        except Exception as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
 
     def gidgud_return_dict_from_choice(self, choice):
 

@@ -9,9 +9,9 @@ C-Man.inject()
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
 # TODO: GidGud Manager
-- implement update GidGud, archive old, create new
-- implement recurrence, rec_val/rec_unit = None, rec_val/rec_unit = 0/days, rec_val/rec_unit = user defined
-- implement complete, if rec_val/rec_unit is None: archive and add to complete, else set rec_next and add to complete
+- add materialized path to category and gidgud models
+- update category methods in cm
+- add materialized path handling to archive functions for gidgud and category
 # TODO: GidGud Schedule
 - implement simple/advance view parameter for create/edit gidgud route/template
 - display form fields depending on view param, use hidden and defaults
@@ -20,6 +20,10 @@ C-Man.inject()
 - advanced view: simple + rec_val/rec_unit
 - on view change display flash 'changes not saved'
 - discard, view, apply buttons as submitfield
+# TODO: handle archived objects
+- added archived_at as blacklisted for possible parents, children, parents for selection
+- need some general handling, a decorator?
+- somehow flag archived_at items as excluded from rest of logic
 # TODO: Tests for GidGud Manager
 # TODO: Tests for routes
 # TODO: implement add children function with multiple selectfield
@@ -288,3 +292,81 @@ Considerations:
     Database Load: Monitor the number of database queries and overall database load to ensure that caching is effectively reducing the query load without introducing significant overhead.
 
 In summary, caching the object in the session or another caching mechanism can help reduce the number of database queries and improve performance while maintaining separation of concerns in your application. However, be mindful of cache expiration, memory usage, and overall impact on performance and scalability.
+
+# Enhancements and Best Practices
+
+    Session Management Enhancement:
+        To ensure session consistency, consider using a context manager for session handling if not already in place.
+
+    python
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def session_scope():
+        """Provide a transactional scope around a series of operations."""
+        session = Session()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+# Usage
+    with session_scope() as session:
+        old_gidgud = session.query(GidGud).get(old_id)
+        changes = map_form_to_object_changes(old_gidgud, form)
+        new_gidgud = old_gidgud.archive_and_recreate(changes)
+
+Handling Relationships:
+
+    If your object has relationships that need to be duplicated, extend the duplicate method to handle these appropriately.
+
+    python
+
+    def duplicate(self, changes=None):
+        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        new_data.pop('id', None)
+        if changes:
+            new_data.update(changes)
+        new_instance = self.__class__(**new_data)
+        
+        # Handle relationships if necessary
+        # Example: new_instance.related_objects = [rel.duplicate() for rel in self.related_objects]
+        
+        return new_instance
+
+Unique Constraints Handling:
+
+    Ensure that changes dictionary updates unique fields where necessary to avoid constraint violations.
+
+Detailed Logging:
+
+    Implement logging within the archive_and_recreate method to track changes and operations for audit purposes.
+
+    python
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    def archive_and_recreate(self, changes):
+        new_gidgud = self.duplicate(changes)
+        
+        if self.a_history_of_violence:
+            new_gidgud.a_history_of_violence = f"{self.a_history_of_violence}/{new_gidgud.id}"
+        else:
+            new_gidgud.a_history_of_violence = f"{self.id}/{new_gidgud.id}"
+        
+        self.archived_at = datetime.utcnow()
+        session.add(new_gidgud)
+        session.commit()
+        
+        logger.info(f'Archived GidGud {self.id} and created new GidGud {new_gidgud.id} with changes: {changes}')
+        
+        return new_gidgud
+
+By considering these potential disadvantages and enhancements, you can ensure that your implementation is robust, maintainable, and efficient.

@@ -161,8 +161,66 @@ class Category(db.Model):
     archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
+    a_brief_history_of_time = sa.Column(sa.String(255), nullable=True)
+
     # Setting a tree height limit
     MAX_HEIGHT = 5
+
+    def duplicate(self, changes=None):
+        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+    
+        # Pop attributes that should not be copied
+        new_data.pop('id', None)
+        new_data.pop('children', None)
+        new_data.pop('gidguds', None)
+        new_data.pop('created_at', None)
+        new_data.pop('modified_at', None)
+        new_data.pop('archived_at', None)
+        new_data.pop('deleted_at', None)
+
+        # Apply any changes if provided
+        if changes:
+            new_data.update(changes)
+
+        # Create a new instance with the updated data
+        new_category = self.__class__(**new_data)
+
+        # Handle children
+        for child in self.children:
+            new_category.children.append(child)
+
+        return new_category
+
+    def archive_and_recreate(self, changes):
+        new_category = self.duplicate(changes)
+
+        # Set the history path
+        if self.a_brief_history_of_time:
+            new_category.a_brief_history_of_time = f"{self.a_brief_history_of_time}/{new_category.id}"
+        else:
+            self.a_brief_history_of_time = f"{self.id}"
+            new_category.a_brief_history_of_time = f"{self.id}/{new_category.id}"
+
+        # Archive the old category
+        self.archived_at_datetime(datetime.now(utc))
+
+        # Add the new category to the session
+        db.session.add(new_category)
+        # Commit the new category to the database
+        db.session.commit()
+
+        # Update children's parent_id to point to the new category
+        db.session.query(Category).filter(Category.parent_id == self.id).update(
+            {Category.parent_id: new_category.id}, synchronize_session=False)
+
+        # Commit the changes to reassign children
+        db.session.commit()
+
+        return new_category
+
+    def get_version_history(self) -> List['Category']:
+        # Fetch all versions of this category based on the history path
+        return Category.query.filter(Category.a_brief_history_of_time.contains(f"{self.id}/")).all()
 
     def __repr__(self):
         return f'<Category {self.name}>'
@@ -232,8 +290,55 @@ class GidGud(db.Model):
     archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
+    # Materialized path for versioning
+    a_history_of_violence = sa.Column(sa.String(255), nullable=True)
+
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
+
+    def duplicate(self, changes=None):
+
+        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
+        # Pop attributes that should not be copied
+        new_data.pop('id', None)
+        new_data.pop('completions', None)
+        new_data.pop('created_at', None)
+        new_data.pop('modified_at', None)
+        new_data.pop('archived_at', None)
+        new_data.pop('deleted_at', None)
+
+        # Apply any changes if provided
+        if changes:
+            new_data.update(changes)
+
+        # Create a new instance with the updated data
+        return self.__class__(**new_data)
+
+    def archive_and_recreate(self, changes):
+        new_gidgud = self.duplicate(changes)
+
+        # Set the history path
+        if self.a_history_of_violence:
+            new_gidgud.a_history_of_violence = f"{self.a_history_of_violence}/{new_gidgud.id}"
+        else:
+            self.a_history_of_violence = f"{self.id}"
+            new_gidgud.a_history_of_violence = f"{self.id}/{new_gidgud.id}"
+
+        # Archive the old gidgud
+        self.archived_at_datetime(datetime.now(utc))
+
+        # Add the new gidgud to the session and commit changes
+        session.add(new_gidgud)
+        session.commit()
+
+        return new_gidgud
+
+    def get_version_history(self) -> List['GidGud']:
+        if not self.a_history_of_violence:
+            return [self]
+        version_ids = [int(id) for id in self.a_history_of_violence.split('/')]
+        return db.session.query(GidGud).filter(GidGud.id.in_(version_ids)).all()
 
 
     # Getters and Setters for datetime attributes
@@ -349,11 +454,13 @@ class GidGud(db.Model):
 
     def add_completion_entry(self, timestamp: datetime, custom_data=None):
 
+        # TODO: Make use of dictionary override in object
+        # add , **custom_data and it will override every attribute that's provided in custom_data
         completion = CompletionTable(
             gidgud_id=self.id,
             user_id=self.user_id,
             body=self.body,
-            category=self.category.name,
+            category_name=self.category.name,
             category_id=self.category_id,
             type_of_unit=custom_data.get('type_of_unit', self.type_of_unit),
             base_amount=custom_data.get('base_amount', self.base_amount),
@@ -377,7 +484,7 @@ class CompletionTable(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
     category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
 
-    category: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
+    category_name: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
     body: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
     completed_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, nullable=False, default=iso_now)
 
