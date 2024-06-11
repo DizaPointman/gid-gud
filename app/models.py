@@ -1,7 +1,7 @@
 from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app.factory import db, login
