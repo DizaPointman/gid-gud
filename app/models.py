@@ -1,3 +1,4 @@
+from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from typing import Optional
@@ -209,12 +210,12 @@ class GidGud(db.Model):
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey(Category.id), index=True)
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
-    completions: so.Mapped[list['GudsTable']] = so.relationship('GudsTable', back_populates='gidgud', lazy=True)
+    completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='gidgud', lazy=True)
 
     # Recurrence
     rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
-    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"))
-    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(),index=True,nullable=True)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"), nullable=True)
+    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     # Specification
     # Add type (weight, time, money, distance, whatever)
@@ -234,19 +235,6 @@ class GidGud(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
-    def __init__(self, body=None, user=None, category=None, rec_val=None, rec_unit=None, rec_next=None):
-
-        if body is None:
-            raise ValueError("body is required")
-        if category is None:
-            raise ValueError("category is required")
-
-        self.body = body
-        self.user = user or current_user
-        self.category = category
-        self.rec_val = rec_val
-        self.rec_unit = rec_unit
-        self.rec_next = rec_next or iso_now()
 
     # Getters and Setters for datetime attributes
     @property
@@ -290,23 +278,75 @@ class GidGud(db.Model):
         self.deleted_at = value.isoformat() if value else None
 
     # GidGud methods
-    def add_completed_at_date(self, timestamp):
-        if self.completed_at is None:
-            self.completed_at = []
-        self.completed_at.append(timestamp)
-        return True
 
-    def set_rec_next(self, timestamp):
+    def create_gidgud(self, **kwargs):
 
-        if self.rec_val == 1 and self.rec_unit == 'instantly':
-            rec_next = timestamp
-        else:
+        body = kwargs.get('body')
+        user = kwargs.get('user')
+        category = kwargs.get('category')
+        rec_val = kwargs.get('rec_val')
+        rec_unit = kwargs.get('rec_unit')
+        rec_next = kwargs.get('rec_next') or iso_now()
+
+        gidgud = GidGud(body=body, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+        db.session.add(gidgud)
+        db.session.commit()
+
+        return gidgud
+
+    def update_gidgud(self, **kwargs):
+
+        self.body = kwargs.get('body', self.body)
+        self.category = kwargs.get('category', self.category)
+        self.rec_val = kwargs.get('rec_val', self.rec_val)
+        self.rec_unit = kwargs.get('rec_unit', self.rec_unit)
+        self.rec_next = kwargs.get('rec_next', self.rec_next)
+
+        db.session.commit()
+
+        return self
+
+    def add_completion_entry(self, timestamp: datetime, custom_data=None):
+
+        completion = CompletionTable(
+            gidgud_id=self.id,
+            user_id=self.user_id,
+            body=self.body,
+            category=self.category.name,
+            category_id=self.category_id,
+            type_of_unit=custom_data.get('type_of_unit', self.type_of_unit),
+            base_amount=custom_data.get('base_amount', self.base_amount),
+            amount=custom_data.get('amount', self.amount),
+            unit=custom_data.get('unit', self.unit),
+            times=custom_data.get('times', self.times),
+            completion_date=timestamp.isoformat()
+        )
+
+        db.session.add(completion)
+        db.session.commit()
+
+        return completion
+
+    def update_rec_next(self, timestamp: datetime):
+
+        if self.rec_val and self.rec_unit:
+
             delta = timedelta(**{self.rec_unit: self.rec_val})
-            rec_next = (datetime.fromisoformat(timestamp) + delta).isoformat()
-        return rec_next
+            rec_next = timestamp + delta
+            self.rec_next = rec_next.isoformat()
+
+            db.session.commit()
+            return rec_next
+
+        else:
+            self.rec_unit = None
+            self.rec_val = None
+            self.rec_next = None
+            db.session.commit()
+            return False
 
 
-class GudsTable(db.Model):
+class CompletionTable(db.Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id), nullable=False)
@@ -325,38 +365,11 @@ class GudsTable(db.Model):
     unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
 
-    def complete_gidgud(gidgud, custom_data=None):
-        if not custom_data:
-            completion = GudsTable(
-                gidgud_id=gidgud.id,
-                user_id=gidgud.user_id,
-                body=gidgud.body,
-                category=gidgud.category.name,
-                category_id=gidgud.category_id,
-                completion_date=iso_now()
-                )
-        else:
-            # TODO: support on the fly custom data for completion
-            # TODO: add miniform for unit and amount to gidgud feed to adjust and send to complete gidgud with custom data
-            completion = GudsTable(
-                gidgud_id=gidgud.id,
-                user_id=gidgud.user_id,
-                body=gidgud.body,
-                category=gidgud.category.name,
-                category_id=gidgud.category_id,
-                type_of_unit=custom_data.get('type_of_unit', gidgud.type_of_unit),
-                base_amount=custom_data.get('base_amount', gidgud.base_amount),
-                amount=custom_data.get('amount', gidgud.amount),
-                unit=custom_data.get('unit', gidgud.unit),
-                times=custom_data.get('times', gidgud.times),
-                completion_date=iso_now()
-            )
+    deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
-        db.session.add(completion)
-        db.session.commit()
 
     def get_completed_gidguds():
-        return db.session.query(GudsTable).order_by(GudsTable.completion_date).all()
+        return db.session.query(CompletionTable).order_by(CompletionTable.completion_date).all()
 
 
 @login.user_loader

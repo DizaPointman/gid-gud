@@ -9,7 +9,6 @@ C-Man.inject()
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
 # TODO: GidGud Manager
-- implement completed table
 - implement necessary functions
 - implement create GidGud(body, user, rec 3x), set rec_next on creation
 - implement update GidGud, archive old, create new
@@ -237,86 +236,57 @@ TabNine Pro 90 days free trial
 
 2. Correct read me and implement development log 
 
+# Caching
 
-# Perplexity
+Caching the Object:
 
-class Category(db.Model):
-    id = so.mapped_column(sa.Integer, primary_key=True)
-    name = so.mapped_column(sa.String(20))
-    user_id = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
-    user = so.relationship('User', back_populates='categories')
-    depth = so.mapped_column(sa.Integer)
-    height = so.mapped_column(sa.Integer)
-    parent_id = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent = so.relationship('Category', remote_side=[id])
-    children = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
-    gidguds = so.relationship('GidGud', back_populates='category')
+    Edit Route: When the user navigates to the update route, query the object by its ID and store it in a cache. You can use Flask's session object, a caching library like Flask-Cache, or a global dictionary to store the cached objects.
 
-    MAX_HEIGHT = 5
+    Update Function: In your update function, accept the object ID along with the form data. Instead of querying the database again for the object, retrieve it from the cache using its ID.
 
-    def __repr__(self):
-        return f'<Category {self.name}>'
+Example Implementation:
 
-    def __init__(self, name, user=None, parent=None):
-        self.name = name
-        self.user = user or current_user
-        self.parent = parent or Category.create_default_root_category(current_user)
-        self.update_depth_and_height()
+    python
 
-        @staticmethod
-    def create_default_root_category(user):
-        # Check if the default category exists for the given user
-        default_category = Category.query.filter_by(name='default', user_id=user.id).first()
+    from flask import session
 
-        # If the default category does not exist, create and return it
-        if not default_category:
-            default_category = Category(name='default', user=user, depth=0, height=Category.MAX_HEIGHT)
-            db.session.add(default_category)
+    # Edit Route
+    @app.route('/edit/<int:id>', methods=['GET'])
+    def edit(id):
+        # Query object by ID and store it in the session
+        obj = YourModel.query.get(id)
+        session['cached_object'] = obj
+        # Render the edit form with the object data
+        return render_template('edit.html', obj=obj)
+
+    # Update Function
+    @app.route('/update', methods=['POST'])
+    def update():
+        # Get the object ID from the form data
+        id = request.form.get('id')
+        # Retrieve the object from the session cache
+        obj = session.get('cached_object')
+        if obj:
+            # Update object attributes based on form data
+            obj.attribute = request.form.get('attribute')
+            # Commit changes to the database
             db.session.commit()
-
-        # Return the existing or newly created default category
-        return default_category
-
-    def update_depth_and_height(self):
-        # Simplified update logic to prevent unnecessary recursive updates
-        if self.parent is None:
-            self.depth = 0
-            self.height = Category.MAX_HEIGHT
+            # Optionally, remove the object from the cache
+            session.pop('cached_object')
+            # Redirect to a success page or render a success message
+            return redirect(url_for('success'))
         else:
-            self.depth = self.parent.depth + 1
-            self.height = 1 if not self.children else max(child.height for child in self.children) + 1
-            # Update parent height only if necessary
-            if self.parent.height <= self.height:
-                self.parent.height = self.height + 1
-                self.parent.update_height()
+            # Handle error: Object not found in cache
+            return render_template('error.html', message='Object not found in cache')
 
-    def get_possible_children(self):
-        blacklist = self.generate_blacklist_ancestors()
-        return [category for category in self.user.categories if category not in blacklist and self.depth + category.height <= Category.MAX_HEIGHT]
+Considerations:
 
-    def generate_blacklist_ancestors(self):
-        # More efficient ancestor generation using set comprehension
-        return {ancestor for ancestor in self.iterate_ancestors()}
+    Cache Expiration: You may want to set an expiration time for the cached object to prevent stale data. For example, you could refresh the cache periodically or invalidate it after a certain period of inactivity.
 
-    def iterate_ancestors(self):
-        # Generator to iterate through ancestors
-        current = self
-        while current.parent:
-            yield current.parent
-            current = current.parent
+    Cache Size: Be mindful of memory usage when caching objects, especially if your application deals with a large number of concurrent users or frequently updated data.
 
-    def get_possible_parents(self):
-        blacklist = self.generate_blacklist_descendants()
-        return [category for category in self.user.categories if category not in blacklist and self.height + category.depth <= Category.MAX_HEIGHT]
+    Query Optimization: If the performance impact of querying twice is negligible and the separation of concerns is a primary concern, you may opt to query the database twice instead of caching the object. However, if minimizing database queries is critical for performance, caching can be a viable solution.
 
-    def generate_blacklist_descendants(self):
-        # Use set comprehension for more concise code
-        descendants = {descendant for descendant in self.iterate_descendants(self)}
-        descendants.add(self)
-        return descendants
+    Database Load: Monitor the number of database queries and overall database load to ensure that caching is effectively reducing the query load without introducing significant overhead.
 
-    def iterate_descendants(self, category):
-        # Generator to iterate through descendants
-        for child in category.children:
-            yield child
-            yield from self.iterate_descendants(child)
+In summary, caching the object in the session or another caching mechanism can help reduce the number of database queries and improve performance while maintaining separation of concerns in your application. However, be mindful of cache expiration, memory usage, and overall impact on performance and scalability.

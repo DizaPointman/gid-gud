@@ -26,11 +26,11 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
-    def get_category_by_id(self, category_id):
-        return Category.query.filter_by(id=category_id).first()
+    def get_category_by_id(self, id):
+        return Category.query.filter_by(id=id).first()
 
-    def get_category_by_name(self, category_name):
-        return Category.query.filter_by(name=category_name).first()
+    def get_category_by_name(self, name):
+        return Category.query.filter_by(name=name).first()
 
     def return_or_create_root_category(self, user):
         """
@@ -249,6 +249,9 @@ class ContentManager:
 
     # GidGud
 
+    def get_gidgud_by_id(self, id):
+        return GidGud.query.filter_by(id=id).first()
+
     def gidgud_handle_update(self, gidgud, form):
 
         # TODO: if gidgud.completed_at is not None, create a new gidgud and return it, archive old gidgud
@@ -329,6 +332,20 @@ class ContentManager:
             log_exception(e)
             return False
 
+    def gidgud_handle_complete2(self, id):
+
+        timestamp = datetime.now(utc)
+        gidgud = GidGud.query.filter_by(id=id).first()
+        custom_data = None
+
+        gidgud.add_completion_entry(timestamp, custom_data)
+        rec_next = gidgud.update_rec_next(timestamp)
+        if not rec_next: gidgud.archived_at_datetime(timestamp)
+
+        db.session.commit()
+        return rec_next
+
+
     def gidgud_return_dict_from_choice(self, choice):
 
         choices = ['gids', 'guds', 'sleep', 'all']
@@ -379,7 +396,7 @@ class ContentManager:
         gidgud_rec_next = datetime.fromisoformat(gidgud.rec_next)
         sleep = (gidgud_rec_next - datetime_now).total_seconds()
         return sleep
-    
+
     def gidgud_return_dict_from_choice2(self, choice):
 
             choices = ['gids', 'guds', 'sleep', 'all']
@@ -420,72 +437,6 @@ class ContentManager:
                         gidgud_dict['sleep'] = sleep
 
                 return gidgud_dict
-
-            except Exception as e:
-                # Log any exceptions that occur during the process
-                log_exception(e)
-                return False
-
-    def gidgud_handle_complete2(self, gidgud):
-
-        try:
-            timestamp = self.iso_now()
-
-            gidgud.add_completed_at_date(timestamp)
-
-            if gidgud.rec_val != 0:
-
-                rec_next = gidgud.set_rec_next(timestamp)
-                gidgud.rec_next = rec_next
-
-            db.session.commit()
-            return True
-
-        except Exception as e:
-            # Log any exceptions that occur during the process
-            log_exception(e)
-            return False
-
-    def gidgud_handle_update2(self, gidgud, form):
-
-            # TODO: if gidgud.completed_at is not None, create a new gidgud and return it, archive old gidgud
-            # TODO: only create new when body, category, unit or times is changed, not on rec rhythm change
-
-            try:
-                if gidgud.completed_at is None:
-
-                    gidgud.body = form.body.data
-                    if form.category.data is not gidgud.category.name:
-                        updated_category = self.return_or_create_category(name=(form.category.data))
-                        gidgud.category = updated_category
-                    if form.rec_val.data is not gidgud.rec_val:
-                        gidgud.rec_val = form.rec_val.data
-                        if gidgud.rec_next is not None:
-                            gidgud.rec_next = None
-                    if form.rec_unit.data is not gidgud.rec_unit:
-                        gidgud.rec_unit = form.rec_unit.data
-                        if gidgud.rec_next is not None:
-                            gidgud.rec_next = None
-
-                    db.session.commit()
-
-                    return True
-
-                else:
-
-                    # Archive old GidGud
-                    gidgud.archived_at = True
-                    # Create new GidGud
-                    body = form.body.data or gidgud.body
-                    category = self.return_or_create_category(name=(form.category.data)) or gidgud.category
-                    rec_val=form.rec_val.data or gidgud.rec_val
-                    rec_unit = form.rec_unit.data or gidgud.rec_unit
-
-                    gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
-                    db.session.add(gid)
-                    db.session.commit()
-
-                    return True
 
             except Exception as e:
                 # Log any exceptions that occur during the process
