@@ -219,8 +219,11 @@ class Category(db.Model):
         return new_category
 
     def get_version_history(self) -> List['Category']:
-        # Fetch all versions of this category based on the history path
-        return Category.query.filter(Category.a_brief_history_of_time.contains(f"{self.id}/")).all()
+        if not self.a_history_of_violence:
+            return [self]
+
+        version_ids = [int(id) for id in self.a_brief_history_of_time.split('/')]
+        return db.session.query(Category).filter(Category.id.in_(version_ids)).all()
 
     def __repr__(self):
         return f'<Category {self.name}>'
