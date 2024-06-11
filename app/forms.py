@@ -1,6 +1,6 @@
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
+from wtforms import DateTimeField, SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional
 import sqlalchemy as sa
 from app.factory import db
@@ -58,6 +58,25 @@ class GidGudForm(FlaskForm):
     rec_val = IntegerField('Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
     submit = SubmitField('Submit')
+
+class GidGudForm2(FlaskForm):
+    body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
+    category = StringField('Category', validators=[Length(max=20)])
+    rec_instant = BooleanField('Always Repeat')
+    change_view = SubmitField()
+    rec_custom = BooleanField('Custom Schedule')
+    rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
+    rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes'], validators=[Optional()])
+    # TODO: implement rec_next as 'Start at' with iso_now default in create route and 'Sleep until' with current value in edit route
+    # rec_next = DateTimeField('Date and Time', format='%d/%m/%Y %H:%M', validators=[DataRequired()])
+    # route GET - form.datetime.data = datetime.now().replace(second=0, microsecond=0)
+    # Template - <p>{{ form.datetime.label }}<br> <input type="datetime-local" name="datetime" value="{{ form.datetime.data.strftime('%Y-%m-%dT%H:%M') }}"></p>
+    reset_timer = BooleanField('Start Now')
+    submit = SubmitField('Submit')
+
+    def validate_rec_instant(self, rec_instant, rec_custom):
+        if rec_instant.data and rec_custom.data:
+            raise ValidationError('Please choose either <Always Repeat> or <Custom Schedule>')
 
 class EditGidGudForm(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])

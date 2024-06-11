@@ -9,8 +9,6 @@ C-Man.inject()
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
 # TODO: GidGud Manager
-- implement necessary functions
-- implement create GidGud(body, user, rec 3x), set rec_next on creation
 - implement update GidGud, archive old, create new
 - implement recurrence, rec_val/rec_unit = None, rec_val/rec_unit = 0/days, rec_val/rec_unit = user defined
 - implement complete, if rec_val/rec_unit is None: archive and add to complete, else set rec_next and add to complete

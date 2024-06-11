@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
+import inspect
 from flask import current_app, flash
 from flask_login import current_user
 from pytz import utc
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
 import sqlalchemy as sa
-from app.utils import log_exception
-from app.models import Category, GidGud
+from app.utils import handle_exception, log_exception
+from app.models import Category, GidGud, User
 from app.factory import db
 
 
@@ -19,6 +20,7 @@ class ContentManager:
 
         self.db = db
 
+    # Utilities
     def test_cm(self):
         print("c_man is alive")
         return current_app.logger.info("Testing category manager initialization")
@@ -26,11 +28,47 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
+    def map_form_to_object_changes(obj, form):
+        changes = {}
+
+        # Iterate over the fields in the form
+        for field_name, field_value in form.data.items():
+            # Check if the field name corresponds to an attribute of the object
+            if hasattr(obj, field_name):
+                # Get the current value of the attribute
+                current_value = getattr(obj, field_name)
+                # Compare the form field value with the current attribute value
+                if current_value != field_value:
+                    # If they're different, add the change to the dictionary
+                    changes[field_name] = field_value
+            else:
+                # Include additional parameters provided by form
+                changes[field_name] = field_value
+
+        return changes
+
+
+    def get_user_by_id(self, id):
+        # FIXME: implement this error handling for database critical functions
+        try:
+            user = User.query.filter_by(id=id).first()
+            if user is None:
+                raise ValueError(f"User with id {id} not found.")
+            return user
+        except SQLAlchemyError as e:
+            handle_exception(e)
+        except Exception as e:
+            handle_exception(e)
+
+
     def get_category_by_id(self, id):
         return Category.query.filter_by(id=id).first()
 
     def get_category_by_name(self, name):
         return Category.query.filter_by(name=name).first()
+
+    #TODO: change category functions to be based on id
+    # user = self.get_user_by_id(user_id)
 
     def return_or_create_root_category(self, user):
         """
@@ -38,6 +76,18 @@ class ContentManager:
         """
         root = Category.query.filter_by(name='root', user_id=user.id).first()
         if not root:
+            root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
+            db.session.add(root)
+            db.session.commit()
+        return root
+
+    def return_or_create_root_category2(self, user_id):
+        """
+        Return or create the root category for the given user.
+        """
+        root = Category.query.filter_by(name='root', user_id=user_id).first()
+        if not root:
+            user = self.get_user_by_id(user_id)
             root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
             db.session.add(root)
             db.session.commit()
@@ -53,7 +103,18 @@ class ContentManager:
         db.session.commit()
         return category
 
-    def return_or_create_category(self, name=None, user=None, parent=None):
+    def create_category2(self, user_id, name, parent):
+        """
+        Create a new category with the given name, user, and parent.
+        """
+        user = self.get_user_by_id(user_id)
+        category = Category(name=name, user=user, parent=parent)
+        db.session.add(category)
+        self.update_depth_and_height(parent)
+        db.session.commit()
+        return category
+
+    def return_or_create_category(self, user=None, name=None, parent=None):
         """
         Return or create a category with the given name and user. If no name is provided, return the root category.
         """
@@ -71,7 +132,35 @@ class ContentManager:
             category = Category.query.filter_by(name=name, user_id=user.id).first()
             if not category:
                 parent = parent or root
-                category = self.create_category(name, user, parent)
+                category = self.create_category2(name, user, parent)
+
+            return category
+
+        except SQLAlchemyError as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
+        except Exception as e:
+            log_exception(e)
+            db.session.rollback()
+            return False
+
+    def return_or_create_category2(self, user_id, name=None, parent=None):
+        """
+        Return or create a category with the given name and user. If no name is provided, return the root category.
+        """
+        try:
+            user = self.get_user_by_id(user_id)
+
+            root = self.return_or_create_root_category2(user_id)
+
+            if not name:
+                return root
+
+            category = Category.query.filter_by(name=name, user_id=user_id).first()
+            if not category:
+                parent = parent or root
+                category = self.create_category2(user.id, name, parent)
 
             return category
 
@@ -117,7 +206,6 @@ class ContentManager:
             log_exception(e)
             db.session.rollback()
             return False
-
 
     def get_possible_children(self, category):
         # Return list of category names for potential children
@@ -250,7 +338,15 @@ class ContentManager:
     # GidGud
 
     def get_gidgud_by_id(self, id):
-        return GidGud.query.filter_by(id=id).first()
+        try:
+            gg = GidGud.query.filter_by(id=id).first()
+            if gg is None:
+                raise ValueError(f"GidGud with id {id} not found.")
+            return gg
+        except SQLAlchemyError as e:
+            handle_exception(e)
+        except Exception as e:
+            handle_exception(e)
 
     def gidgud_handle_update(self, gidgud, form):
 
@@ -332,6 +428,28 @@ class ContentManager:
             log_exception(e)
             return False
 
+    def gidgud_create_from_form(self, user_id, form):
+
+        user = self.get_user_by_id(user_id)
+        category = self.return_or_create_category2(user_id, form.category.data)
+        rec_val, rec_unit, rec_next = GidGud.set_rec(reset_timer=True, rec_instant=form.rec_instant.data, rec_custom=form.rec_custom.data)
+        gg = GidGud.create(body=form.body.data, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+
+        return gg
+
+    def gidgud_update_from_form(self, gidgud_id, user_id, form):
+
+        gg = self.get_gidgud_from_id(gidgud_id)
+        changes = self.map_form_to_object_changes(gg, form)
+        changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
+
+        if 'category' in changes:
+            changes['category'] = self.return_or_create_category2(user_id, form.category.data)
+
+        gg.update_gidgud(**changes)
+
+        return gg
+
     def gidgud_handle_complete2(self, id):
 
         timestamp = datetime.now(utc)
@@ -341,6 +459,7 @@ class ContentManager:
         gg.add_completion_entry(timestamp, custom_data)
         rec_next = gg.update_rec_next(timestamp)
         if not rec_next: gg.archived_at_datetime(timestamp)
+        gg.modified_at_datetime(timestamp)
 
         db.session.commit()
         return rec_next

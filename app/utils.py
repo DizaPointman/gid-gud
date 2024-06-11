@@ -1,6 +1,7 @@
 # utils.py
 
 from datetime import datetime, timedelta, timezone
+import inspect
 import traceback
 from typing import Optional
 from flask import flash, current_app, request
@@ -33,33 +34,58 @@ def iso_now():
 
 def log_exception(exception: Exception) -> None:
     """
-    Log exception details.
+    Log exception details including the stack trace.
 
     Parameters:
         exception (Exception): The exception that occurred.
     """
-    try:
-        # Initialize the error message with a generic message
-        error_msg = f"An error occurred: {exception}"
-        traceback.print_exc()
+    # Capture the stack trace
+    stack_trace = traceback.format_exc()
+    
+    # Get the calling function name dynamically
+    calling_frame = inspect.currentframe().f_back
+    function_name = calling_frame.f_code.co_name
+    
+    # Log the timestamp, module, and function names
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.error(f"Timestamp: {timestamp}, Module: {__name__}, Function: {function_name}")
+    
+    # Log the stack trace at the debug level
+    logging.debug(stack_trace)
+    
+    # Initialize the error message with a generic message
+    error_msg = f"An error occurred: {exception}"
 
-        # Check the type of exception and log accordingly
-        if isinstance(exception, SQLAlchemyError):
-            logging.error(f"An SQLAlchemy error occurred: {exception}")
-        elif isinstance(exception, IntegrityError):
-            logging.error(f"An Integrity error occurred: {exception}")
-        elif isinstance(exception, DatabaseError):
-            logging.error(f"A database error occurred: {exception}")
-        elif isinstance(exception, OperationalError):
-            logging.error(f"An Operational error occurred: {exception}")
-        elif isinstance(exception, ProgrammingError):
-            logging.error(f"A Programming error occurred: {exception}")
-        else:
-            # If the exception type is not recognized, log the generic error message
-            logging.error(error_msg)
-    except Exception as e:
-        # If an error occurs while logging the exception, log it as well
-        logging.error(f"Error logging exception: {e}")
+    # Check the type of exception and log accordingly
+    if isinstance(exception, IntegrityError):
+        logging.error(f"An Integrity error occurred: {exception}")
+    elif isinstance(exception, DatabaseError):
+        logging.error(f"A database error occurred: {exception}")
+    elif isinstance(exception, OperationalError):
+        logging.error(f"An Operational error occurred: {exception}")
+    elif isinstance(exception, ProgrammingError):
+        logging.error(f"A Programming error occurred: {exception}")
+    elif isinstance(exception, SQLAlchemyError):
+        logging.error(f"An SQLAlchemy error occurred: {exception}")
+    else:
+        # If the exception type is not recognized, log the generic error message
+        logging.error(error_msg)
+
+    # Optionally log the stack trace at the error level
+    logging.error(stack_trace)
+
+def handle_exception(exception):
+    """
+    Handle exceptions by logging, rolling back the session, and re-raising the exception.
+
+    Parameters:
+        exception (Exception): The exception that occurred.
+    """
+    module_name = inspect.getmodule(inspect.stack()[1][0]).__name__
+    function_name = inspect.currentframe().f_back.f_code.co_name
+    log_exception(exception, module_name, function_name)
+    db.session.rollback()
+    raise exception
 
 def log_form_validation_errors(form):
     for field in form:

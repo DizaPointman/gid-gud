@@ -286,13 +286,13 @@ class GidGud(db.Model):
         category = kwargs.get('category')
         rec_val = kwargs.get('rec_val')
         rec_unit = kwargs.get('rec_unit')
-        rec_next = kwargs.get('rec_next') or iso_now()
+        rec_next = kwargs.get('rec_next') or self.rec_next_datetime(datetime.now(utc))
 
-        gidgud = GidGud(body=body, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
-        db.session.add(gidgud)
+        gg = GidGud(body=body, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+        db.session.add(gg)
         db.session.commit()
 
-        return gidgud
+        return gg
 
     def update_gidgud(self, **kwargs):
 
@@ -302,9 +302,50 @@ class GidGud(db.Model):
         self.rec_unit = kwargs.get('rec_unit', self.rec_unit)
         self.rec_next = kwargs.get('rec_next', self.rec_next)
 
+        self.modified_at_datetime(datetime.now(utc))
+
         db.session.commit()
 
         return self
+
+    @staticmethod
+    def set_rec(self, **kwargs):
+
+        if kwargs.get('reset_timer'):
+            rec_next = self.rec_next_datetime(datetime.now(utc))
+        else:
+            rec_next = kwargs.get('rec_next', self.rec_next)
+
+        rec_val = None
+        rec_unit = None
+
+        if kwargs.get('rec_instant'):
+            rec_val = 0
+            rec_unit = 'days'
+        elif kwargs.get('rec_custom'):
+            rec_val = kwargs.get('rec_val')
+            rec_unit = kwargs.get('rec_unit')
+
+        return rec_val, rec_unit, rec_next
+
+
+    def update_rec_next(self, timestamp: datetime):
+
+        if self.rec_val and self.rec_unit:
+
+            delta = timedelta(**{self.rec_unit: self.rec_val})
+            rec_next = timestamp + delta
+            self.rec_next = self.rec_next_datetime(rec_next)
+
+            db.session.commit()
+            return rec_next
+
+        else:
+            self.rec_unit = None
+            self.rec_val = None
+            self.rec_next = None
+            db.session.commit()
+            return False
 
     def add_completion_entry(self, timestamp: datetime, custom_data=None):
 
@@ -319,31 +360,13 @@ class GidGud(db.Model):
             amount=custom_data.get('amount', self.amount),
             unit=custom_data.get('unit', self.unit),
             times=custom_data.get('times', self.times),
-            completion_date=timestamp.isoformat()
+            completed_at=timestamp.isoformat()
         )
 
         db.session.add(completion)
         db.session.commit()
 
         return completion
-
-    def update_rec_next(self, timestamp: datetime):
-
-        if self.rec_val and self.rec_unit:
-
-            delta = timedelta(**{self.rec_unit: self.rec_val})
-            rec_next = timestamp + delta
-            self.rec_next = rec_next.isoformat()
-
-            db.session.commit()
-            return rec_next
-
-        else:
-            self.rec_unit = None
-            self.rec_val = None
-            self.rec_next = None
-            db.session.commit()
-            return False
 
 
 class CompletionTable(db.Model):
@@ -356,7 +379,7 @@ class CompletionTable(db.Model):
 
     category: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
     body: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
-    completion_date: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, nullable=False, default=iso_now)
+    completed_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, nullable=False, default=iso_now)
 
     # Custom_data
     type_of_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.String(10), nullable=True)
@@ -368,8 +391,24 @@ class CompletionTable(db.Model):
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
 
+    @property
+    def completed_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.completed_at) if self.completed_at else None
+
+    @completed_at_datetime.setter
+    def completed_at_datetime(self, value: Optional[datetime]):
+        self.completed_at = value.isoformat() if value else None
+
+    @property
+    def deleted_at_datetime(self) -> Optional[datetime]:
+        return datetime.fromisoformat(self.deleted_at) if self.deleted_at else None
+
+    @deleted_at_datetime.setter
+    def deleted_at_datetime(self, value: Optional[datetime]):
+        self.deleted_at = value.isoformat() if value else None
+
     def get_completed_gidguds():
-        return db.session.query(CompletionTable).order_by(CompletionTable.completion_date).all()
+        return db.session.query(CompletionTable).order_by(CompletionTable.completed_at).all()
 
 
 @login.user_loader
