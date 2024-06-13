@@ -166,40 +166,17 @@ class Category(db.Model):
     # Setting a tree height limit
     MAX_HEIGHT = 5
 
-    def duplicate(self, changes=None):
-        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
-    
-        # Pop attributes that should not be copied
-        new_data.pop('id', None)
-        new_data.pop('children', None)
-        new_data.pop('gidguds', None)
-        new_data.pop('created_at', None)
-        new_data.pop('modified_at', None)
-        new_data.pop('archived_at', None)
-        new_data.pop('deleted_at', None)
-
-        # Apply any changes if provided
-        if changes:
-            new_data.update(changes)
-
-        # Create a new instance with the updated data
-        new_category = self.__class__(**new_data)
-
-        # Handle children
-        for child in self.children:
-            new_category.children.append(child)
-
-        return new_category
-
     def archive_and_recreate(self, changes):
-        new_category = self.duplicate(changes)
 
-        # Set the history path
-        if self.a_brief_history_of_time:
-            new_category.a_brief_history_of_time = f"{self.a_brief_history_of_time}/{new_category.id}"
-        else:
-            self.a_brief_history_of_time = f"{self.id}"
-            new_category.a_brief_history_of_time = f"{self.id}/{new_category.id}"
+        new_category = Category(
+            name=self.name,
+            user_id=self.user_id,
+            user=self.user,
+            parent_id=self.parent_id,
+            parent=self.parent,
+            depth=self.depth,
+            height=self.height,
+            **changes)
 
         # Archive the old category
         self.archived_at_datetime(datetime.now(utc))
@@ -208,6 +185,13 @@ class Category(db.Model):
         db.session.add(new_category)
         # Commit the new category to the database
         db.session.commit()
+
+        # Set the history path
+        if self.a_brief_history_of_time:
+            new_category.a_brief_history_of_time = f"{self.a_brief_history_of_time}/{new_category.id}"
+        else:
+            self.a_brief_history_of_time = f"{self.id}"
+            new_category.a_brief_history_of_time = f"{self.id}/{new_category.id}"
 
         # Update children's parent_id to point to the new category
         db.session.query(Category).filter(Category.parent_id == self.id).update(
@@ -321,6 +305,10 @@ class GidGud(db.Model):
     def archive_and_recreate(self, changes):
         new_gidgud = self.duplicate(changes)
 
+        # Add the new gidgud to the session and commit changes
+        db.session.add(new_gidgud)
+        db.session.commit()
+
         # Set the history path
         if self.a_history_of_violence:
             new_gidgud.a_history_of_violence = f"{self.a_history_of_violence}/{new_gidgud.id}"
@@ -331,9 +319,7 @@ class GidGud(db.Model):
         # Archive the old gidgud
         self.archived_at_datetime(datetime.now(utc))
 
-        # Add the new gidgud to the session and commit changes
-        session.add(new_gidgud)
-        session.commit()
+        db.session.commit()
 
         return new_gidgud
 

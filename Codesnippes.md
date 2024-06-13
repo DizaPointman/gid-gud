@@ -340,7 +340,26 @@ In your Jinja2 template (example.html), you can then render the custom composite
 
 By employing this approach, you can seamlessly integrate a StringField with a SelectField in accordance with the Bootstrap styling conventions, harmonizing form elements with grace and precision. Should further guidance be needed, do not hesitate to beckon!
 
+# Duplicate object
 
+    def duplicate(self, changes=None):
+
+        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+
+        # Pop attributes that should not be copied
+        new_data.pop('id', None)
+        new_data.pop('completions', None)
+        new_data.pop('created_at', None)
+        new_data.pop('modified_at', None)
+        new_data.pop('archived_at', None)
+        new_data.pop('deleted_at', None)
+
+        # Apply any changes if provided
+        if changes:
+            new_data.update(changes)
+
+        # Create a new instance with the updated data
+        return self.__class__(**new_data)
 
 # Formdata Example
 
