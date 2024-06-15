@@ -28,6 +28,10 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
+    def map_form_to_dict(self, form):
+        dict = {field_name: field_value for field_name, field_value in form.data.items()}
+        return dict
+
     def map_form_to_object_changes(obj, form):
         changes = {}
 

@@ -9,9 +9,9 @@ C-Man.inject()
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
 # TODO: GidGud Manager
-- add materialized path to category and gidgud models
-- update category methods in cm
-- add materialized path handling to archive functions for gidgud and category
+- funcs: create, update, archive_and_historize, map_form_new, map_form_update
+- check name/body -> mfn/mfu -> create + archive/update
+- or map_form(param: update/create)
 # TODO: GidGud Schedule
 - implement simple/advance view parameter for create/edit gidgud route/template
 - display form fields depending on view param, use hidden and defaults
