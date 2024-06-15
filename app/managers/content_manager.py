@@ -29,30 +29,10 @@ class ContentManager:
         return datetime.now(utc).isoformat()
 
     def map_form_to_dict(self, form):
-        dict = {field_name: field_value for field_name, field_value in form.data.items()}
-        return dict
+        form_dict = {field_name: field_value for field_name, field_value in form.data.items()}
+        return form_dict
 
-    def map_form_to_object_changes(obj, form):
-        changes = {}
-
-        # Iterate over the fields in the form
-        for field_name, field_value in form.data.items():
-            # Check if the field name corresponds to an attribute of the object
-            if hasattr(obj, field_name):
-                # Get the current value of the attribute
-                current_value = getattr(obj, field_name)
-                # Compare the form field value with the current attribute value
-                if current_value != field_value:
-                    # If they're different, add the change to the dictionary
-                    changes[field_name] = field_value
-            else:
-                # Include additional parameters provided by form
-                changes[field_name] = field_value
-
-        return changes
-
-
-    def get_user_by_id(self, id):
+    def get_user_by_id(self, id) -> User:
         # FIXME: implement this error handling for database critical functions
         try:
             user = User.query.filter_by(id=id).first()
@@ -64,107 +44,53 @@ class ContentManager:
         except Exception as e:
             handle_exception(e)
 
-
-    def get_category_by_id(self, id):
+    def get_category_by_id(self, id) -> Category:
         return Category.query.filter_by(id=id).first()
 
-    def get_category_by_name(self, name):
-        return Category.query.filter_by(name=name).first()
+    def get_category_by_name(self, name) -> Category:
+        user = current_user
+        return Category.query.filter_by(name=name, user=user).first()
 
-    #TODO: change category functions to be based on id
-    # user = self.get_user_by_id(user_id)
-
-    def return_or_create_root_category(self, user):
+    def return_or_create_root_category(self, user=None):
         """
         Return or create the root category for the given user.
         """
-        root = Category.query.filter_by(name='root', user_id=user.id).first()
+        user = user or current_user
+        root = Category.query.filter_by(name='root', user=user).first()
         if not root:
             root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
             db.session.add(root)
             db.session.commit()
         return root
 
-    def return_or_create_root_category2(self, user_id):
-        """
-        Return or create the root category for the given user.
-        """
-        root = Category.query.filter_by(name='root', user_id=user_id).first()
-        if not root:
-            user = self.get_user_by_id(user_id)
-            root = Category(name='root', user=user, depth=0, height=self.MAX_HEIGHT)
-            db.session.add(root)
-            db.session.commit()
-        return root
-
-    def create_category(self, name, user, parent):
+    def create_category(self, **kwargs):
         """
         Create a new category with the given name, user, and parent.
         """
-        category = Category(name=name, user=user, parent=parent)
+        user = user or current_user
+        parent = parent or self.return_or_create_root_category(user)
+        category = Category(**kwargs)
         db.session.add(category)
-        self.update_depth_and_height(parent)
+        parents_updated = self.update_depth_and_height(parent)
         db.session.commit()
         return category
 
-    def create_category2(self, user_id, name, parent):
-        """
-        Create a new category with the given name, user, and parent.
-        """
-        user = self.get_user_by_id(user_id)
-        category = Category(name=name, user=user, parent=parent)
-        db.session.add(category)
-        self.update_depth_and_height(parent)
-        db.session.commit()
-        return category
-
-    def return_or_create_category(self, user=None, name=None, parent=None):
+    def return_or_create_category(self, name=None, parent=None):
         """
         Return or create a category with the given name and user. If no name is provided, return the root category.
         """
         try:
             user = user or current_user
 
-            if not user or not hasattr(user, 'id'):
-                raise ValueError("A valid user must be provided")
-
             root = self.return_or_create_root_category(user)
 
             if not name:
                 return root
 
-            category = Category.query.filter_by(name=name, user_id=user.id).first()
+            category = Category.query.filter_by(name=name, user=user).first()
             if not category:
                 parent = parent or root
-                category = self.create_category2(name, user, parent)
-
-            return category
-
-        except SQLAlchemyError as e:
-            log_exception(e)
-            db.session.rollback()
-            return False
-        except Exception as e:
-            log_exception(e)
-            db.session.rollback()
-            return False
-
-    def return_or_create_category2(self, user_id, name=None, parent=None):
-        """
-        Return or create a category with the given name and user. If no name is provided, return the root category.
-        """
-        try:
-            user = self.get_user_by_id(user_id)
-
-            root = self.return_or_create_root_category2(user_id)
-
-            if not name:
-                return root
-
-            category = Category.query.filter_by(name=name, user_id=user_id).first()
-            if not category:
-                parent = parent or root
-                category = self.create_category2(user.id, name, parent)
+                category = self.create_category(user=user, name=name, parent=parent)
 
             return category
 
@@ -201,6 +127,8 @@ class ContentManager:
                 if category.parent is not None:
                     self.update_depth(category)
                     self.update_height(category)
+                    db.session.commit()
+            return True
 
         except SQLAlchemyError as e:
             log_exception(e)
@@ -272,7 +200,66 @@ class ContentManager:
         blacklist_children(category)
         return blacklist
 
-    def update_category_from_form(self, category_id, form_data):
+    def reassign_children_to_category(self, old_category, new_category):
+        try:
+            db.session.query(Category).filter(Category.parent_id == old_category.id).update({Category.parent_id: new_category.id}, synchronize_session=False)
+            db.session.commit()
+            parent_changed = self.update_depth_and_height(old_category, new_category)
+            db.session.commit()
+            return parent_changed
+        except SQLAlchemyError as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+        except Exception as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+
+    def reassign_gidguds_to_category(self, old_category, new_category):
+        try:
+            db.session.query(GidGud).filter(GidGud.category_id == old_category.id).update({GidGud.category_id: new_category.id}, synchronize_session=False)
+            db.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+        except Exception as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+
+    def archive_and_recreate_category(self, old_cat: Category, form_dict):
+        """
+        Archive the old Category and create a new one with updated data.
+        """
+        try:
+            new_cat = self.create_category(form_dict)
+
+            is_archived = old_cat.archive_and_historize(new_cat)
+            cc_reassigned = self.reassign_children_to_category(old_cat, new_cat)
+
+            if is_archived and cc_reassigned:
+                return new_cat
+            else:
+                raise ValueError("A problem occurred when archiving the old category.")
+
+        except SQLAlchemyError as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+        except Exception as e:
+            handle_exception(e)
+            db.session.rollback()
+            return None
+
+    def create_category_from_form(self, form):
+        form_dict = self.map_form_to_dict(form)
+        new_cat = self.create_category(form_dict)
+        return new_cat
+
+    def update_category_from_form(self, id, form):
         """
         Update an existing category based on the form data.
         """
@@ -282,45 +269,39 @@ class ContentManager:
 
         try:
 
-            category = self.get_category_by_id(category_id)
-            old_name = category.name
+            cat = self.get_category_by_id(id)
+            old_name = cat.name
+            form_dict = self.map_form_to_dict(form)
+
+            if cat.name != form_dict.name:
+                new_cat = self.archive_and_recreate_category(cat, form_dict)
+                cat = new_cat
 
             # Change parent category
-            if form_data.parent.data != category.parent.name:
-                old_parent = category.parent
-                new_parent = self.get_category_by_name(form_data.parent.data)
-                category.parent = new_parent
+            if form.parent.data != cat.parent.name:
+                old_parent = cat.parent
+                new_parent = self.get_category_by_name(form.parent.data)
+                cat.parent = new_parent
 
                 # Updating old parent and new parent to maintain tree structure
-                self.update_depth_and_height(old_parent, new_parent)
+                parent_updated = self.update_depth_and_height(old_parent, new_parent)
 
                 flash(f"Parent changed from <{old_parent.name}> to <{new_parent.name}>!")
 
             # Reassign GidGuds to new category
-            if form_data.reassign_gidguds.data not in [old_name, 'No GidGuds']:
-                relocate_gg = self.get_category_by_name(form_data.reassign_gidguds.data)
-                db.session.query(GidGud).filter(GidGud.category_id == category_id).update(
-                    {GidGud.category_id: relocate_gg.id}, synchronize_session=False)
+            if form.reassign_gidguds.data != cat.name:
+                reas_gg = self.get_category_by_name(form.reassign_gidguds.data)
+                gg_reassigned = self.reassign_gidguds_to_category(cat, reas_gg)
 
-                flash(f"GidGuds from <{old_name}> reassigned to <{relocate_gg.name}>!")
+                flash(f"GidGuds from <{old_name}> reassigned to <{reas_gg.name}>!")
 
             # Reassign child categories
-            if form_data.reassign_children.data not in [old_name, 'No Children']:
-                relocate_cc = self.get_category_by_name(form_data.reassign_children.data)
-                db.session.query(Category).filter(Category.parent_id == category_id).update(
-                    {Category.parent_id: relocate_cc.id}, synchronize_session=False)
+            if form.reassign_children.data != cat.name:
+                reas_cc = self.get_category_by_name(form.reassign_children.data)
+                cc_reassigned = self.reassign_children_to_category(cat, reas_cc)
 
-                # Updating the category and new parent to maintain tree structure
-                self.update_depth_and_height(category, relocate_cc)
+                flash(f"Child categories from <{old_name}> reassigned to <{reas_cc.name}>!")
 
-                flash(f"Child categories from <{old_name}> reassigned to <{relocate_cc.name}>!")
-
-            # Rename the category
-            if form_data.name.data != old_name:
-                new_name = form_data.name.data
-                category.name = new_name
-
-                flash(f"Name changed from <{old_name}> to <{new_name}>!")
 
             # Commit the transaction
             db.session.commit()
@@ -343,50 +324,9 @@ class ContentManager:
         # Implement logic to delete a category
         pass
 
-    def archive_and_recreate_category(self, id, form):
-        """
-        Archive the old Category and create a new one with updated data.
-        """
-        try:
-            old_category = Category.query.get(id)
-
-            # Archive the old Category
-            old_category.archived_at_datetime(datetime.now(utc))
-
-            # Determine changes from form data
-            changes = self.map_form_to_object_changes(old_category, form)
-
-            # Create a new Category with changes
-            new_category = Category(
-                name=old_category.name,
-                user=old_category.user,
-                parent=old_category.parent,
-                **changes
-            )
-
-            db.session.add(new_category)
-
-            if old_category.children:
-
-                db.session.query(Category).filter(Category.parent_id == old_category.id).update(
-                    {Category.parent_id: new_category.id}, synchronize_session=False)
-
-            db.session.commit()
-
-            return new_category
-
-        except SQLAlchemyError as e:
-            handle_exception(e)
-            db.session.rollback()
-            return None
-        except Exception as e:
-            handle_exception(e)
-            db.session.rollback()
-            return None
-
     # GidGud
 
-    def get_gidgud_by_id(self, id):
+    def get_gidgud_by_id(self, id) -> GidGud:
         try:
             gg = GidGud.query.filter_by(id=id).first()
             if gg is None:
@@ -449,38 +389,10 @@ class ContentManager:
             log_exception(e)
             return False
 
-    def gidgud_handle_complete(self, gidgud):
-        # TODO: also archive?
-        try:
-            timestamp = self.iso_now()
+    def gidgud_create_from_form(self, form):
 
-            if gidgud.completed_at is not None:
-                gidgud.completed_at.append(timestamp)
-            else:
-                gidgud.completed_at = timestamp
-
-            if gidgud.rec_val != 0:
-
-                if gidgud.rec_val == 1 and gidgud.rec_unit == 'instantly':
-                    rec_next = timestamp
-                else:
-                    delta = timedelta(**{gidgud.rec_unit: gidgud.rec_val})
-                    rec_next = (datetime.fromisoformat(timestamp) + delta).isoformat()
-
-                gidgud.rec_next = rec_next
-
-            db.session.commit()
-            return True
-
-        except Exception as e:
-            # Log any exceptions that occur during the process
-            log_exception(e)
-            return False
-
-    def gidgud_create_from_form(self, user_id, form):
-
-        user = self.get_user_by_id(user_id)
-        category = self.return_or_create_category2(user_id, form.category.data)
+        user = user or current_user
+        category = self.return_or_create_category(form.category.data)
         rec_val, rec_unit, rec_next = GidGud.set_rec(reset_timer=True, rec_instant=form.rec_instant.data, rec_custom=form.rec_custom.data)
         gg = GidGud.create(body=form.body.data, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
 
@@ -501,10 +413,10 @@ class ContentManager:
 
         return gg
 
-    def gidgud_handle_complete2(self, id):
+    def gidgud_handle_complete(self, id):
 
         timestamp = datetime.now(utc)
-        gg = GidGud.query.filter_by(id=id).first()
+        gg = self.get_gidgud_by_id(id)
         custom_data = None
 
         gg.add_completion_entry(timestamp, custom_data)
@@ -520,32 +432,9 @@ class ContentManager:
         Archive the old GidGud and create a new one with updated data.
         """
         try:
-            old_gidgud = GidGud.query.get(id)
+            old_gidgud = self.get_gidgud_by_id(id)
+            form_dict = self.map_form_to_dict(form)
 
-            # Archive the old GidGud
-            old_gidgud.archived_at_datetime(datetime.now(utc))
-
-            # Set recurrence-related attributes to None
-            old_gidgud.rec_val = None
-            old_gidgud.rec_unit = None
-            old_gidgud.rec_next = None
-
-            # Determine changes from form data
-            changes = self.map_form_to_object_changes(old_gidgud, form)
-
-            # Create a new GidGud with changes
-            new_gidgud = GidGud(
-                body=old_gidgud.body,
-                user=old_gidgud.user,
-                category=old_gidgud.category,
-                rec_val=None,
-                rec_unit=None,
-                rec_next=None,
-                **changes
-            )
-
-            db.session.add(new_gidgud)
-            db.session.commit()
 
             return new_gidgud
 
@@ -558,58 +447,6 @@ class ContentManager:
             db.session.rollback()
             return None
 
-    def gidgud_return_dict_from_choice(self, choice):
-
-        choices = ['gids', 'guds', 'sleep', 'all']
-        gidgud_dict = {}
-
-        try:
-            if 'all' in choice:
-                gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
-                gidgud_dict['all'] = gidguds
-
-            if 'guds' in choice:
-                guds = db.session.execute(
-                    sa.select(GidGud)
-                    .where((current_user == GidGud.author) & (GidGud.completed_at.isnot(None)))
-                ).scalars().all()
-                gidgud_dict['guds'] = guds
-
-            if 'gids' in choice or 'sleep' in choice:
-                gids_and_sleep = db.session.scalars(
-                    sa.select(GidGud)
-                    .where((current_user == GidGud.author) & (GidGud.completed_at.is_(None)))
-                )
-                gids = []
-                sleep = []
-
-                for gidgud in gids_and_sleep:
-                    if 'gids' in choice:
-                        if not gidgud.rec_next or (self.check_sleep(gidgud) <= 0):
-                            gids.append(gidgud)
-                    if 'sleep' in choice:
-                        if gidgud.rec_next and self.check_sleep(gidgud) > 0:
-                            sleep.append(gidgud)
-
-                if 'gids' in choice:
-                    gidgud_dict['gids'] = gids
-                if 'sleep' in choice:
-                    gidgud_dict['sleep'] = sleep
-
-            return gidgud_dict
-
-        except Exception as e:
-            # Log any exceptions that occur during the process
-            log_exception(e)
-            return False
-
-    def check_sleep(self, gidgud):
-        datetime_now = datetime.fromisoformat(self.iso_now())
-        gidgud_rec_next = datetime.fromisoformat(gidgud.rec_next)
-        sleep = (gidgud_rec_next - datetime_now).total_seconds()
-        return sleep
-
-    def gidgud_return_dict_from_choice2(self, choice):
 
             choices = ['gids', 'guds', 'sleep', 'all']
             gidgud_dict = {}

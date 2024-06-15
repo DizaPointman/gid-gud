@@ -166,41 +166,23 @@ class Category(db.Model):
     # Setting a tree height limit
     MAX_HEIGHT = 5
 
-    def archive_and_recreate(self, changes):
 
-        new_category = Category(
-            name=self.name,
-            user_id=self.user_id,
-            user=self.user,
-            parent_id=self.parent_id,
-            parent=self.parent,
-            depth=self.depth,
-            height=self.height,
-            **changes)
+    def archive_and_historize(self, new_version):
 
         # Archive the old category
         self.archived_at_datetime(datetime.now(utc))
 
-        # Add the new category to the session
-        db.session.add(new_category)
-        # Commit the new category to the database
-        db.session.commit()
-
         # Set the history path
         if self.a_brief_history_of_time:
-            new_category.a_brief_history_of_time = f"{self.a_brief_history_of_time}/{new_category.id}"
+            new_version.a_brief_history_of_time = f"{self.a_brief_history_of_time}/{new_version.id}"
         else:
             self.a_brief_history_of_time = f"{self.id}"
-            new_category.a_brief_history_of_time = f"{self.id}/{new_category.id}"
+            new_version.a_brief_history_of_time = f"{self.id}/{new_version.id}"
 
-        # Update children's parent_id to point to the new category
-        db.session.query(Category).filter(Category.parent_id == self.id).update(
-            {Category.parent_id: new_category.id}, synchronize_session=False)
-
-        # Commit the changes to reassign children
         db.session.commit()
 
-        return new_category
+        return True
+
 
     def get_version_history(self) -> List['Category']:
         if not self.a_history_of_violence:
@@ -283,45 +265,21 @@ class GidGud(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
-    def duplicate(self, changes=None):
 
-        new_data = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+    def archive_and_historize(self, new_version):
 
-        # Pop attributes that should not be copied
-        new_data.pop('id', None)
-        new_data.pop('completions', None)
-        new_data.pop('created_at', None)
-        new_data.pop('modified_at', None)
-        new_data.pop('archived_at', None)
-        new_data.pop('deleted_at', None)
-
-        # Apply any changes if provided
-        if changes:
-            new_data.update(changes)
-
-        # Create a new instance with the updated data
-        return self.__class__(**new_data)
-
-    def archive_and_recreate(self, changes):
-        new_gidgud = self.duplicate(changes)
-
-        # Add the new gidgud to the session and commit changes
-        db.session.add(new_gidgud)
-        db.session.commit()
+        # Archive the old category
+        self.archived_at_datetime(datetime.now(utc))
 
         # Set the history path
         if self.a_history_of_violence:
-            new_gidgud.a_history_of_violence = f"{self.a_history_of_violence}/{new_gidgud.id}"
+            new_version.a_history_of_violence = f"{self.a_history_of_violence}/{new_version.id}"
         else:
             self.a_history_of_violence = f"{self.id}"
-            new_gidgud.a_history_of_violence = f"{self.id}/{new_gidgud.id}"
+            new_version.a_history_of_violence = f"{self.id}/{new_version.id}"
 
-        # Archive the old gidgud
-        self.archived_at_datetime(datetime.now(utc))
+        return True
 
-        db.session.commit()
-
-        return new_gidgud
 
     def get_version_history(self) -> List['GidGud']:
         if not self.a_history_of_violence:
@@ -375,32 +333,11 @@ class GidGud(db.Model):
 
     def create_gidgud(self, **kwargs):
 
-        body = kwargs.get('body')
-        user = kwargs.get('user')
-        category = kwargs.get('category')
-        rec_val = kwargs.get('rec_val')
-        rec_unit = kwargs.get('rec_unit')
-        rec_next = kwargs.get('rec_next') or self.rec_next_datetime(datetime.now(utc))
-
-        gg = GidGud(body=body, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
-        db.session.add(gg)
-        db.session.commit()
-
-        return gg
+        return True
 
     def update_gidgud(self, **kwargs):
 
-        self.body = kwargs.get('body', self.body)
-        self.category = kwargs.get('category', self.category)
-        self.rec_val = kwargs.get('rec_val', self.rec_val)
-        self.rec_unit = kwargs.get('rec_unit', self.rec_unit)
-        self.rec_next = kwargs.get('rec_next', self.rec_next)
-
-        self.modified_at_datetime(datetime.now(utc))
-
-        db.session.commit()
-
-        return self
+        return True
 
     @staticmethod
     def set_rec(self, **kwargs):
