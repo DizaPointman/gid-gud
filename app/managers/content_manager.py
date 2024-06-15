@@ -391,6 +391,9 @@ class ContentManager:
 
     def gidgud_create_from_form(self, form):
 
+        #TODO: use map form to dict
+        #TODO: implement create gidgud func
+
         user = user or current_user
         category = self.return_or_create_category(form.category.data)
         rec_val, rec_unit, rec_next = GidGud.set_rec(reset_timer=True, rec_instant=form.rec_instant.data, rec_custom=form.rec_custom.data)
