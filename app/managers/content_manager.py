@@ -389,18 +389,31 @@ class ContentManager:
             log_exception(e)
             return False
 
-    def gidgud_create_from_form(self, form):
+    def gidgud_create_from_form(self, form, user=None):
+        """
+        Creates a GidGud instance from a form.
 
-        #TODO: use map form to dict
-
+        :param form: The form containing the data for creating the GidGud instance.
+        :param user: The user associated with the GidGud instance. Defaults to current_user.
+        :return: The created GidGud instance.
+        """
         user = user or current_user
         form_dict = self.map_form_to_dict(form)
-        cat_name = form_dict['category']
-        form_dict = self.map_form_to_dict(form)
-        form_dict['category'] = self.return_or_create_category(cat_name)
+
+        # Ensure category is handled correctly
+        cat_name = form_dict.get('category')
+        if cat_name:
+            form_dict['category'] = self.return_or_create_category(cat_name)
+        else:
+            raise ValueError("Category is required")
+
+        # Set default for reset_timer if not provided
         if 'reset_timer' not in form_dict:
             form_dict['reset_timer'] = True
+
+        # Set recurrence values
         form_dict['rec_val'], form_dict['rec_unit'], form_dict['rec_next'] = GidGud.set_rec(form_dict)
+
         gg = GidGud(user=user, **form_dict)
         db.session.add(gg)
         db.session.commit()
@@ -408,26 +421,32 @@ class ContentManager:
         return gg
 
     def gidgud_update_from_form(self, id, form):
+        """
+        Updates a GidGud instance from a form.
 
-        # TODO: new_gg = gg.archive_and_recreate(self, changes), on change of body and category fields
-
+        :param id: The ID of the GidGud instance to update.
+        :param form: The form containing the updated data.
+        :return: The updated GidGud instance.
+        """
         gg = self.get_gidgud_by_id(id)
         changes = self.map_form_to_dict(form)
-        if 'body' in changes and changes['body'] != gg.body:
-            new_gg = self.gidgud_create_from_form(changes)
-            is_archived = gg.archive_and_historize(new_gg)
-            if is_archived:
-                gg.rec_val, gg.rec_unit, gg.rec_next = None, None, None
-                gg = new_gg
-        changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
 
+        # Handle category change
         if 'category' in changes:
             cat_name = changes['category']
             changes['category'] = self.return_or_create_category(cat_name)
 
-        is_updated = gg.update_gidgud(**changes)
+        # Handle body change and archiving
+        if 'body' in changes and changes['body'] != gg.body:
+            gg = self.archive_and_recreate_gidgud(gg, changes)
 
-        return is_updated
+        # Set recurrence values
+        changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
+
+        gg.update_gidgud(**changes)
+        db.session.commit()
+
+        return gg
 
     def gidgud_handle_complete(self, id):
 
@@ -443,16 +462,15 @@ class ContentManager:
         db.session.commit()
         return rec_next
 
-    def archive_and_recreate_gidgud(self, id, form):
+    def archive_and_recreate_gidgud(self, gg: GidGud, form_dict):
         """
         Archive the old GidGud and create a new one with updated data.
         """
         try:
-            old_gidgud = self.get_gidgud_by_id(id)
-            form_dict = self.map_form_to_dict(form)
-
-
-            return new_gidgud
+            new_gg = self.gidgud_create_from_form(form_dict)
+            is_archived = gg.archive_and_historize(new_gg)
+            if is_archived:
+                return new_gg
 
         except SQLAlchemyError as e:
             handle_exception(e)

@@ -278,6 +278,9 @@ class GidGud(db.Model):
             self.a_history_of_violence = f"{self.id}"
             new_version.a_history_of_violence = f"{self.id}/{new_version.id}"
 
+        self.rec_val, self.rec_unit, self.rec_next = None, None, None
+        db.session.commit()
+
         return True
 
 
