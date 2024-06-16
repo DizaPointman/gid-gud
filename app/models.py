@@ -346,7 +346,7 @@ class GidGud(db.Model):
         if kwargs.get('reset_timer'):
             rec_next = self.rec_next_datetime(datetime.now(utc))
         else:
-            rec_next = kwargs.get('rec_next', self.rec_next)
+            rec_next = kwargs.get('rec_next', self.rec_next) or iso_now()
 
         rec_val = None
         rec_unit = None

@@ -404,11 +404,8 @@ class ContentManager:
         form_dict = self.map_form_to_dict(form)
 
         # Ensure category is handled correctly
-        cat_name = form_dict.get('category')
-        if cat_name:
-            form_dict['category'] = self.return_or_create_category(cat_name)
-        else:
-            raise ValueError("Category is required")
+        cat_name = form_dict.get('category', '')
+        form_dict['category'] = self.return_or_create_category(cat_name)
 
         # Set default for reset_timer if not provided
         if 'reset_timer' not in form_dict:
