@@ -212,60 +212,6 @@ def edit_gidgud(id):
 
     return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
 
-@bp.route('/create_gid', methods=['GET', 'POST'])
-@login_required
-def create_gid():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGidForm()
-    # TODO: create flash that informs about recurrence rhythm
-    if form.validate_on_submit():
-        category = c_man.return_or_create_category(name=(form.category.data))
-        if form.rec_val.data != 0:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=form.rec_val.data, rec_unit=form.rec_unit.data)
-        else:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
-        db.session.add(gid)
-        db.session.commit()
-        flash('New Gid created!')
-        return redirect(url_for('routes.index'))
-    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
-
-@bp.route('/create_gud', methods=['GET', 'POST'])
-@login_required
-def create_gud():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGudForm()
-    if form.validate_on_submit():
-        category = c_man.return_or_create_category(name=(form.category.data))
-        timestamp = datetime.now(timezone.utc)
-        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed_at=timestamp)
-        db.session.add(gud)
-        db.session.commit()
-        flash('New Gud created!')
-        return redirect(url_for('routes.index'))
-    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
-
-"""
-@bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
-@login_required
-def edit_gidgud(id):
-    gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    # TODO: adjust template to hide recurrence fields when editing completed_at gidgud
-    form = EditGidGudForm()
-    if form.validate_on_submit():
-        c_man.gidgud_handle_update(gidgud, form)
-        flash('Your changes have been saved.')
-        return redirect(url_for('routes.index'))
-
-    elif request.method == 'GET':
-        form.body.data = gidgud.body
-        form.category.data = gidgud.category.name
-        form.rec_val.data = gidgud.rec_val
-        form.rec_unit.data = gidgud.rec_unit
-
-    return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
-"""
-
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_gidgud(id):
