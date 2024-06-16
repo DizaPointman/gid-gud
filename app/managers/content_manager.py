@@ -392,29 +392,42 @@ class ContentManager:
     def gidgud_create_from_form(self, form):
 
         #TODO: use map form to dict
-        #TODO: implement create gidgud func
 
         user = user or current_user
-        category = self.return_or_create_category(form.category.data)
-        rec_val, rec_unit, rec_next = GidGud.set_rec(reset_timer=True, rec_instant=form.rec_instant.data, rec_custom=form.rec_custom.data)
-        gg = GidGud.create(body=form.body.data, user=user, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+        form_dict = self.map_form_to_dict(form)
+        cat_name = form_dict['category']
+        form_dict = self.map_form_to_dict(form)
+        form_dict['category'] = self.return_or_create_category(cat_name)
+        if 'reset_timer' not in form_dict:
+            form_dict['reset_timer'] = True
+        form_dict['rec_val'], form_dict['rec_unit'], form_dict['rec_next'] = GidGud.set_rec(form_dict)
+        gg = GidGud(user=user, **form_dict)
+        db.session.add(gg)
+        db.session.commit()
 
         return gg
 
-    def gidgud_update_from_form(self, gidgud_id, user_id, form):
+    def gidgud_update_from_form(self, id, form):
 
         # TODO: new_gg = gg.archive_and_recreate(self, changes), on change of body and category fields
 
-        gg = self.get_gidgud_from_id(gidgud_id)
-        changes = self.map_form_to_object_changes(gg, form)
+        gg = self.get_gidgud_by_id(id)
+        changes = self.map_form_to_dict(form)
+        if 'body' in changes and changes['body'] != gg.body:
+            new_gg = self.gidgud_create_from_form(changes)
+            is_archived = gg.archive_and_historize(new_gg)
+            if is_archived:
+                gg.rec_val, gg.rec_unit, gg.rec_next = None, None, None
+                gg = new_gg
         changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
 
         if 'category' in changes:
-            changes['category'] = self.return_or_create_category2(user_id, form.category.data)
+            cat_name = changes['category']
+            changes['category'] = self.return_or_create_category(cat_name)
 
-        gg.update_gidgud(**changes)
+        is_updated = gg.update_gidgud(**changes)
 
-        return gg
+        return is_updated
 
     def gidgud_handle_complete(self, id):
 
