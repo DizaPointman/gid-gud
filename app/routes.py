@@ -157,16 +157,7 @@ def create_gidgud():
                 return redirect(url_for('routes.create_gidgud', customize=new_customize_state, title=title))
 
             elif form.submit.data:
-                category = c_man.return_or_create_category(name=(form.category.data))
-                if customize:
-                    gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=form.rec_val.data, rec_unit=form.rec_unit.data)
-                else:
-                    if form.rec_instant.data:
-                        gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=1, rec_unit='instantly')
-                    else:
-                        gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, rec_val=0, rec_unit='instantly')
-                db.session.add(gid)
-                db.session.commit()
+                gg = c_man.gidgud_create_from_form(form)
                 flash('New Gid created!')
                 session.pop('form_data', None)  # Clear form data from the session after successful submit
                 return redirect(url_for('routes.index'))
@@ -205,7 +196,7 @@ def edit_gidgud(id):
 
             elif form.submit.data:
 
-                c_man.gidgud_handle_update(gidgud, form)
+                c_man.gidgud_update_from_form(gidgud.id, form)
                 db.session.commit()
 
                 flash('GidGud successful edited!')
@@ -315,7 +306,7 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        category = c_man.return_or_create_category(name=(form.name.data))
+        category = c_man.create_category_from_form(form)
         flash('New Category created!')
         return redirect(url_for('routes.user_categories', username=current_user.username))
 

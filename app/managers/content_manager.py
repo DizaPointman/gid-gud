@@ -255,8 +255,11 @@ class ContentManager:
             return None
 
     def create_category_from_form(self, form):
+        user = user or current_user
         form_dict = self.map_form_to_dict(form)
-        new_cat = self.create_category(form_dict)
+        new_cat = Category(user=user, **form_dict)
+        db.session.add(new_cat)
+        db.session.commit()
         return new_cat
 
     def update_category_from_form(self, id, form):
@@ -289,14 +292,14 @@ class ContentManager:
                 flash(f"Parent changed from <{old_parent.name}> to <{new_parent.name}>!")
 
             # Reassign GidGuds to new category
-            if form.reassign_gidguds.data != cat.name:
+            if form.reassign_gidguds.data not in [cat.name, 'No GidGuds']:
                 reas_gg = self.get_category_by_name(form.reassign_gidguds.data)
                 gg_reassigned = self.reassign_gidguds_to_category(cat, reas_gg)
 
                 flash(f"GidGuds from <{old_name}> reassigned to <{reas_gg.name}>!")
 
             # Reassign child categories
-            if form.reassign_children.data != cat.name:
+            if form.reassign_children.data in [cat.name, 'No Children']:
                 reas_cc = self.get_category_by_name(form.reassign_children.data)
                 cc_reassigned = self.reassign_children_to_category(cat, reas_cc)
 
@@ -306,7 +309,7 @@ class ContentManager:
             # Commit the transaction
             db.session.commit()
 
-            return True
+            return cat
 
         except SQLAlchemyError as e:
             log_exception(e)
