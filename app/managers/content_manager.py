@@ -230,12 +230,13 @@ class ContentManager:
             db.session.rollback()
             return None
 
-    def archive_and_recreate_category(self, old_cat: Category, form_dict):
+    def archive_and_recreate_category(self, old_cat: Category, form):
         """
         Archive the old Category and create a new one with updated data.
         """
         try:
-            new_cat = self.create_category(form_dict)
+            name = form.name.data
+            new_cat = self.create_category(name=name)
 
             is_archived = old_cat.archive_and_historize(new_cat)
             cc_reassigned = self.reassign_children_to_category(old_cat, new_cat)
@@ -256,8 +257,8 @@ class ContentManager:
 
     def create_category_from_form(self, form):
         user = user or current_user
-        form_dict = self.map_form_to_dict(form)
-        new_cat = Category(user=user, **form_dict)
+        name = form.name.data
+        new_cat = Category(user=user, name=name)
         db.session.add(new_cat)
         db.session.commit()
         return new_cat
@@ -274,10 +275,9 @@ class ContentManager:
 
             cat = self.get_category_by_id(id)
             old_name = cat.name
-            form_dict = self.map_form_to_dict(form)
 
-            if cat.name != form_dict.name:
-                new_cat = self.archive_and_recreate_category(cat, form_dict)
+            if cat.name != form.name.data:
+                new_cat = self.archive_and_recreate_category(cat, form)
                 cat = new_cat
 
             # Change parent category
@@ -401,20 +401,23 @@ class ContentManager:
         :return: The created GidGud instance.
         """
         user = user or current_user
-        form_dict = self.map_form_to_dict(form)
+        body = form.body.data
+        category = self.return_or_create_category(form.category.data)
 
-        # Ensure category is handled correctly
-        cat_name = form_dict.get('category', '')
-        form_dict['category'] = self.return_or_create_category(cat_name)
+        reset_timer = form.reset_timer.data or True
+        rec_val = form.rec_val.data or None
+        rec_unit = form.rec_unit.data or None
+        rec_instant = form.rec_instant.data or True
+        rec_custom = form.rec_custom.data or False
+        rec_next = form.rec_next.data or self.iso_now()
 
-        # Set default for reset_timer if not provided
-        if 'reset_timer' not in form_dict:
-            form_dict['reset_timer'] = True
+        rec_dict = {'reset_timer': reset_timer, 'rec_instant': rec_instant, 'rec_custom': rec_custom,'rec_next': rec_next, 'rec_val': rec_val, 'rec_unit': rec_unit}
+
 
         # Set recurrence values
-        form_dict['rec_val'], form_dict['rec_unit'], form_dict['rec_next'] = GidGud.set_rec(form_dict)
+        rec_val, rec_unit, rec_next = GidGud.set_rec(rec_dict)
 
-        gg = GidGud(user=user, **form_dict)
+        gg = GidGud(user=user, body=body, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
         db.session.add(gg)
         db.session.commit()
 
@@ -429,21 +432,31 @@ class ContentManager:
         :return: The updated GidGud instance.
         """
         gg = self.get_gidgud_by_id(id)
-        changes = self.map_form_to_dict(form)
+        user = gg.user
+        body = form.body.data
+        category = self.return_or_create_category(form.category.data)
 
-        # Handle category change
-        if 'category' in changes:
-            cat_name = changes['category']
-            changes['category'] = self.return_or_create_category(cat_name)
+        reset_timer = form.reset_timer.data or True
+        rec_val = form.rec_val.data or None
+        rec_unit = form.rec_unit.data or None
+        rec_instant = form.rec_instant.data or True
+        rec_custom = form.rec_custom.data or False
+        rec_next = gg.rec_next or form.rec_next.data
 
-        # Handle body change and archiving
-        if 'body' in changes and changes['body'] != gg.body:
-            gg = self.archive_and_recreate_gidgud(gg, changes)
+        rec_dict = {'reset_timer': reset_timer, 'rec_instant': rec_instant, 'rec_custom': rec_custom,'rec_next': rec_next, 'rec_val': rec_val, 'rec_unit': rec_unit}
 
         # Set recurrence values
-        changes['rec_val'], changes['rec_unit'], changes['rec_next'] = gg.set_rec(**changes)
+        rec_val, rec_unit, rec_next = gg.set_rec(rec_dict)
 
-        gg.update_gidgud(**changes)
+        # Handle body change and archiving
+        if body != gg.body:
+            gg = self.archive_and_recreate_gidgud(gg, form, user)
+        else:
+            gg.category = category
+            gg.rec_val = rec_val
+            gg.rec_unit = rec_unit
+            gg.rec_next = rec_next
+
         db.session.commit()
 
         return gg
@@ -462,12 +475,12 @@ class ContentManager:
         db.session.commit()
         return rec_next
 
-    def archive_and_recreate_gidgud(self, gg: GidGud, form_dict):
+    def archive_and_recreate_gidgud(self, gg: GidGud, form, user):
         """
         Archive the old GidGud and create a new one with updated data.
         """
         try:
-            new_gg = self.gidgud_create_from_form(form_dict)
+            new_gg = self.gidgud_create_from_form(form, user)
             is_archived = gg.archive_and_historize(new_gg)
             if is_archived:
                 return new_gg
