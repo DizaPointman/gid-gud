@@ -404,7 +404,7 @@ class ContentManager:
         body = form.body.data
         category = self.return_or_create_category(form.category.data)
 
-        reset_timer = False
+        reset_timer = form.reset_timer.data or False
         rec_val = form.rec_val.data or None
         rec_unit = form.rec_unit.data or None
         rec_instant = form.rec_instant.data or True

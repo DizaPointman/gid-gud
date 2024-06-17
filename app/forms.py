@@ -50,7 +50,7 @@ class EditProfileForm(FlaskForm):
 class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
-class GidGudForm(FlaskForm):
+class GidGudForm2(FlaskForm):
     body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_instant = BooleanField('Repeat Task')
@@ -59,7 +59,7 @@ class GidGudForm(FlaskForm):
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
     submit = SubmitField('Submit')
 
-class GidGudForm2(FlaskForm):
+class GidGudForm(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_instant = BooleanField('Always Repeat')
@@ -67,6 +67,7 @@ class GidGudForm2(FlaskForm):
     rec_custom = BooleanField('Custom Schedule')
     rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes'], validators=[Optional()])
+    rec_next = StringField('Placeholder for rec_next')
     # TODO: implement rec_next as 'Start at' with iso_now default in create route and 'Sleep until' with current value in edit route
     # rec_next = DateTimeField('Date and Time', format='%d/%m/%Y %H:%M', validators=[DataRequired()])
     # route GET - form.datetime.data = datetime.now().replace(second=0, microsecond=0)

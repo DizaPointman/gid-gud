@@ -150,7 +150,8 @@ def create_gidgud():
             session['form_data'] = {
                 'body': form.body.data,
                 'category': form.category.data,
-                'rec_instant': form.rec_instant.data
+                'rec_instant': form.rec_instant.data,
+                'rec_custom': form.rec_custom.data
             }
             if form.rec_custom.data:
                 new_customize_state = 'false' if customize else 'true'
@@ -161,6 +162,11 @@ def create_gidgud():
                 flash('New Gid created!')
                 session.pop('form_data', None)  # Clear form data from the session after successful submit
                 return redirect(url_for('routes.index'))
+            
+    elif request.method == 'GET':
+        form.reset_timer.data = True
+        form.rec_custom.data = False
+        form.rec_instant.data = False
 
     return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
 
@@ -206,9 +212,20 @@ def edit_gidgud(id):
     elif request.method == 'GET':
         form.body.data = gidgud.body
         form.category.data = gidgud.category.name
+        form.reset_timer.data = True
+        form.rec_next.data = gidgud.rec_next
         if gidgud.rec_val != 0:
             form.rec_val.data = gidgud.rec_val
             form.rec_unit.data = gidgud.rec_unit
+            form.rec_custom.data = True
+            form.rec_instant.data = False
+        elif gidgud.rec_val == 0:
+            form.rec_custom.data = False
+            form.rec_instant.data = True
+        else:
+            form.rec_custom.data = False
+            form.rec_instant.data = False
+
 
     return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
 
