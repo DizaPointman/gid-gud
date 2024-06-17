@@ -334,12 +334,6 @@ class GidGud(db.Model):
 
     # GidGud methods
 
-    def update_gidgud(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-        db.session.commit()
-        return self
-
     @staticmethod
     def set_rec(self, **kwargs):
 
