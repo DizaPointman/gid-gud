@@ -8,6 +8,13 @@ C-Man.inject()
 
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
+# Questions:
+1. Which attributes can be updated via setattr()
+2. Which attributes need further processing before updating
+3. Can we extract lines for further processing from form
+   - to feed rest of form to simple update func
+   - or update line in form and feed updated form to update func
+
 # TODO: GidGud Manager
 - funcs: create, update, archive_and_historize, map_form_new, map_form_update
 - check name/body -> mfn/mfu -> create + archive/update
