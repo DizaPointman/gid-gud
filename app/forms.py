@@ -76,7 +76,7 @@ class GidGudForm(FlaskForm):
     submit = SubmitField('Submit')
 
     def validate_rec_instant(self, rec_instant, rec_custom):
-        if rec_instant.data and rec_custom.data:
+        if rec_instant.data == True and rec_custom.data == True:
             raise ValidationError('Please choose either <Always Repeat> or <Custom Schedule>')
 
 class EditGidGudForm(FlaskForm):
