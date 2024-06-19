@@ -137,6 +137,9 @@ def create_gidgud():
     title = 'New GidGud'
 
     customize = request.args.get('customize', 'false') == 'true'
+    form.reset_timer.data = True
+    form.rec_custom.data = False
+    form.rec_instant.data = False
 
     # Prepopulate form data from the session
     if 'form_data' in session:
@@ -162,7 +165,7 @@ def create_gidgud():
                 flash('New Gid created!')
                 session.pop('form_data', None)  # Clear form data from the session after successful submit
                 return redirect(url_for('routes.index'))
-            
+
     elif request.method == 'GET':
         form.reset_timer.data = True
         form.rec_custom.data = False
@@ -179,8 +182,6 @@ def edit_gidgud(id):
     title = 'Edit GidGud'
     gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     customize = request.args.get('customize', 'false') == 'true'
-    if gidgud.rec_val != 0:
-        customize = 'true'
 
     # Prepopulate form data from the session
     if 'form_data' in session:
@@ -194,7 +195,9 @@ def edit_gidgud(id):
             session['form_data'] = {
                 'body': form.body.data,
                 'category': form.category.data,
-                'rec_instant': form.rec_instant.data
+                'rec_instant': form.rec_instant.data,
+                'rec_custom': form.rec_custom.data,
+                'reset_timer': form.reset_timer.data
             }
             if form.rec_custom.data:
                 new_customize_state = 'false' if customize else 'true'
@@ -212,7 +215,7 @@ def edit_gidgud(id):
     elif request.method == 'GET':
         form.body.data = gidgud.body
         form.category.data = gidgud.category.name
-        form.reset_timer.data = True
+        form.reset_timer.data = False
         form.rec_next.data = gidgud.rec_next
         if gidgud.rec_val != 0:
             form.rec_val.data = gidgud.rec_val
