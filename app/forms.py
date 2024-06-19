@@ -62,9 +62,9 @@ class GidGudForm2(FlaskForm):
 class GidGudForm(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
-    rec_instant = BooleanField('Always Repeat')
+    rec_instant = BooleanField('Always Repeat', default=False)
     change_view = SubmitField()
-    rec_custom = BooleanField('Custom Schedule')
+    rec_custom = BooleanField('Custom Schedule', default=False)
     rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes'], validators=[Optional()])
     rec_next = StringField('Placeholder for rec_next')
@@ -72,7 +72,7 @@ class GidGudForm(FlaskForm):
     # rec_next = DateTimeField('Date and Time', format='%d/%m/%Y %H:%M', validators=[DataRequired()])
     # route GET - form.datetime.data = datetime.now().replace(second=0, microsecond=0)
     # Template - <p>{{ form.datetime.label }}<br> <input type="datetime-local" name="datetime" value="{{ form.datetime.data.strftime('%Y-%m-%dT%H:%M') }}"></p>
-    reset_timer = BooleanField('Start Now')
+    reset_timer = BooleanField('Start Now', default=False)
     submit = SubmitField('Submit')
 
     def validate_rec_instant(self, rec_instant, rec_custom):

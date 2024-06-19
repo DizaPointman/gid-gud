@@ -137,9 +137,6 @@ def create_gidgud():
     title = 'New GidGud'
 
     customize = request.args.get('customize', 'false') == 'true'
-    form.reset_timer.data = True
-    form.rec_custom.data = False
-    form.rec_instant.data = False
 
     # Prepopulate form data from the session
     if 'form_data' in session:
@@ -154,7 +151,8 @@ def create_gidgud():
                 'body': form.body.data,
                 'category': form.category.data,
                 'rec_instant': form.rec_instant.data,
-                'rec_custom': form.rec_custom.data
+                'rec_custom': form.rec_custom.data,
+                'reset_timer': form.reset_timer.data
             }
             if form.rec_custom.data:
                 new_customize_state = 'false' if customize else 'true'
