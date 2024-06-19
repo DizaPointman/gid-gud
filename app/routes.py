@@ -150,9 +150,9 @@ def create_gidgud():
             session['form_data'] = {
                 'body': form.body.data,
                 'category': form.category.data,
-                'rec_instant': form.rec_instant.data,
-                'rec_custom': form.rec_custom.data,
-                'reset_timer': form.reset_timer.data
+                'rec_instant': form.rec_instant.data or form.rec_instant.default,
+                'rec_custom': form.rec_custom.data or form.rec_custom.default,
+                'reset_timer': form.reset_timer.data or form.reset_timer.default
             }
             if form.rec_custom.data:
                 new_customize_state = 'false' if customize else 'true'
