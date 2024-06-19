@@ -8,25 +8,10 @@ C-Man.inject()
 
 # FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
-# Questions:
-1. Which attributes can be updated via setattr()
-2. Which attributes need further processing before updating
-3. Can we extract lines for further processing from form
-   - to feed rest of form to simple update func
-   - or update line in form and feed updated form to update func
-
-# TODO: GidGud Manager
-- funcs: create, update, archive_and_historize, map_form_new, map_form_update
-- check name/body -> mfn/mfu -> create + archive/update
-- or map_form(param: update/create)
-# TODO: GidGud Schedule
-- implement simple/advance view parameter for create/edit gidgud route/template
-- display form fields depending on view param, use hidden and defaults
-- change button label depending on view param (simple/advance)
-- simple view: body, category, repeat checkbox
-- advanced view: simple + rec_val/rec_unit
-- on view change display flash 'changes not saved'
-- discard, view, apply buttons as submitfield
+# TODO: Finish Branch
+- fuck the visibility toggle
+- just display whole form, no view change
+- make it work again in the simplest, dirtiest, fastest way
 # TODO: handle archived objects
 - added archived_at as blacklisted for possible parents, children, parents for selection
 - need some general handling, a decorator?

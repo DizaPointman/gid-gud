@@ -52,15 +52,6 @@ class EditProfileForm(FlaskForm):
 class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
-class GidGudForm2(FlaskForm):
-    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    category = StringField('Category', validators=[Length(max=20)])
-    rec_instant = BooleanField('Repeat Task')
-    rec_custom = SubmitField('Custom Schedule')
-    rec_val = IntegerField('Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
-    rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
-    submit = SubmitField('Submit')
-
 class GidGudForm(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
