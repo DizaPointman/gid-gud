@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, render_template, flash, redirect, session, url_for, request
 from app.factory import db
-from app.forms import CreateGidForm, CreateGudForm, EmptyForm, GidGudForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from app.forms import EmptyForm, GidGudForm, LoginForm, RegistrationForm, EditProfileForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from app.managers.content_manager import ContentManager
@@ -136,13 +136,8 @@ def unfollow(username):
 def create_gidgud():
     title = 'New GidGud'
 
-    customize = request.args.get('customize', 'false') == 'true'
-
-    # Prepopulate form data from the session
-    if 'form_data' in session:
-        form = GidGudForm(data=session['form_data'])
-    else:
-        form = GidGudForm()
+    view = request.args.get('view', 'simple')
+    form = GidGudForm()
 
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -154,81 +149,93 @@ def create_gidgud():
                 'rec_custom': form.rec_custom.data or form.rec_custom.default,
                 'reset_timer': form.reset_timer.data or form.reset_timer.default
             }
-            if form.rec_custom.data:
-                new_customize_state = 'false' if customize else 'true'
-                return redirect(url_for('routes.create_gidgud', customize=new_customize_state, title=title))
+            if form.change_view.data:
+                # Preserve data and change view
+                view = 'advanced' if view == 'simple' else 'simple'
+                return redirect(url_for('routes.create_gidgud', view=view, title=title))
 
             elif form.submit.data:
-                gg = c_man.gidgud_create_from_form(form)
-                flash('New Gid created!')
-                session.pop('form_data', None)  # Clear form data from the session after successful submit
-                return redirect(url_for('routes.index'))
+                gidgud = c_man.gidgud_create_from_form(form)
+                if gidgud:
+                    flash('New Gid created!')
+                    session.pop('form_data', None)
+                    return redirect(url_for('routes.index'))
+                else:
+                    flash('Error creating new Gid.', 'error')
 
     elif request.method == 'GET':
-        form.reset_timer.data = True
-        form.rec_custom.data = False
-        form.rec_instant.data = False
+        form.reset_timer.data = form.reset_timer.default
+        form.rec_custom.data = form.rec_custom.default
+        form.rec_instant.data = form.rec_instant.default
 
-    return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
+    # Populate form with default values or session data if available
+    fields = form._fields.keys()
+    if 'form_data' in session:
+        c_man.populate_form(form, session['form_data'], fields)
+
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, view=view)
 
 @bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
-
-    # TODO: better display difference between instantly and the rest of repetition, remove repetition with checkbox
-
+    view = request.args.get('view', 'simple')
     title = 'Edit GidGud'
-    gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    customize = request.args.get('customize', 'false') == 'true'
+    form = GidGudForm()
 
-    # Prepopulate form data from the session
+    gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
+
+    if form.validate_on_submit():
+        if form.change_view.data:
+            # Preserve data and change view
+            session['form_data'] = {field: getattr(form, field).data for field in form._fields}
+            view = 'advanced' if view == 'simple' else 'simple'
+            return redirect(url_for('edit_gidgud', id=id, view=view, title=title))
+
+        if form.submit.data:
+            """
+            # Handle form submission
+            gidgud.body = form.body.data
+            gidgud.category = form.category.data
+            gidgud.rec_val = form.rec_val.data if form.rec_val.data is not None else None
+            gidgud.rec_unit = form.rec_unit.data if form.rec_unit.data != 'None' else None
+            gidgud.rec_next = form.rec_next.data.isoformat()
+            gidgud.reset_timer = form.reset_timer.data
+
+            # Determine rec_instant and rec_custom values based on rec_val and rec_unit
+            if gidgud.rec_val is None and gidgud.rec_unit is None:
+                gidgud.rec_instant = False
+                gidgud.rec_custom = False
+            elif gidgud.rec_val == 0 and gidgud.rec_unit is not None:
+                gidgud.rec_instant = True
+                gidgud.rec_custom = False
+            elif gidgud.rec_val > 0 and gidgud.rec_unit is not None:
+                gidgud.rec_instant = False
+                gidgud.rec_custom = True
+            """
+            gg = c_man.gidgud_update_from_form(id, form)
+
+            flash('Form submitted successfully!', 'success')
+            session.pop('form_data', None)  # Clear form data from session after submission
+            return redirect(url_for('index'))  # Assume you have a success page
+
+    # Populate form with default values or session data if available
+    fields = form._fields.keys()
     if 'form_data' in session:
-        form = GidGudForm(data=session['form_data'])
+        c_man.populate_form(form, session['form_data'], fields)
     else:
-        form = GidGudForm()
+        gidgud_data = {
+            'body': gidgud.body,
+            'category': gidgud.category,
+            'rec_instant': gidgud.rec_instant,
+            'rec_custom': gidgud.rec_custom,
+            'rec_val': gidgud.rec_val if gidgud.rec_val is not None else None,
+            'rec_unit': gidgud.rec_unit if gidgud.rec_unit is not None else 'None',
+            'rec_next': datetime.fromisoformat(gidgud.rec_next),
+            'reset_timer': gidgud.reset_timer
+        }
+        c_man.populate_form(form, gidgud_data, fields)
 
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            # Save form data to the session
-            session['form_data'] = {
-                'body': form.body.data,
-                'category': form.category.data,
-                'rec_instant': form.rec_instant.data,
-                'rec_custom': form.rec_custom.data,
-                'reset_timer': form.reset_timer.data
-            }
-            if form.rec_custom.data:
-                new_customize_state = 'false' if customize else 'true'
-                return redirect(url_for('routes.edit_gidgud', customize=new_customize_state, title=title, id=id))
-
-            elif form.submit.data:
-
-                c_man.gidgud_update_from_form(gidgud.id, form)
-                db.session.commit()
-
-                flash('GidGud successful edited!')
-                session.pop('form_data', None)  # Clear form data from the session after successful submit
-                return redirect(url_for('routes.index'))
-
-    elif request.method == 'GET':
-        form.body.data = gidgud.body
-        form.category.data = gidgud.category.name
-        form.reset_timer.data = False
-        form.rec_next.data = gidgud.rec_next
-        if gidgud.rec_val != 0:
-            form.rec_val.data = gidgud.rec_val
-            form.rec_unit.data = gidgud.rec_unit
-            form.rec_custom.data = True
-            form.rec_instant.data = False
-        elif gidgud.rec_val == 0:
-            form.rec_custom.data = False
-            form.rec_instant.data = True
-        else:
-            form.rec_custom.data = False
-            form.rec_instant.data = False
-
-
-    return render_template('create_or_edit_gidgud.html', title=title, form=form, customize=customize)
+    return render_template('create_or_edit_gidgud.html', form=form, view=view, title=title)
 
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required

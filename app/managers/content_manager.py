@@ -28,6 +28,28 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
+    def populate_form(form, data_source, fields):
+        for field in fields:
+            if hasattr(form, field) and hasattr(data_source, field):
+                getattr(form, field).data = getattr(data_source, field)
+            elif hasattr(form, field) and field in data_source:
+                getattr(form, field).data = data_source[field]
+
+        # Additional logic for rec_instant and rec_custom
+        if 'rec_val' in data_source and 'rec_unit' in data_source:
+            rec_val = data_source['rec_val']
+            rec_unit = data_source['rec_unit']
+
+            if rec_val is None and rec_unit is None:
+                form.rec_instant.data = False
+                form.rec_custom.data = False
+            elif rec_val == 0 and rec_unit is not None:
+                form.rec_instant.data = True
+                form.rec_custom.data = False
+            elif rec_val > 0 and rec_unit is not None:
+                form.rec_instant.data = False
+                form.rec_custom.data = True
+
     def map_form_to_dict(self, form):
         form_dict = {field_name: field_value for field_name, field_value in form.data.items()}
         return form_dict

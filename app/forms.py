@@ -1,5 +1,7 @@
+from datetime import datetime, timezone
 from flask_login import current_user
 from flask_wtf import FlaskForm
+from pytz import utc
 from wtforms import DateTimeField, SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional
 import sqlalchemy as sa
@@ -59,7 +61,7 @@ class GidGudForm2(FlaskForm):
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
     submit = SubmitField('Submit')
 
-class GidGudForm(FlaskForm):
+class GidGudForm2(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_instant = BooleanField('Always Repeat', default=False)
@@ -79,36 +81,21 @@ class GidGudForm(FlaskForm):
         if rec_instant.data == True and rec_custom.data == True:
             raise ValidationError('Please choose either <Always Repeat> or <Custom Schedule>')
 
-class EditGidGudForm(FlaskForm):
-    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
+class GidGudForm(FlaskForm):
+    body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
-    rec_val = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    rec_unit = SelectField('TimeUnit', choices=['instantly', 'days', 'weeks', 'months', 'hours', 'minutes'])
-    submit = SubmitField('Change GidGud')
+    rec_instant = BooleanField('Always Repeat', default=False)
+    change_view = SubmitField()
+    rec_custom = BooleanField('Custom Schedule', default=False)
+    rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
+    rec_unit = SelectField('TimeUnit', choices=[('None', 'None'), ('days', 'days'), ('weeks', 'weeks'), ('months', 'months'), ('years', 'years'), ('hours', 'hours'), ('minutes', 'minutes')], validators=[Optional()])
+    rec_next = DateTimeField('Start at', format='%Y-%m-%dT%H:%M', default=datetime.now(timezone.utc).replace(second=0, microsecond=0))
+    reset_timer = BooleanField('Start Now', default=False)
+    submit = SubmitField('Submit')
 
-    def validate_rec_unit(self, rec_unit):
-        if self.rec_val.data > 1 and rec_unit.data == 'instantly':
-            raise ValidationError('Please choose a time unit for recurrence.')
-        if self.rec_val.data == 0 and rec_unit.data != 'instantly':
-            raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
-
-class CreateGidForm(FlaskForm):
-    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    category = StringField('Category', validators=[Length(max=20)])
-    rec_val = IntegerField('Repeat after', validators=[NumberRange(min=0)], default=0)
-    rec_unit = SelectField('TimeUnit', choices=['instantly', 'days', 'weeks', 'months', 'hours', 'minutes'])
-    submit = SubmitField('Create Gid')
-
-    def validate_rec_unit(self, rec_unit):
-        if self.rec_val.data > 1 and rec_unit.data == 'instantly':
-            raise ValidationError('Please choose a TimeUnit for recurrence.')
-        if self.rec_val.data == 0 and rec_unit.data != 'instantly':
-            raise ValidationError(f'Please fill out Repeat after or set TimeUnit to None.')
-
-class CreateGudForm(FlaskForm):
-    body = StringField('Task', validators=[DataRequired(), Length(min=1, max=140)])
-    category = StringField('Category', validators=[Length(max=20)])
-    submit = SubmitField('Create Gud')
+    def validate_rec_instant(self, rec_instant):
+        if self.rec_instant.data and self.rec_custom.data:
+            raise ValidationError('Please choose either <Always Repeat> or <Custom Schedule>')
 
 class CreateCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])

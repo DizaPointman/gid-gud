@@ -3,44 +3,39 @@
 {% block content %}
 
 <h1>{{ title }}</h1>
-<form action="" method="post">
+<form method="post">
     {{ form.hidden_tag() }}
-    <input type="hidden" name="customize" value="{{ 'true' if customize else 'false' }}">
-    <p>
-        {{ form.body.label }} {{ form.body }}<br>
-        {% for error in form.body.errors %}
-        <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>
-        {{ form.category.label }} {{ form.category }}<br>
-        {% for error in form.category.errors %}
-        <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>Make the Task reappear again after Completion</p>
-    <p>{{ form.rec_instant() }} {{ form.rec_instant.label }}</p>
-    <p>Customize when the Task reappears after Completion</p>
-    <p>{{ form.rec_custom() }} {{ form.rec_custom.label }}</p>
-    <p>{{ form.rec_next.label }} {{ form.rec_next }}</p>
-
-    {% if customize %}
-        <!-- rec_val and rec_unit to display when rec_custom is checked -->
-        <p>
-            {{ form.rec_val.label }} {{ form.rec_val }}<br>
-            {% for error in form.rec_val.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.rec_unit.label }} {{ form.rec_unit }}<br>
-            {% for error in form.rec_unit.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
+    <div class="form-group">
+        {{ form.body.label }} {{ form.body(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.category.label }} {{ form.category(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.rec_instant.label }} {{ form.rec_instant(class="form-check-input") }}
+    </div>
+    <div class="form-group">
+        {{ form.rec_custom.label }} {{ form.rec_custom(class="form-check-input") }}
+    </div>
+    {% if view == 'advanced' %}
+        <div class="form-group">
+            {{ form.rec_val.label }} {{ form.rec_val(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.rec_unit.label }} {{ form.rec_unit(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.rec_next.label }}<br>
+            <input type="datetime-local" name="rec_next" value="{{ form.rec_next.data.strftime('%Y-%m-%dT%H:%M') }}" class="form-control">
+        </div>
+        <div class="form-group">
+            {{ form.reset_timer.label }} {{ form.reset_timer(class="form-check-input") }}
+        </div>
     {% endif %}
-
-    <p>{{ form.submit() }}</p>
+    <div class="form-group">
+        {{ form.submit(class="btn btn-primary") }}
+        {{ form.change_view(class="btn btn-secondary") }}
+    </div>
 </form>
 
 {% endblock %}
