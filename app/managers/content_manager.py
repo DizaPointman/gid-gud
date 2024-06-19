@@ -405,17 +405,21 @@ class ContentManager:
         category = self.return_or_create_category(form.category.data)
 
         reset_timer = form.reset_timer.data or False
-        rec_val = form.rec_val.data or None
-        rec_unit = form.rec_unit.data or None
         rec_instant = form.rec_instant.data or True
         rec_custom = form.rec_custom.data or False
         rec_next = form.rec_next.data or self.iso_now()
 
-        rec_dict = {'reset_timer': reset_timer, 'rec_instant': rec_instant, 'rec_custom': rec_custom,'rec_next': rec_next, 'rec_val': rec_val, 'rec_unit': rec_unit}
+        if not rec_instant and rec_custom:
+            rec_val = None
+            rec_unit = None
 
+        elif rec_instant:
+            rec_val = 0
+            rec_unit = 'daily'
 
-        # Set recurrence values
-        rec_val, rec_unit, rec_next = GidGud.set_rec(rec_dict)
+        elif rec_custom:
+            rec_val = form.rec_val.data
+            rec_unit = form.rec_unit.data
 
         gg = GidGud(user=user, body=body, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
         db.session.add(gg)
@@ -437,16 +441,24 @@ class ContentManager:
         category = self.return_or_create_category(form.category.data)
 
         reset_timer = form.reset_timer.data or True
-        rec_val = form.rec_val.data or None
-        rec_unit = form.rec_unit.data or None
         rec_instant = form.rec_instant.data or True
         rec_custom = form.rec_custom.data or False
         rec_next = gg.rec_next or form.rec_next.data
 
-        rec_dict = {'reset_timer': reset_timer, 'rec_instant': rec_instant, 'rec_custom': rec_custom,'rec_next': rec_next, 'rec_val': rec_val, 'rec_unit': rec_unit}
+        if not rec_instant and rec_custom:
+            rec_val = None
+            rec_unit = None
 
-        # Set recurrence values
-        rec_val, rec_unit, rec_next = gg.set_rec(rec_dict)
+        elif rec_instant:
+            rec_val = 0
+            rec_unit = 'daily'
+
+        elif rec_custom:
+            rec_val = form.rec_val.data
+            rec_unit = form.rec_unit.data
+
+        if reset_timer:
+            rec_next = self.iso_now()
 
         # Handle body change and archiving
         if body != gg.body:

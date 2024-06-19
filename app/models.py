@@ -334,27 +334,6 @@ class GidGud(db.Model):
 
     # GidGud methods
 
-    @staticmethod
-    def set_rec(self, **kwargs):
-
-        if kwargs.get('reset_timer'):
-            rec_next = self.rec_next_datetime(datetime.now(utc))
-        else:
-            rec_next = kwargs.get('rec_next', iso_now())
-
-        rec_val = None
-        rec_unit = None
-
-        if kwargs.get('rec_instant'):
-            rec_val = 0
-            rec_unit = 'days'
-        elif kwargs.get('rec_custom'):
-            rec_val = kwargs.get('rec_val')
-            rec_unit = kwargs.get('rec_unit')
-
-        return rec_val, rec_unit, rec_next
-
-
     def update_rec_next(self, timestamp: datetime):
 
         if self.rec_val and self.rec_unit:
