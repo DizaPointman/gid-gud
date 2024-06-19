@@ -240,8 +240,8 @@ class GidGud(db.Model):
     completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='gidgud', lazy=True)
 
     # Recurrence
-    rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), nullable=True)
-    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"), nullable=True)
+    rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', 'No Rep', name="recurrence_units"), default='No Rep')
     rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     # Specification
@@ -336,7 +336,7 @@ class GidGud(db.Model):
 
     def update_rec_next(self, timestamp: datetime):
 
-        if self.rec_val and self.rec_unit:
+        if self.rec_unit != 'No Rep':
 
             delta = timedelta(**{self.rec_unit: self.rec_val})
             rec_next = timestamp + delta
@@ -346,8 +346,6 @@ class GidGud(db.Model):
             return rec_next
 
         else:
-            self.rec_unit = None
-            self.rec_val = None
             self.rec_next = None
             db.session.commit()
             return False

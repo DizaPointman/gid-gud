@@ -61,34 +61,14 @@ class GidGudForm2(FlaskForm):
     rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes', 'instantly'], validators=[Optional()])
     submit = SubmitField('Submit')
 
-class GidGudForm2(FlaskForm):
-    body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
-    category = StringField('Category', validators=[Length(max=20)])
-    rec_instant = BooleanField('Always Repeat', default=False)
-    change_view = SubmitField()
-    rec_custom = BooleanField('Custom Schedule', default=False)
-    rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
-    rec_unit = SelectField('TimeUnit', choices=['days', 'weeks', 'months', 'years', 'hours', 'minutes'], validators=[Optional()])
-    rec_next = StringField('Placeholder for rec_next')
-    # TODO: implement rec_next as 'Start at' with iso_now default in create route and 'Sleep until' with current value in edit route
-    # rec_next = DateTimeField('Date and Time', format='%d/%m/%Y %H:%M', validators=[DataRequired()])
-    # route GET - form.datetime.data = datetime.now().replace(second=0, microsecond=0)
-    # Template - <p>{{ form.datetime.label }}<br> <input type="datetime-local" name="datetime" value="{{ form.datetime.data.strftime('%Y-%m-%dT%H:%M') }}"></p>
-    reset_timer = BooleanField('Start Now', default=False)
-    submit = SubmitField('Submit')
-
-    def validate_rec_instant(self, rec_instant, rec_custom):
-        if rec_instant.data == True and rec_custom.data == True:
-            raise ValidationError('Please choose either <Always Repeat> or <Custom Schedule>')
-
 class GidGudForm(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])
     rec_instant = BooleanField('Always Repeat', default=False)
     change_view = SubmitField()
     rec_custom = BooleanField('Custom Schedule', default=False)
-    rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)])
-    rec_unit = SelectField('TimeUnit', choices=[('None', 'None'), ('days', 'days'), ('weeks', 'weeks'), ('months', 'months'), ('years', 'years'), ('hours', 'hours'), ('minutes', 'minutes')], validators=[Optional()])
+    rec_val = IntegerField('Timer Frequency', validators=[Optional(), NumberRange(min=0, max=999999)], default=0)
+    rec_unit = SelectField('TimeUnit', choices=[('No Rep', 'No Rep'), ('days', 'days'), ('weeks', 'weeks'), ('months', 'months'), ('years', 'years'), ('hours', 'hours'), ('minutes', 'minutes')], validators=[Optional()], default='No Rep')
     rec_next = DateTimeField('Start at', format='%Y-%m-%dT%H:%M', default=datetime.now(timezone.utc).replace(second=0, microsecond=0))
     reset_timer = BooleanField('Start Now', default=False)
     submit = SubmitField('Submit')

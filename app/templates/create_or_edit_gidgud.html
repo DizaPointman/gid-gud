@@ -5,39 +5,48 @@
 <h1>{{ title }}</h1>
 <form method="post">
     {{ form.hidden_tag() }}
-    <div class="form-group">
-        {{ form.body.label }} {{ form.body(class="form-control") }}
+    <div>
+        {{ form.body.label }} {{ form.body() }}
     </div>
-    <div class="form-group">
-        {{ form.category.label }} {{ form.category(class="form-control") }}
+    <div>
+        {{ form.category.label }} {{ form.category() }}
     </div>
-    <div class="form-group">
-        {{ form.rec_instant.label }} {{ form.rec_instant(class="form-check-input") }}
+    <div>
+        {{ form.rec_instant.label }} {{ form.rec_instant() }}
     </div>
-    <div class="form-group">
-        {{ form.rec_custom.label }} {{ form.rec_custom(class="form-check-input") }}
+    <div>
+        {{ form.rec_custom.label }} {{ form.rec_custom() }}
     </div>
-    {% if view == 'advanced' %}
-        <div class="form-group">
-            {{ form.rec_val.label }} {{ form.rec_val(class="form-control") }}
+    <div>
+        {{ form.change_view() }}
+    </div>
+    {% if view == 'simple' %}
+        {{ form.rec_val(type="hidden") }}
+        {{ form.rec_unit(type="hidden") }}
+    {% else %}
+        <div>
+            {{ form.rec_val.label }} {{ form.rec_val() }}
         </div>
-        <div class="form-group">
-            {{ form.rec_unit.label }} {{ form.rec_unit(class="form-control") }}
-        </div>
-        <div class="form-group">
-            {{ form.rec_next.label }}<br>
-            <input type="datetime-local" name="rec_next" value="{{ form.rec_next.data.strftime('%Y-%m-%dT%H:%M') }}" class="form-control">
-        </div>
-        <div class="form-group">
-            {{ form.reset_timer.label }} {{ form.reset_timer(class="form-check-input") }}
+        <div>
+            {{ form.rec_unit.label }} {{ form.rec_unit() }}
         </div>
     {% endif %}
-    <div class="form-group">
-        {{ form.submit(class="btn btn-primary") }}
-        {{ form.change_view(class="btn btn-secondary") }}
+    <div>
+        {{ form.rec_next.label }}<br>
+        <input type="datetime-local" name="rec_next" value="{{ form.rec_next.data.strftime('%Y-%m-%dT%H:%M') }}">
+    </div>
+    <div>
+        {{ form.reset_timer.label }} {{ form.reset_timer() }}
+    </div>
+    <div>
+        {{ form.submit() }}
     </div>
 </form>
 
+{% endblock %}
+
+{% block feed %}
+    {% include "_gidgud_feed.html" %}
 {% endblock %}
 
 {% block feed %}

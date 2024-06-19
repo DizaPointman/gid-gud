@@ -141,16 +141,20 @@ def create_gidgud():
 
     if request.method == 'POST':
         if form.validate_on_submit():
-            # Save form data to the session
-            session['form_data'] = {
+            form_data = {
                 'body': form.body.data,
                 'category': form.category.data,
                 'rec_instant': form.rec_instant.data or form.rec_instant.default,
                 'rec_custom': form.rec_custom.data or form.rec_custom.default,
-                'reset_timer': form.reset_timer.data or form.reset_timer.default
+                'rec_val': form.rec_val.data or form.rec_val.default,
+                'rec_unit': form.rec_unit.data or form.rec_unit.default,
+                'rec_next': form.rec_next.data or form.rec_next.default(),
+                'reset_timer': form.reset_timer.data or form.reset_timer.default,
             }
+
             if form.change_view.data:
                 # Preserve data and change view
+                session['form_data'] = form_data
                 view = 'advanced' if view == 'simple' else 'simple'
                 return redirect(url_for('routes.create_gidgud', view=view, title=title))
 
@@ -164,14 +168,20 @@ def create_gidgud():
                     flash('Error creating new Gid.', 'error')
 
     elif request.method == 'GET':
-        form.reset_timer.data = form.reset_timer.default
-        form.rec_custom.data = form.rec_custom.default
-        form.rec_instant.data = form.rec_instant.default
+        form_data = {
+            'reset_timer': form.reset_timer.default,
+            'rec_custom': form.rec_custom.default,
+            'rec_instant': form.rec_instant.default,
+            'rec_val': 0,
+            'rec_unit': 'No Rep',
+        }
 
     # Populate form with default values or session data if available
     fields = form._fields.keys()
     if 'form_data' in session:
         c_man.populate_form(form, session['form_data'], fields)
+    else:
+        c_man.populate_form(form, form_data, fields)
 
     return render_template('create_or_edit_gidgud.html', title=title, form=form, view=view)
 
@@ -184,56 +194,49 @@ def edit_gidgud(id):
 
     gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
 
-    if form.validate_on_submit():
-        if form.change_view.data:
-            # Preserve data and change view
-            session['form_data'] = {field: getattr(form, field).data for field in form._fields}
-            view = 'advanced' if view == 'simple' else 'simple'
-            return redirect(url_for('edit_gidgud', id=id, view=view, title=title))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form_data = {
+                'body': form.body.data,
+                'category': form.category.data,
+                'rec_instant': form.rec_instant.data or form.rec_instant.default,
+                'rec_custom': form.rec_custom.data or form.rec_custom.default,
+                'rec_val': form.rec_val.data or form.rec_val.default,
+                'rec_unit': form.rec_unit.data or form.rec_unit.default,
+                'rec_next': form.rec_next.data or form.rec_next.default(),
+                'reset_timer': form.reset_timer.data or form.reset_timer.default,
+            }
 
-        if form.submit.data:
-            """
-            # Handle form submission
-            gidgud.body = form.body.data
-            gidgud.category = form.category.data
-            gidgud.rec_val = form.rec_val.data if form.rec_val.data is not None else None
-            gidgud.rec_unit = form.rec_unit.data if form.rec_unit.data != 'None' else None
-            gidgud.rec_next = form.rec_next.data.isoformat()
-            gidgud.reset_timer = form.reset_timer.data
+            if form.change_view.data:
+                # Preserve data and change view
+                session['form_data'] = form_data
+                view = 'advanced' if view == 'simple' else 'simple'
+                return redirect(url_for('routes.edit_gidgud', id=id, view=view, title=title))
 
-            # Determine rec_instant and rec_custom values based on rec_val and rec_unit
-            if gidgud.rec_val is None and gidgud.rec_unit is None:
-                gidgud.rec_instant = False
-                gidgud.rec_custom = False
-            elif gidgud.rec_val == 0 and gidgud.rec_unit is not None:
-                gidgud.rec_instant = True
-                gidgud.rec_custom = False
-            elif gidgud.rec_val > 0 and gidgud.rec_unit is not None:
-                gidgud.rec_instant = False
-                gidgud.rec_custom = True
-            """
-            gg = c_man.gidgud_update_from_form(id, form)
+            elif form.submit.data:
+                gg = c_man.gidgud_update_from_form(id, form)
+                flash('Form submitted successfully!', 'success')
+                session.pop('form_data', None)  # Clear form data from session after submission
+                return redirect(url_for('index'))  # Assume you have a success page
 
-            flash('Form submitted successfully!', 'success')
-            session.pop('form_data', None)  # Clear form data from session after submission
-            return redirect(url_for('index'))  # Assume you have a success page
+    elif request.method == 'GET':
+        form_data = {
+            'body': gidgud.body,
+            'category': gidgud.category,
+            'rec_instant': gidgud.rec_instant,
+            'rec_custom': gidgud.rec_custom,
+            'rec_val': gidgud.rec_val if gidgud.rec_val is not None else 0,
+            'rec_unit': gidgud.rec_unit if gidgud.rec_unit is not None else 'No Rep',
+            'rec_next': gidgud.rec_next,
+            'reset_timer': gidgud.reset_timer,
+        }
 
     # Populate form with default values or session data if available
     fields = form._fields.keys()
     if 'form_data' in session:
         c_man.populate_form(form, session['form_data'], fields)
     else:
-        gidgud_data = {
-            'body': gidgud.body,
-            'category': gidgud.category,
-            'rec_instant': gidgud.rec_instant,
-            'rec_custom': gidgud.rec_custom,
-            'rec_val': gidgud.rec_val if gidgud.rec_val is not None else None,
-            'rec_unit': gidgud.rec_unit if gidgud.rec_unit is not None else 'None',
-            'rec_next': datetime.fromisoformat(gidgud.rec_next),
-            'reset_timer': gidgud.reset_timer
-        }
-        c_man.populate_form(form, gidgud_data, fields)
+        c_man.populate_form(form, form_data, fields)
 
     return render_template('create_or_edit_gidgud.html', form=form, view=view, title=title)
 

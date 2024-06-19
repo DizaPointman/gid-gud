@@ -35,20 +35,22 @@ class ContentManager:
             elif hasattr(form, field) and field in data_source:
                 getattr(form, field).data = data_source[field]
 
-        # Additional logic for rec_instant and rec_custom
-        if 'rec_val' in data_source and 'rec_unit' in data_source:
-            rec_val = data_source['rec_val']
-            rec_unit = data_source['rec_unit']
+        # Additional logic for rec_val and rec_unit based on rec_instant and rec_custom
+        if 'rec_instant' in data_source and 'rec_custom' in data_source:
+            rec_instant = data_source['rec_instant']
+            rec_custom = data_source['rec_custom']
 
-            if rec_val is None and rec_unit is None:
-                form.rec_instant.data = False
-                form.rec_custom.data = False
-            elif rec_val == 0 and rec_unit is not None:
-                form.rec_instant.data = True
-                form.rec_custom.data = False
-            elif rec_val > 0 and rec_unit is not None:
-                form.rec_instant.data = False
-                form.rec_custom.data = True
+            if not rec_instant and not rec_custom:
+                form.rec_val.data = 0
+                form.rec_unit.data = 'No Rep'
+            elif rec_instant and not rec_custom:
+                form.rec_val.data = 0
+                form.rec_unit.data = 'daily'
+            elif rec_custom and not rec_instant:
+                if 'rec_val' in data_source:
+                    form.rec_val.data = data_source['rec_val']
+                if 'rec_unit' in data_source:
+                    form.rec_unit.data = data_source['rec_unit']
 
     def map_form_to_dict(self, form):
         form_dict = {field_name: field_value for field_name, field_value in form.data.items()}
@@ -431,7 +433,7 @@ class ContentManager:
         rec_custom = form.rec_custom.data or False
         rec_next = form.rec_next.data or self.iso_now()
 
-        if not rec_instant and rec_custom:
+        if not rec_instant and not rec_custom:
             rec_val = None
             rec_unit = None
 
@@ -443,7 +445,7 @@ class ContentManager:
             rec_val = form.rec_val.data
             rec_unit = form.rec_unit.data
 
-        gg = GidGud(user=user, body=body, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+        gg = GidGud(author=user, body=body, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
         db.session.add(gg)
         db.session.commit()
 
@@ -463,21 +465,11 @@ class ContentManager:
         category = self.return_or_create_category(form.category.data)
 
         reset_timer = form.reset_timer.data
-        rec_instant = form.rec_instant.data or True
-        rec_custom = form.rec_custom.data or False
+        rec_instant = form.rec_instant.data
+        rec_custom = form.rec_custom.data
         rec_next = gg.rec_next or form.rec_next.data
-
-        if not rec_instant and rec_custom:
-            rec_val = None
-            rec_unit = None
-
-        elif rec_instant:
-            rec_val = 0
-            rec_unit = 'daily'
-
-        elif rec_custom:
-            rec_val = form.rec_val.data
-            rec_unit = form.rec_unit.data
+        rec_val = form.rec_val.data
+        rec_unit = form.rec_unit.data
 
         if reset_timer:
             rec_next = self.iso_now()
