@@ -429,23 +429,27 @@ class ContentManager:
         category = self.return_or_create_category(form.category.data)
 
         reset_timer = form.reset_timer.data or False
-        rec_instant = form.rec_instant.data or True
-        rec_custom = form.rec_custom.data or False
+        rec_instant = form.rec_instant.data
+        rec_custom = form.rec_custom.data
+        # TODO: check that data is datetime object
         rec_next = form.rec_next.data or self.iso_now()
 
         if not rec_instant and not rec_custom:
-            rec_val = None
-            rec_unit = None
+            rec = False
+            rec_val = 0
+            rec_unit = 'daily'
 
         elif rec_instant:
+            rec = True
             rec_val = 0
             rec_unit = 'daily'
 
         elif rec_custom:
+            rec = True
             rec_val = form.rec_val.data
             rec_unit = form.rec_unit.data
 
-        gg = GidGud(author=user, body=body, category=category, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
+        gg = GidGud(author=user, body=body, category=category, rec=rec, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
         db.session.add(gg)
         db.session.commit()
 
@@ -468,19 +472,29 @@ class ContentManager:
         rec_instant = form.rec_instant.data
         rec_custom = form.rec_custom.data
         rec_next = gg.rec_next or form.rec_next.data
-        rec_val = form.rec_val.data
-        rec_unit = form.rec_unit.data
 
         if reset_timer:
-            rec_next = self.iso_now()
+            gg.rec_next = self.iso_now()
 
         # Handle body change and archiving
         if body != gg.body:
             gg = self.archive_and_recreate_gidgud(gg, form, user)
         else:
+            if not rec_instant and not rec_custom:
+                gg.rec = False
+                gg.rec_val = 0
+                gg.rec_unit = 'daily'
+
+            elif rec_instant:
+                gg.rec = True
+                gg.rec_val = 0
+                gg.rec_unit = 'daily'
+
+            elif rec_custom:
+                gg.rec = True
+                gg.rec_val = form.rec_val.data
+                gg.rec_unit = form.rec_unit.data
             gg.category = category
-            gg.rec_val = rec_val
-            gg.rec_unit = rec_unit
             gg.rec_next = rec_next
 
         db.session.commit()

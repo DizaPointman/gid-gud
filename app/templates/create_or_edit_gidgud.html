@@ -18,19 +18,11 @@
         {{ form.rec_custom.label }} {{ form.rec_custom() }}
     </div>
     <div>
-        {{ form.change_view() }}
+        {{ form.rec_val.label }} {{ form.rec_val() }}
     </div>
-    {% if view == 'simple' %}
-        {{ form.rec_val(type="hidden") }}
-        {{ form.rec_unit(type="hidden") }}
-    {% else %}
-        <div>
-            {{ form.rec_val.label }} {{ form.rec_val() }}
-        </div>
-        <div>
-            {{ form.rec_unit.label }} {{ form.rec_unit() }}
-        </div>
-    {% endif %}
+    <div>
+        {{ form.rec_unit.label }} {{ form.rec_unit() }}
+    </div>
     <div>
         {{ form.rec_next.label }}<br>
         <input type="datetime-local" name="rec_next" value="{{ form.rec_next.data.strftime('%Y-%m-%dT%H:%M') }}">
