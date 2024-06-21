@@ -4,24 +4,24 @@
 
     <h1>Hello, {{ current_user.username }}! This is your statistic</h1>
     <div>
-        <p>Open Gids</p>
+        <p>Active GidGuds</p>
         <div>
-            {% for gidgud in gidguds['gids'] %}
+            {% for gg in ggs %}
                 {% include '_gidgud.html' %}
             {% endfor %}
         </div>
 
-        <p>Waiting for next occurrence</p>
+        <p>Inactive GidGuds</p>
         <div>
-            {% for gidgud in gidguds['sleep'] %}
+            {% for gg in igs %}
                 {% include '_gidgud.html' %}
             {% endfor %}
         </div>
 
-        <p>completed_at Guds</p>
+        <p>Completed GidGuds</p>
         <div>
-            {% for gidgud in gidguds['guds'] %}
-                {% include '_gidgud.html' %}
+            {% for cg in cgs %}
+                {% include '_completed_gg.html' %}
             {% endfor %}
         </div>
     </div>

@@ -24,8 +24,8 @@ c_man = ContentManager()
 @login_required
 def index():
     c_man.test_cm()
-    gidguds = c_man.get_active_gidguds(current_user)
-    return render_template('index.html', title='Home', gidguds=gidguds)
+    ggs = c_man.get_active_gidguds(current_user)
+    return render_template('index.html', title='Home', ggs=ggs)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -136,7 +136,7 @@ def unfollow(username):
 def create_gidgud():
     title = 'New GidGud'
     form = GidGudForm()
-    gidguds = c_man.get_active_gidguds(current_user)
+    ggs = c_man.get_active_gidguds(current_user)
 
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -148,14 +148,14 @@ def create_gidgud():
         for field_name, field in form._fields.items():
             field.data = field.default
 
-    return render_template('create_or_edit_gidgud.html', title=title, form=form, gidguds=gidguds)
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, ggs=ggs)
 
 @bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
     title = 'Edit GidGud'
     form = GidGudForm()
-    gidguds = c_man.get_active_gidguds(current_user)
+    ggs = c_man.get_active_gidguds(current_user)
 
     gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
 
@@ -175,7 +175,7 @@ def edit_gidgud(id):
             else:
                 field.data = getattr(gidgud, field_name, field.default)
 
-    return render_template('create_or_edit_gidgud.html', form=form, title=title, gidguds=gidguds)
+    return render_template('create_or_edit_gidgud.html', form=form, title=title, ggs=ggs)
 
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -296,19 +296,19 @@ def delete_category(id):
 @login_required
 def statistics(username):
 
-    gidguds = c_man.get_active_gidguds(current_user)
-    completions = c_man.get_completed_gidguds(current_user)
-    current_app.logger.info(f"{gidguds}")
+    ggs = c_man.get_active_gidguds(current_user)
+    igs = c_man.get_inactive_gidguds(current_user)
+    cgs = c_man.get_completed_gidguds(current_user)
 
-    return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
+    return render_template('statistics.html', title='My Statistic', ggs=ggs, igs=igs, cgs=cgs)
 
 @bp.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    gidguds = c_man.get_active_gidguds(current_user)
+    ggs = c_man.get_active_gidguds(current_user)
     form = EmptyForm()
-    return render_template('user.html', user=user, gidguds=gidguds, form=form)
+    return render_template('user.html', user=user, ggs=ggs, form=form)
 
 @bp.before_request
 def before_request():
