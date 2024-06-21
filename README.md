@@ -6,19 +6,10 @@ C_Man and G_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
-# FIXME: maybe add [all_ancestors] and/or [all_descendants] as field or auxiliary table to avoid blacklist recursion
 
-# TODO: Finish Branch
-- fuck the visibility toggle
-- just display whole form, no view change
-- make it work again in the simplest, dirtiest, fastest way
-# TODO: handle archived objects
-- added archived_at as blacklisted for possible parents, children, parents for selection
-- need some general handling, a decorator?
-- somehow flag archived_at items as excluded from rest of logic
-# TODO: Tests for GidGud Manager
-# TODO: Tests for routes
-# TODO: implement add children function with multiple selectfield
+
+# TODO: Tests for Content Manager
+# TODO: Tests for Routes
 
 
 # Security

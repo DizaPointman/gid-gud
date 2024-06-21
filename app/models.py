@@ -358,8 +358,6 @@ class GidGud(db.Model):
 
     def add_completion_entry(self, timestamp: datetime, custom_data=None):
 
-        # TODO: Make use of dictionary override in object
-        # add , **custom_data and it will override every attribute that's provided in custom_data
         completion = CompletionTable(
             gidgud_id=self.id,
             user_id=self.user_id,
@@ -369,6 +367,8 @@ class GidGud(db.Model):
             completed_at=timestamp.isoformat()
         )
 
+        # TODO: Make use of dictionary override in object
+        # add , **custom_data and it will override every attribute that's provided in custom_data
         """
         type_of_unit=custom_data.get('type_of_unit', self.type_of_unit),
         base_amount=custom_data.get('base_amount', self.base_amount),

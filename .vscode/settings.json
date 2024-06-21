@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "dateutil",
         "gid",
         "gidgud",
         "gidguds",
@@ -8,8 +9,13 @@
         "guds",
         "historize",
         "isouter",
+        "joinedload",
+        "ondelete",
         "primaryjoin",
         "pytz",
+        "reas",
+        "recr",
+        "relativedelta",
         "secondaryjoin",
         "selectinload",
         "sqlalchemy",

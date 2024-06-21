@@ -34,7 +34,6 @@ class ContentManager:
         return form_dict
 
     def get_user_by_id(self, id) -> User:
-        # FIXME: implement this error handling for database critical functions
         try:
             user = User.query.filter_by(id=id).first()
             if user is None:
@@ -264,10 +263,6 @@ class ContentManager:
         """
         Update an existing category based on the form data.
         """
-
-        # TODO: new_cc = cc.archive_and_recreate(self, changes)
-        # FIXME: Make this as beautiful as everything I built the last 48h
-
         try:
 
             cat = self.get_category_by_id(id)
@@ -344,10 +339,6 @@ class ContentManager:
 
     def gidgud_handle_update(self, gidgud, form):
 
-        # TODO: if gidgud.completed_at is not None, create a new gidgud and return it, archive old gidgud
-        # TODO: only create new when body, category, unit or times is changed, not on rec rhythm change
-        # TODO: make sure data from edit is correctly applied if rec_val and/or rec_unit is missing (None)
-
         try:
             if gidgud.completed_at is None:
 
@@ -409,7 +400,6 @@ class ContentManager:
         reset_timer = form.reset_timer.data or False
         rec_instant = form.rec_instant.data
         rec_custom = form.rec_custom.data
-        # TODO: check that data is datetime object
         rec_next = form.rec_next.data.isoformat() or self.iso_now()
 
         if not rec_instant and not rec_custom:

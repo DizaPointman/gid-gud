@@ -229,7 +229,6 @@ def create_category():
 @bp.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
-    # TODO: add multiple children at once
 
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     delete_afterwards = bool(request.args.get('dla'))
