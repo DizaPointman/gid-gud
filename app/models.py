@@ -238,7 +238,7 @@ class GidGud(db.Model):
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey(Category.id), index=True)
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
-    completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='gidgud', lazy=True)
+    completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='gidgud', cascade="all, delete-orphan", lazy=True)
 
     # Recurrence
     rec: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False, index=True)
@@ -386,7 +386,7 @@ class GidGud(db.Model):
 class CompletionTable(db.Model):
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id), nullable=False)
+    gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id, ondelete="CASCADE"), nullable=False)
     gidgud: so.Mapped['GidGud'] = so.relationship('GidGud', back_populates='completions')
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
     category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
