@@ -7,7 +7,7 @@ from pytz import utc
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, ProgrammingError, DatabaseError
 import sqlalchemy as sa
 from app.utils import handle_exception, log_exception
-from app.models import Category, GidGud, User
+from app.models import Category, CompletionTable, GidGud, User
 from app.factory import db
 
 
@@ -485,7 +485,10 @@ class ContentManager:
 
         gg.add_completion_entry(timestamp, custom_data)
         rec_next = gg.update_rec_next(timestamp)
-        if rec_next is None: gg.archived_at_datetime = timestamp
+        if rec_next is None:
+            gg.archived_at_datetime = timestamp
+            gg.rec_val = None
+            gg.rec_unit = None
         gg.modified_at_datetime = timestamp
 
         db.session.commit()
@@ -510,47 +513,33 @@ class ContentManager:
             db.session.rollback()
             return None
 
+    def get_active_gidguds(self, user):
 
-            choices = ['gids', 'guds', 'sleep', 'all']
-            gidgud_dict = {}
-            gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
+        now = datetime.now(utc).isoformat()
 
-            try:
-                if 'all' in choice:
-                    gidguds = db.session.execute(sa.select(GidGud).where(current_user == GidGud.author)).scalars().all()
-                    gidgud_dict['all'] = gidguds
+        gidguds = db.session.execute(
+            sa.select(GidGud).where(
+                (GidGud.author == user) &
+                (GidGud.archived_at == None) &
+                ((GidGud.rec_next == None) | (GidGud.rec_next <= now))
+            ).order_by(GidGud.created_at.desc())
+        ).scalars()
+        return gidguds
 
-                if 'guds' in choice:
-                    guds = db.session.execute(
-                        sa.select(GidGud)
-                        .where((current_user == GidGud.author) & (GidGud.completed_at.isnot(None)))
-                    ).scalars().all()
-                    gidgud_dict['guds'] = guds
+    def get_inactive_gidguds(self, user):
 
-                if 'gids' in choice or 'sleep' in choice:
-                    gids_and_sleep = db.session.scalars(
-                        sa.select(GidGud)
-                        .where((current_user == GidGud.author) & (GidGud.completed_at.is_(None)))
-                    )
-                    gids = []
-                    sleep = []
+        now = datetime.now(utc).isoformat()
 
-                    for gidgud in gids_and_sleep:
-                        if 'gids' in choice:
-                            if not gidgud.rec_next or (self.check_sleep(gidgud) <= 0):
-                                gids.append(gidgud)
-                        if 'sleep' in choice:
-                            if gidgud.rec_next and self.check_sleep(gidgud) > 0:
-                                sleep.append(gidgud)
+        gidguds = db.session.execute(
+            sa.select(GidGud).where(
+                (GidGud.author == user) &
+                (GidGud.archived_at == None) &
+                ((GidGud.rec_next == None) | (GidGud.rec_next >= now))
+            ).order_by(GidGud.created_at.desc())
+        ).scalars()
+        return gidguds
 
-                    if 'gids' in choice:
-                        gidgud_dict['gids'] = gids
-                    if 'sleep' in choice:
-                        gidgud_dict['sleep'] = sleep
+    def get_completed_gidguds(self, user):
 
-                return gidgud_dict
-
-            except Exception as e:
-                # Log any exceptions that occur during the process
-                log_exception(e)
-                return False
+        completions = db.session.scalars(sa.select(CompletionTable).where(CompletionTable.user_id == user.id).order_by(CompletionTable.completed_at.desc()))
+        return completions

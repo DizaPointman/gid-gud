@@ -24,7 +24,7 @@ c_man = ContentManager()
 @login_required
 def index():
     c_man.test_cm()
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    gidguds = c_man.get_active_gidguds(current_user)
     return render_template('index.html', title='Home', gidguds=gidguds)
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -136,7 +136,7 @@ def unfollow(username):
 def create_gidgud():
     title = 'New GidGud'
     form = GidGudForm()
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    gidguds = c_man.get_active_gidguds(current_user)
 
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -155,7 +155,7 @@ def create_gidgud():
 def edit_gidgud(id):
     title = 'Edit GidGud'
     form = GidGudForm()
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    gidguds = c_man.get_active_gidguds(current_user)
 
     gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
 
@@ -296,8 +296,8 @@ def delete_category(id):
 @login_required
 def statistics(username):
 
-    possible_choices = ['all', 'gids', 'sleep', 'guds']
-    gidguds = c_man.gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
+    gidguds = c_man.get_active_gidguds(current_user)
+    completions = c_man.get_completed_gidguds(current_user)
     current_app.logger.info(f"{gidguds}")
 
     return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
@@ -306,7 +306,7 @@ def statistics(username):
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    gidguds = c_man.get_active_gidguds(current_user)
     form = EmptyForm()
     return render_template('user.html', user=user, gidguds=gidguds, form=form)
 

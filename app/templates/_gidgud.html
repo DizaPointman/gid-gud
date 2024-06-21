@@ -8,7 +8,6 @@
         <td>Recurrence Rhythm: {{ gidgud.rec_val }}</td>
         <td>Time Unit: {{ gidgud.rec_unit }}</td>
         <td>Next Occurrence: {{ gidgud.rec_next }}</td>
-        <td>completed_at: {{ gidgud.completed_at }}</td>
     </tr>
     <tr>
         <td><a href="{{ url_for('routes.complete_gidgud', id=gidgud.id) }}">COMPLETE</a></td>
