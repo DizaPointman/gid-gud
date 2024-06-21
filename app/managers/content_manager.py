@@ -304,6 +304,7 @@ class ContentManager:
 
                 flash(f"Child categories from <{old_name}> reassigned to <{reas_cc.name}>!")
 
+            cat.modified_at_datetime = datetime.now(utc)
 
             # Commit the transaction
             db.session.commit()
@@ -484,8 +485,8 @@ class ContentManager:
 
         gg.add_completion_entry(timestamp, custom_data)
         rec_next = gg.update_rec_next(timestamp)
-        if not rec_next: gg.archived_at_datetime(timestamp)
-        gg.modified_at_datetime(timestamp)
+        if rec_next is None: gg.archived_at_datetime = timestamp
+        gg.modified_at_datetime = timestamp
 
         db.session.commit()
         return rec_next

@@ -171,7 +171,7 @@ class Category(db.Model):
     def archive_and_historize(self, new_version):
 
         # Archive the old category
-        self.archived_at_datetime(datetime.now(utc))
+        self.archived_at_datetime = datetime.now(utc)
 
         # Set the history path
         if self.a_brief_history_of_time:
@@ -242,8 +242,8 @@ class GidGud(db.Model):
 
     # Recurrence
     rec: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False, index=True)
-    rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
-    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"), default='days')
+    rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0, nullable=True)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"), default='days', nullable=True)
     rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     # Specification
@@ -271,7 +271,7 @@ class GidGud(db.Model):
     def archive_and_historize(self, new_version):
 
         # Archive the old category
-        self.archived_at_datetime(datetime.now(utc))
+        self.archived_at_datetime = datetime.now(utc)
 
         # Set the history path
         if self.a_history_of_violence:
