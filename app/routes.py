@@ -3,6 +3,7 @@ from app.factory import db
 from app.forms import EmptyForm, GidGudForm, LoginForm, RegistrationForm, EditProfileForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
+from sqlalchemy.orm import joinedload
 from app.managers.content_manager import ContentManager
 from app.models import User, GidGud, Category
 from app.utils import log_exception, log_form_validation_errors, log_object, log_request
@@ -196,8 +197,12 @@ def complete_gidgud(id):
 @bp.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
 def user_categories(username):
-    categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
-    return render_template('user_categories.html', title='My Categories', categories=categories)
+    # categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
+    root_categories = Category.query.filter_by(parent_id=None).options(
+        joinedload(Category.children).joinedload(Category.children),
+        joinedload(Category.gidguds)
+    ).all()
+    return render_template('user_categories.html', title='My Categories', root_categories=root_categories)
 
 @bp.route('/create_category', methods=['GET', 'POST'])
 @login_required
@@ -215,7 +220,7 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        category = c_man.create_category_from_form(form)
+        category = c_man.create_category_from_form(current_user, form)
         flash('New Category created!')
         return redirect(url_for('routes.user_categories', username=current_user.username))
 

@@ -1,8 +1,8 @@
 """setup models
 
-Revision ID: 02824ae293a0
+Revision ID: 6183b2e4a887
 Revises: 
-Create Date: 2024-06-21 14:07:08.575321
+Create Date: 2024-06-21 17:39:07.101608
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '02824ae293a0'
+revision = '6183b2e4a887'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -119,7 +119,7 @@ def upgrade():
     sa.Column('times', sa.Integer(), nullable=True),
     sa.Column('deleted_at', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
-    sa.ForeignKeyConstraint(['gidgud_id'], ['gid_gud.id'], ),
+    sa.ForeignKeyConstraint(['gidgud_id'], ['gid_gud.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

@@ -1,0 +1,19 @@
+{% macro render_category_tree(category) %}
+  <div class="category-item">
+    {% include '_category.html' %}
+    {% if category.gidguds %}
+      <ul class="gidguds-list">
+        {% for gidgud in category.gidguds %}
+          <li>{{ gidgud.body }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if category.children %}
+      <div class="category-children">
+        {% for child in category.children %}
+          {{ render_category_tree(child) }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}

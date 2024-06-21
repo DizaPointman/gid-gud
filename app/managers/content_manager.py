@@ -254,12 +254,10 @@ class ContentManager:
             db.session.rollback()
             return None
 
-    def create_category_from_form(self, form):
-        user = user or current_user
+    def create_category_from_form(self, user, form):
         name = form.name.data
-        new_cat = Category(user=user, name=name)
-        db.session.add(new_cat)
-        db.session.commit()
+        parent = None
+        new_cat = self.return_or_create_category(user=user, name=form.name.data, parent=parent)
         return new_cat
 
     def update_category_from_form(self, id, form):
@@ -273,11 +271,15 @@ class ContentManager:
         try:
 
             cat = self.get_category_by_id(id)
+            arch_and_recr = False
             old_name = cat.name
 
             if cat.name != form.name.data:
-                new_cat = self.archive_and_recreate_category(cat, form)
-                cat = new_cat
+                if arch_and_recr:
+                    new_cat = self.archive_and_recreate_category(cat, form)
+                    cat = new_cat
+                else:
+                    cat.name = form.name.data
 
             # Change parent category
             if form.parent.data != cat.parent.name:
@@ -298,7 +300,7 @@ class ContentManager:
                 flash(f"GidGuds from <{old_name}> reassigned to <{reas_gg.name}>!")
 
             # Reassign child categories
-            if form.reassign_children.data in [cat.name, 'No Children']:
+            if form.reassign_children.data not in [cat.name, 'No Children']:
                 reas_cc = self.get_category_by_name(form.reassign_children.data)
                 cc_reassigned = self.reassign_children_to_category(cat, reas_cc)
 
@@ -312,13 +314,13 @@ class ContentManager:
             return cat
 
         except SQLAlchemyError as e:
-            log_exception(e)
+            handle_exception(e)
             db.session.rollback()
-            return False
+            return None
         except Exception as e:
-            log_exception(e)
+            handle_exception(e)
             db.session.rollback()
-            return False
+            return None
 
     def delete_category(self, category_id):
         """
@@ -440,6 +442,8 @@ class ContentManager:
         :return: The updated GidGud instance.
         """
         gg = self.get_gidgud_by_id(id)
+        arch_and_recr = False
+
         user = gg.user
         body = form.body.data
         category = self.return_or_create_category(form.category.data)
@@ -454,24 +458,27 @@ class ContentManager:
 
         # Handle body change and archiving
         if body != gg.body:
-            gg = self.archive_and_recreate_gidgud(gg, form, user)
-        else:
-            if not rec_instant and not rec_custom:
-                gg.rec = False
-                gg.rec_val = 0
-                gg.rec_unit = 'days'
+            if arch_and_recr:
+                gg = self.archive_and_recreate_gidgud(gg, form, user)
+            else:
+                gg.body = form.body.data
 
-            elif rec_instant:
-                gg.rec = True
-                gg.rec_val = 0
-                gg.rec_unit = 'days'
+        if not rec_instant and not rec_custom:
+            gg.rec = False
+            gg.rec_val = 0
+            gg.rec_unit = 'days'
 
-            elif rec_custom:
-                gg.rec = True
-                gg.rec_val = form.rec_val.data
-                gg.rec_unit = form.rec_unit.data
-            gg.category = category
-            gg.rec_next = rec_next
+        elif rec_instant:
+            gg.rec = True
+            gg.rec_val = 0
+            gg.rec_unit = 'days'
+
+        elif rec_custom:
+            gg.rec = True
+            gg.rec_val = form.rec_val.data
+            gg.rec_unit = form.rec_unit.data
+        gg.category = category
+        gg.rec_next = rec_next
 
         db.session.commit()
 
