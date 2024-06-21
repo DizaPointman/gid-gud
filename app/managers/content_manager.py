@@ -537,6 +537,7 @@ class ContentManager:
         return gidguds
 
     def get_completed_gidguds(self, user):
+        # FIXME: redundant, already in models.py
 
         completions = db.session.scalars(sa.select(CompletionTable).where(CompletionTable.user_id == user.id).order_by(CompletionTable.completed_at.desc()))
         return completions

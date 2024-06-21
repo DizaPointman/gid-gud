@@ -2,7 +2,7 @@
 
 # Fun
 
-C_Man and G_Man and U_Man as handlers/managers
+C_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
@@ -10,6 +10,40 @@ C-Man.inject()
 
 # TODO: Tests for Content Manager
 # TODO: Tests for Routes
+
+# TODO: Implement Materialized Path
+## Models
+### Category
+- add path attribute
+- remove height, depth attribute, parent, children
+- add init
+## Content Manager
+- modify change parent
+- modify reassign children
+- modify get possible children
+- modify get possible parents
+## Routes
+- modify all categories query
+## Template
+- modify category tree makro
+
+# TODO: Simplify Content Manager
+- remove Versioning
+- only archived/not archived
+## Category
+- change name
+- change parent
+- reassign/remove children
+- reassign gidguds
+- Funcs: create(data), create_from_form(form), get_or_create(name), create_from_batch(form), update(data)
+## GidGud
+- change name
+- change category
+- change recurrence
+- complete
+- Funcs: create(data), create_from_form(form), create_from_batch(form), update(data), complete
+
+
 
 
 # Security
