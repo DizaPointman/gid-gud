@@ -1,19 +1,18 @@
 <table>
     <tr valign="top">
-        <td rowspan="2"><img src="{{ gidgud.author.avatar(36) }}"></td>
-        <td colspan="3">{{ gidgud.body }}</td>
+        <td rowspan="2"><img src="{{ gg.author.avatar(36) }}"></td>
+        <td colspan="3">{{ gg.body }}</td>
     </tr>
     <tr>
-        <td>Category: {{ gidgud.category.name }}</td>
-        <td>Recurrence Rhythm: {{ gidgud.recurrence_rhythm }}</td>
-        <td>Time Unit: {{ gidgud.time_unit }}</td>
-        <td>Next Occurrence: {{ gidgud.next_occurrence }}</td>
-        <td>Completed: {{ gidgud.completed }}</td>
+        <td>Category: {{ gg.category.name }}</td>
+        <td>Recurrence Rhythm: {{ gg.rec_val }}</td>
+        <td>Time Unit: {{ gg.rec_unit }}</td>
+        <td>Next Occurrence: {{ gg.rec_next }}</td>
     </tr>
     <tr>
-        <td><a href="{{ url_for('complete_gidgud', id=gidgud.id) }}">COMPLETED</a></td>
-        <td><a href="{{ url_for('edit_gidgud', id=gidgud.id) }}">CHANGE</a></td>
-        <td><a href="{{ url_for('delete_gidgud', id=gidgud.id) }}">DELETE</a></td>
+        <td><a href="{{ url_for('routes.complete_gidgud', id=gg.id) }}">COMPLETE</a></td>
+        <td><a href="{{ url_for('routes.edit_gidgud', id=gg.id) }}">CHANGE</a></td>
+        <td><a href="{{ url_for('routes.delete_gidgud', id=gg.id) }}">DELETE</a></td>
     </tr>
 </table>
 <hr>

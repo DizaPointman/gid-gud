@@ -6,18 +6,32 @@
         "gids",
         "gud",
         "guds",
-        "primaryjoin",
+        "historize",
         "isouter",
-        "todos",
+        "primaryjoin",
         "pytz",
         "secondaryjoin",
         "selectinload",
         "sqlalchemy",
+        "timeunit",
+        "todos",
         "uncategorized",
         "unfollow",
         "uselist",
         "werkzeug",
         "wtforms"
     ],
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": true,
+    "python.testing.pytestArgs": [
+        "."
+    ],
+    "python.testing.unittestEnabled": true,
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        ".",
+        "-p",
+        "test*.py"
+    ]
 }

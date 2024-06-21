@@ -1,23 +1,34 @@
-from flask import render_template, flash, redirect, url_for, request
-from app import app, db
-from app.forms import CreateGidForm, CreateGudForm, EmptyForm, LoginForm, RegistrationForm, EditProfileForm, EditGidGudForm, CreateCategoryForm, EditCategoryForm
+from flask import Blueprint, current_app, render_template, flash, redirect, session, url_for, request
+from app.factory import db
+from app.forms import EmptyForm, GidGudForm, LoginForm, RegistrationForm, EditProfileForm, CreateCategoryForm, EditCategoryForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
+from sqlalchemy.orm import joinedload
+from app.managers.content_manager import ContentManager
 from app.models import User, GidGud, Category
-from app.utils import category_child_protection_service, category_handle_change_parent, category_handle_reassign_gidguds, category_handle_rename, check_and_return_list_of_possible_parents, check_and_return_list_of_possible_parents_for_children, check_if_category_exists_and_return, create_new_category, gidgud_handle_complete, gidgud_handle_update, gidgud_return_dict_from_choice, log_exception, log_form_validation_errors, log_object, log_request
+from app.utils import log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pytz import utc
+from werkzeug.datastructures import MultiDict
 
 
-@app.route('/')
-@app.route('/index')
+# Create Blueprint
+bp = Blueprint('routes', __name__)
+
+# Initialize ContentManager
+c_man = ContentManager()
+
+
+@bp.route('/')
+@bp.route('/index')
 @login_required
 def index():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    return render_template('index.html', title='Home', gidguds=gidguds)
+    c_man.test_cm()
+    ggs = c_man.get_active_gidguds(current_user)
+    return render_template('index.html', title='Home', ggs=ggs)
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
     The `login` function in this Python code handles user authentication and login functionality,
@@ -28,46 +39,45 @@ def login():
     using the 'LoginForm' class.
     """
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.scalar(
             sa.select(User).where(User.username == form.username.data))
         if user is None or not user.check_password(form.password.data):
-            app.logger.info('%s tried logging in with invalid username or password', user.username)
+            current_app.logger.info('%s tried logging in with invalid username or password', user.username)
             flash('Invalid username or password')
-            return redirect(url_for('login'))
+            return redirect(url_for('routes.login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or urlsplit(next_page).netloc != '':
-            next_page = url_for('index')
-        app.logger.info('%s logged in successfully', user.username)
+            next_page = url_for('routes.index')
+        current_app.logger.info('%s logged in successfully', user.username)
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
-@app.route('/logout')
+@bp.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
-@app.route('/register', methods=['GET', 'POST'])
+@bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
+
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
-        # Setting up the default category
-        # FIXME: set up default cat via event listener
-        def_cat = Category(name='default', user=user)
-        db.session.add(user, def_cat)
+
+        db.session.add(user)
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
-        return redirect(url_for('login'))
+        return redirect(url_for('routes.login'))
     return render_template('register.html', title='Register', form=form)
 
-@app.route('/edit_profile', methods=['GET', 'POST'])
+@bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     form = EditProfileForm(current_user.username)
@@ -76,13 +86,13 @@ def edit_profile():
         current_user.about_me = form.about_me.data
         db.session.commit()
         flash('Your changes have been saved.')
-        return redirect(url_for('edit_profile'))
+        return redirect(url_for('routes.edit_profile'))
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/follow/<username>', methods=['POST'])
+@bp.route('/follow/<username>', methods=['POST'])
 @login_required
 def follow(username):
     form = EmptyForm()
@@ -91,18 +101,18 @@ def follow(username):
             sa.select(User).where(User.username == username))
         if user is None:
             flash(f'User {username} not found.')
-            return redirect(url_for('index'))
+            return redirect(url_for('routes.index'))
         if user == current_user:
             flash('You cannot follow yourself you fucking narcissist!')
-            return redirect(url_for('user', username=username))
+            return redirect(url_for('routes.user', username=username))
         current_user.follow(user)
         db.session.commit()
         flash(f'You are following {username}!')
-        return redirect(url_for('user', username=username))
+        return redirect(url_for('routes.user', username=username))
     else:
         return redirect(url_for('index'))
 
-@app.route('/unfollow/<username>', methods=['POST'])
+@bp.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):
     form = EmptyForm()
@@ -111,100 +121,90 @@ def unfollow(username):
             sa.select(User).where(User.username == username))
         if user is None:
             flash(f'User {username} not found.')
-            return redirect(url_for('index'))
+            return redirect(url_for('routes.index'))
         if user == current_user:
             flash('You cannot unfollow yourself you fucking narcissist!')
-            return redirect(url_for('user', username=username))
+            return redirect(url_for('routes.user', username=username))
         current_user.unfollow(user)
         db.session.commit()
         flash(f'You are not following {username} anymore.')
-        return redirect(url_for('user', username=username))
+        return redirect(url_for('routes.user', username=username))
     else:
-        return redirect(url_for('index'))
+        return redirect(url_for('routes.index'))
 
-@app.route('/create_gid', methods=['GET', 'POST'])
+@bp.route('/create_gidgud', methods=['GET', 'POST'])
 @login_required
-def create_gid():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGidForm()
-    if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
-            db.session.add(new_category)
-            category = new_category
-        if form.rec_rhythm.data != 0:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category, recurrence_rhythm=form.rec_rhythm.data, time_unit=form.time_unit.data)
-        else:
-            gid = GidGud(body=form.body.data, user_id=current_user.id, category=category)
-        db.session.add(gid)
-        db.session.commit()
-        flash('New Gid created!')
-        return redirect(url_for('index'))
-    return render_template('create_gid.html', title='Create Gid', form=form, gidguds=gidguds)
+def create_gidgud():
+    title = 'New GidGud'
+    form = GidGudForm()
+    ggs = c_man.get_active_gidguds(current_user)
 
-@app.route('/create_gud', methods=['GET', 'POST'])
-@login_required
-def create_gud():
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
-    form = CreateGudForm()
-    if form.validate_on_submit():
-        category = check_if_category_exists_and_return(form.category.data)
-        if not category:
-            new_category = Category(name=form.category.data, user_id=current_user.id)
-            db.session.add(new_category)
-            category = new_category
-        timestamp = datetime.now(timezone.utc)
-        gud = GidGud(body=form.body.data, user_id=current_user.id, category=category, completed=timestamp)
-        db.session.add(gud)
-        db.session.commit()
-        flash('New Gud created!')
-        return redirect(url_for('index'))
-    return render_template('create_gud.html', title='Create Gud', form=form, gidguds=gidguds)
-
-@app.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
-@login_required
-def edit_gidgud(id):
-    gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    # TODO: adjust template to hide recurrence fields when editing completed gidgud
-    form = EditGidGudForm()
-    if form.validate_on_submit():
-        gidgud_handle_update(gidgud, form)
-        flash('Your changes have been saved.')
-        return redirect(url_for('index'))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            gg = c_man.gidgud_create_from_form(user=current_user, form=form)
+            flash('GidGud created')
+            return redirect(url_for('routes.index'))
 
     elif request.method == 'GET':
-        form.body.data = gidgud.body
-        form.category.data = gidgud.category.name
-        form.rec_rhythm.data = gidgud.recurrence_rhythm
-        form.time_unit.data = gidgud.time_unit
+        for field_name, field in form._fields.items():
+            field.data = field.default
 
-    return render_template('edit_gidgud.html', title='Edit GidGud', form=form)
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, ggs=ggs)
 
-@app.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
+@bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
+@login_required
+def edit_gidgud(id):
+    title = 'Edit GidGud'
+    form = GidGudForm()
+    ggs = c_man.get_active_gidguds(current_user)
+
+    gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
+
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            gg = c_man.gidgud_update_from_form(id, form)
+            flash('GidGud updated successfully')
+            return redirect(url_for('routes.index'))
+
+    elif request.method == 'GET':
+        for field_name, field in form._fields.items():
+            if gidgud.rec:
+                form.rec_instant.data = True if gidgud.rec_val == 0 else False
+                form.rec_custom.data = True if gidgud.rec_val != 0 else False
+                if field_name not in ['rec_instant', 'rec_custom']:
+                    field.data = getattr(gidgud, field_name, field.default)
+            else:
+                field.data = getattr(gidgud, field_name, field.default)
+
+    return render_template('create_or_edit_gidgud.html', form=form, title=title, ggs=ggs)
+
+@bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_gidgud(id):
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     db.session.delete(current_gidgud)
     db.session.commit()
     flash('GidGud deleted!')
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
-@app.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
+@bp.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def complete_gidgud(id):
-    current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    gidgud_handle_complete(current_gidgud)
-    flash('Gid completed!')
-    return redirect(url_for('index'))
+    c_man.gidgud_handle_complete(id)
+    flash('Gid completed_at!')
+    return redirect(url_for('routes.index'))
 
-@app.route('/user/<username>/user_categories', methods=['GET'])
+@bp.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
 def user_categories(username):
-    categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
-    return render_template('user_categories.html', title='My Categories', categories=categories)
+    # categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
+    root_categories = Category.query.filter_by(parent_id=None).options(
+        joinedload(Category.children).joinedload(Category.children),
+        joinedload(Category.gidguds)
+    ).all()
+    return render_template('user_categories.html', title='My Categories', root_categories=root_categories)
 
-@app.route('/create_category', methods=['GET', 'POST'])
+@bp.route('/create_category', methods=['GET', 'POST'])
 @login_required
 def create_category():
     """
@@ -220,14 +220,13 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        new_category_name = form.name.data
-        create_new_category(new_category_name, current_user.id)
+        category = c_man.create_category_from_form(current_user, form)
         flash('New Category created!')
-        return redirect(url_for('user_categories', username=current_user.username))
+        return redirect(url_for('routes.user_categories', username=current_user.username))
 
     return render_template('create_category.html', title='Create Category', form=form, categories=categories)
 
-@app.route('/edit_category/<id>', methods=['GET', 'POST'])
+@bp.route('/edit_category/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_category(id):
     # TODO: add multiple children at once
@@ -237,16 +236,19 @@ def edit_category(id):
 
     # Choices: all categories except the current category
 
-    default_parent_choices = ['No Parent'] if current_category.parent is None else [current_category.parent.name] + ['Remove Parent']
-    parent_choices = default_parent_choices + check_and_return_list_of_possible_parents(current_category)
+    parent_choices = [current_category.parent.name or current_category.name] + c_man.get_possible_parents(current_category)
 
-    default_gidgud_choices = ['No GidGuds'] if not current_category.gidguds else [current_category.name]
-    gidgud_reassignment_choices = default_gidgud_choices + [category.name for category in current_user.categories if category != current_category]
+    if current_category.gidguds:
+        gidgud_reassignment_choices = [current_category.name, 'root'] + [c.name for c in current_user.categories if c.name not in [current_category.name, 'root']]
+    else:
+        gidgud_reassignment_choices = ['No GidGuds']
 
-    default_parent_choices_for_children = ['No Children'] if not current_category.children else [current_category.name]
-    parent_choices_for_children = default_parent_choices_for_children + check_and_return_list_of_possible_parents_for_children(current_category)
+    if current_category.children:
+        parent_choices_for_children = [current_category.name] + c_man.get_possible_parents_for_children(current_category)
+    else:
+        parent_choices_for_children = ['No Children']
 
-    form = EditCategoryForm()
+    form = EditCategoryForm(current_name=current_category.name)
 
     # Assigning choices to selection fields
     form.parent.choices = parent_choices
@@ -257,30 +259,12 @@ def edit_category(id):
 
         if form.validate_on_submit():
 
-            # Check if form contains new parent
-            if form.parent.data != parent_choices[0]:
-                # Assign new parent
-                category_handle_change_parent(current_category, form)
-
-            # Check if form contains new category for gidguds
-            if form.reassign_gidguds.data != gidgud_reassignment_choices[0]:
-                # Assign gidguds to new category
-                category_handle_reassign_gidguds(current_category, form)
-
-            # Check if form contains a new parent category for the current category's children
-            if form.reassign_children.data != parent_choices_for_children[0]:
-                # Assign children categories to the new parent category
-                category_child_protection_service(current_category, form)
-
-            # Check if form contains new category name
-            if form.name.data != current_category.name:
-                # Assign new category name
-                category_handle_rename(current_category, form)
+            c_man.update_category_from_form(id, form)
 
             #if delete_afterwards:
             if delete_afterwards:
-                return redirect(url_for('delete_category', username=current_user.username, id=id))
-            return redirect(url_for('user_categories', username=current_user.username))
+                return redirect(url_for('routes.delete_category', username=current_user.username, id=id))
+            return redirect(url_for('routes.user_categories', username=current_user.username))
 
         else:
             # Form validation failed, render the form template again with error messages
@@ -297,41 +281,41 @@ def edit_category(id):
 
     return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 
-@app.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
+@bp.route('/delete_category/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
-    if current_category.name == 'default':
-        flash('The default Category may not be deleted')
-        return redirect(url_for('user_categories', username=current_user.username))
+    if current_category.name == 'root':
+        flash('The root Category may not be deleted')
+        return redirect(url_for('routes.user_categories', username=current_user.username))
     elif current_category.gidguds or current_category.children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
-        return redirect(url_for('edit_category', id=id, dla=True))
+        return redirect(url_for('routes.edit_category', id=id, dla=True))
     else:
         db.session.delete(current_category)
         db.session.commit()
         flash('Category deleted!')
-    return redirect(url_for('user_categories', username=current_user.username))
+    return redirect(url_for('routes.user_categories', username=current_user.username))
 
-@app.route('/user/<username>/statistics', methods=['GET'])
+@bp.route('/user/<username>/statistics', methods=['GET'])
 @login_required
 def statistics(username):
 
-    possible_choices = ['all', 'gids', 'sleep', 'guds']
-    gidguds = gidgud_return_dict_from_choice(['gids', 'sleep', 'guds'])
-    app.logger.info(f"{gidguds}")
+    ggs = c_man.get_active_gidguds(current_user)
+    igs = c_man.get_inactive_gidguds(current_user)
+    cgs = c_man.get_completed_gidguds(current_user)
 
-    return render_template('statistics.html', title='My Statistic', gidguds=gidguds)
+    return render_template('statistics.html', title='My Statistic', ggs=ggs, igs=igs, cgs=cgs)
 
-@app.route('/user/<username>')
+@bp.route('/user/<username>')
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
+    ggs = c_man.get_active_gidguds(current_user)
     form = EmptyForm()
-    return render_template('user.html', user=user, gidguds=gidguds, form=form)
+    return render_template('user.html', user=user, ggs=ggs, form=form)
 
-@app.before_request
+@bp.before_request
 def before_request():
     if current_user.is_authenticated:
         current_user.last_seen = datetime.now(timezone.utc)

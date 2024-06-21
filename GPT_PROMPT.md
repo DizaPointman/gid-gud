@@ -52,15 +52,15 @@ class GidGud(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     body: so.Mapped[str] = so.mapped_column(sa.String(140))
     timestamp: so.Mapped[datetime] = so.mapped_column(
-        sa.String(),  # Use String type to store ISO strings
+        sa.String(),
         index=True,
         default=iso_now
     )
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
 
-    recurrence_rhythm: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
-    time_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
-    next_occurrence: so.Mapped[Optional[datetime]] = so.mapped_column(
+    rec_val: so.Mapped[int] = so.mapped_column(sa.Integer(), default=0)
+    rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', nullable=True))
+    rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(
         sa.String(),
         index=True,
         nullable=True,
@@ -71,26 +71,14 @@ class GidGud(db.Model):
     unit: so.Mapped[str] = so.mapped_column(sa.String(10), nullable=True)
     times: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
-    completed: so.Mapped[datetime] = so.mapped_column(
+    completed_at: so.Mapped[datetime] = so.mapped_column(
         sa.String(),
         index=True,
         nullable=True,
         default=None
     )
 
-class Category(db.Model):
-    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(20))
-    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
-    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
-    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
-    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
-
-    def __repr__(self):
-        return '<Category {}>'.format(self.name)
-    archived: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
+    archived_at: so.Mapped[bool] = so.mapped_column(sa.Boolean(), default=False)
 
     category_id: so.Mapped[int] = so.mapped_column(sa.Integer, sa.ForeignKey('category.id'))
     category: so.Mapped['Category'] = so.relationship('Category', back_populates='gidguds')
@@ -99,9 +87,42 @@ class Category(db.Model):
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
 
+class Category(db.Model):
+
+    id: so.Mapped[int] = so.mapped_column(sa.Integer, primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(20))
+    user_id: so.Mapped[int] = so.mapped_column(sa.Integer, db.ForeignKey('user.id'))
+    user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
+    # Depth indicates own level below default
+    depth: so.Mapped[int] = so.mapped_column(sa.Integer)
+    # Height indicates levels below including self
+    height: so.Mapped[int] = so.mapped_column(sa.Integer)
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
+
+    # Setting a tree height limit
+    MAX_HEIGHT = 5
+
+    def __repr__(self):
+        return '<Category {}>'.format(self.name)
+
+    def __init__(self, name, user=None, parent=None):
+        self.name = name
+        self.user = user or current_user
+
+        if parent is None and name != 'default':
+            # Get or create default root category
+            default_category = Category.create_default_root_category(current_user)
+            self.parent = default_category
+        else:
+            self.parent = parent
+        self.update_height_depth()
+
 **Expectations:**
 - **Style:** PEP 8, maintain consistent style and syntax for solutions and design patterns
-- **Expected Level of Solutions:** Best practice, industry-viable solutions
+- **Expected Level of Solutions:** Best practice, industry-viable solutions, Check if Stack allows for use of attempted approach
 - **Optimization:** Optimize Python Code for efficiency, Optimize SQL Queries for execution time
 - **Implement Eager Loading:** Utilize eager loading (e.g., `selectinload`) when suitable to optimize database queries. Explain when and why eager loading is used in the solutions provided in accordance to best practices.
 - **Meaningful Docstrings and Comments:** Ensure all code includes clear and descriptive docstrings and comments to enhance readability and maintainability.

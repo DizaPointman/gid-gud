@@ -1,9 +1,8 @@
-import sqlalchemy as sa
-import sqlalchemy.orm as so
-from app import app, db
-from app.models import User, GidGud, Category
+from app.factory import create_app
 
+# Create the Flask application instance
+app = create_app()
 
-@app.shell_context_processor
-def make_shell_context():
-    return {'sa': sa, 'so': so, 'db': db, 'User': User, 'GidGud': GidGud, 'Category': Category}
+if __name__ == "__main__":
+    # Run the Flask application
+    app.run()

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ title }}</h1>
+<form method="post">
+    {{ form.hidden_tag() }}
+    <div>
+        {{ form.body.label }} {{ form.body() }}
+    </div>
+    <div>
+        {{ form.category.label }} {{ form.category() }}
+    </div>
+    <div>
+        {{ form.rec_instant.label }} {{ form.rec_instant() }}
+    </div>
+    <div>
+        {{ form.rec_custom.label }} {{ form.rec_custom() }}
+    </div>
+    <div>
+        {{ form.rec_val.label }} {{ form.rec_val() }}
+    </div>
+    <div>
+        {{ form.rec_unit.label }} {{ form.rec_unit() }}
+    </div>
+    <div>
+        {{ form.rec_next.label }}<br>
+        <input type="datetime-local" name="rec_next" value="{{ form.rec_next.data.strftime('%Y-%m-%dT%H:%M') }}">
+    </div>
+    <div>
+        {{ form.reset_timer.label }} {{ form.reset_timer() }}
+    </div>
+    <div>
+        {{ form.submit() }}
+    </div>
+</form>
+
+{% endblock %}
+
+{% block feed %}
+    {% include "_gidgud_feed.html" %}
+{% endblock %}

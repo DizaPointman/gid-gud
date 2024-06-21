@@ -4,7 +4,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'app.db')#+ '?timezone=utc'
+        'sqlite:///' + os.path.join(basedir, 'app.db')
     # added for sql logging
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # end
@@ -15,3 +15,8 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['your-email@example.com']
+
+class TestingConfig:
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite://')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False

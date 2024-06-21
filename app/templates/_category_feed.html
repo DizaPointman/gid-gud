@@ -1,5 +1,7 @@
-<div>
-    {% for category in categories %}
-        {% include '_category.html' %}
-    {% endfor %}
+{% from "_category_tree.html" import render_category_tree %}
+
+<div class="category-tree">
+  {% for category in root_categories %}
+    {{ render_category_tree(category) }}
+  {% endfor %}
 </div>
