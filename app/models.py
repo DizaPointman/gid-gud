@@ -1,6 +1,7 @@
 from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from typing import List, Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -240,7 +241,7 @@ class GidGud(db.Model):
     completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='gidgud', lazy=True)
 
     # Recurrence
-    rec = so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False, index=True)
+    rec: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False, index=True)
     rec_val: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
     rec_unit: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name="recurrence_units"), default='days')
     rec_next: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
@@ -336,20 +337,24 @@ class GidGud(db.Model):
     # GidGud methods
 
     def update_rec_next(self, timestamp: datetime):
-
         if self.rec:
+            if self.rec_unit == 'months':
+                # Handle months separately as timedelta doesn't support months
+                rec_next = timestamp + relativedelta(months=self.rec_val)
+            elif self.rec_unit == 'years':
+                # Handle years separately as timedelta doesn't support years
+                rec_next = timestamp + relativedelta(years=self.rec_val)
+            else:
+                # For other units, use timedelta
+                delta = timedelta(**{self.rec_unit: self.rec_val})
+                rec_next = timestamp + delta
 
-            delta = timedelta(**{self.rec_unit: self.rec_val})
-            rec_next = timestamp + delta
-            self.rec_next = self.rec_next_datetime(rec_next)
-
-            db.session.commit()
-            return rec_next
-
+            self.rec_next_datetime = rec_next
         else:
-            self.rec_next = None
-            db.session.commit()
-            return False
+            self.rec_next_datetime = None
+
+        db.session.commit()
+        return self.rec_next_datetime
 
     def add_completion_entry(self, timestamp: datetime, custom_data=None):
 
@@ -361,13 +366,16 @@ class GidGud(db.Model):
             body=self.body,
             category_name=self.category.name,
             category_id=self.category_id,
-            type_of_unit=custom_data.get('type_of_unit', self.type_of_unit),
-            base_amount=custom_data.get('base_amount', self.base_amount),
-            amount=custom_data.get('amount', self.amount),
-            unit=custom_data.get('unit', self.unit),
-            times=custom_data.get('times', self.times),
             completed_at=timestamp.isoformat()
         )
+
+        """
+        type_of_unit=custom_data.get('type_of_unit', self.type_of_unit),
+        base_amount=custom_data.get('base_amount', self.base_amount),
+        amount=custom_data.get('amount', self.amount),
+        unit=custom_data.get('unit', self.unit),
+        times=custom_data.get('times', self.times),
+        """
 
         db.session.add(completion)
         db.session.commit()

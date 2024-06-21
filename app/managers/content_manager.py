@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import inspect
+from typing import Optional
 from flask import current_app, flash
 from flask_login import current_user
 from pytz import utc
@@ -27,30 +28,6 @@ class ContentManager:
 
     def iso_now(self):
         return datetime.now(utc).isoformat()
-
-    def populate_form(form, data_source, fields):
-        for field in fields:
-            if hasattr(form, field) and hasattr(data_source, field):
-                getattr(form, field).data = getattr(data_source, field)
-            elif hasattr(form, field) and field in data_source:
-                getattr(form, field).data = data_source[field]
-
-        # Additional logic for rec_val and rec_unit based on rec_instant and rec_custom
-        if 'rec_instant' in data_source and 'rec_custom' in data_source:
-            rec_instant = data_source['rec_instant']
-            rec_custom = data_source['rec_custom']
-
-            if not rec_instant and not rec_custom:
-                form.rec_val.data = 0
-                form.rec_unit.data = 'No Rep'
-            elif rec_instant and not rec_custom:
-                form.rec_val.data = 0
-                form.rec_unit.data = 'daily'
-            elif rec_custom and not rec_instant:
-                if 'rec_val' in data_source:
-                    form.rec_val.data = data_source['rec_val']
-                if 'rec_unit' in data_source:
-                    form.rec_unit.data = data_source['rec_unit']
 
     def map_form_to_dict(self, form):
         form_dict = {field_name: field_value for field_name, field_value in form.data.items()}
@@ -87,25 +64,23 @@ class ContentManager:
             db.session.commit()
         return root
 
-    def create_category(self, **kwargs):
+    def create_category(self, user=None, name=None, parent=None):
         """
         Create a new category with the given name, user, and parent.
         """
         user = user or current_user
         parent = parent or self.return_or_create_root_category(user)
-        category = Category(**kwargs)
+        category = Category(user=user, name=name, parent=parent)
         db.session.add(category)
         parents_updated = self.update_depth_and_height(parent)
         db.session.commit()
         return category
 
-    def return_or_create_category(self, name=None, parent=None):
+    def return_or_create_category(self, user=None, name=None, parent=None):
         """
         Return or create a category with the given name and user. If no name is provided, return the root category.
         """
         try:
-            user = user or current_user
-
             root = self.return_or_create_root_category(user)
 
             if not name:
@@ -353,16 +328,16 @@ class ContentManager:
 
     # GidGud
 
-    def get_gidgud_by_id(self, id) -> GidGud:
+    def get_gidgud_by_id(self, id) -> Optional[GidGud]:
         try:
             gg = GidGud.query.filter_by(id=id).first()
             if gg is None:
-                raise ValueError(f"GidGud with id {id} not found.")
+                current_app.logger.warning(f"GidGud with id {id} not found.")
+                return None
             return gg
         except SQLAlchemyError as e:
             handle_exception(e)
-        except Exception as e:
-            handle_exception(e)
+            return None
 
     def gidgud_handle_update(self, gidgud, form):
 
@@ -416,7 +391,7 @@ class ContentManager:
             log_exception(e)
             return False
 
-    def gidgud_create_from_form(self, form, user=None):
+    def gidgud_create_from_form(self, user, form):
         """
         Creates a GidGud instance from a form.
 
@@ -424,25 +399,25 @@ class ContentManager:
         :param user: The user associated with the GidGud instance. Defaults to current_user.
         :return: The created GidGud instance.
         """
-        user = user or current_user
+
         body = form.body.data
-        category = self.return_or_create_category(form.category.data)
+        category = self.return_or_create_category(user, form.category.data)
 
         reset_timer = form.reset_timer.data or False
         rec_instant = form.rec_instant.data
         rec_custom = form.rec_custom.data
         # TODO: check that data is datetime object
-        rec_next = form.rec_next.data or self.iso_now()
+        rec_next = form.rec_next.data.isoformat() or self.iso_now()
 
         if not rec_instant and not rec_custom:
             rec = False
             rec_val = 0
-            rec_unit = 'daily'
+            rec_unit = 'days'
 
         elif rec_instant:
             rec = True
             rec_val = 0
-            rec_unit = 'daily'
+            rec_unit = 'days'
 
         elif rec_custom:
             rec = True
@@ -471,7 +446,7 @@ class ContentManager:
         reset_timer = form.reset_timer.data
         rec_instant = form.rec_instant.data
         rec_custom = form.rec_custom.data
-        rec_next = gg.rec_next or form.rec_next.data
+        rec_next = gg.rec_next or form.rec_next.data.isoformat()
 
         if reset_timer:
             gg.rec_next = self.iso_now()
@@ -483,12 +458,12 @@ class ContentManager:
             if not rec_instant and not rec_custom:
                 gg.rec = False
                 gg.rec_val = 0
-                gg.rec_unit = 'daily'
+                gg.rec_unit = 'days'
 
             elif rec_instant:
                 gg.rec = True
                 gg.rec_val = 0
-                gg.rec_unit = 'daily'
+                gg.rec_unit = 'days'
 
             elif rec_custom:
                 gg.rec = True

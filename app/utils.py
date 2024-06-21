@@ -32,23 +32,21 @@ def iso_now():
 
 # exception logger
 
-def log_exception(exception: Exception) -> None:
+def log_exception(exception: Exception, module_name: str, function_name: str) -> None:
     """
     Log exception details including the stack trace.
 
     Parameters:
         exception (Exception): The exception that occurred.
+        module_name (str): The name of the module where the exception occurred.
+        function_name (str): The name of the function where the exception occurred.
     """
     # Capture the stack trace
     stack_trace = traceback.format_exc()
     
-    # Get the calling function name dynamically
-    calling_frame = inspect.currentframe().f_back
-    function_name = calling_frame.f_code.co_name
-    
     # Log the timestamp, module, and function names
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logging.error(f"Timestamp: {timestamp}, Module: {__name__}, Function: {function_name}")
+    logging.error(f"Timestamp: {timestamp}, Module: {module_name}, Function: {function_name}")
     
     # Log the stack trace at the debug level
     logging.debug(stack_trace)

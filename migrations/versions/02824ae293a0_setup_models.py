@@ -1,8 +1,8 @@
-"""model setup
+"""setup models
 
-Revision ID: cddcdea9194f
+Revision ID: 02824ae293a0
 Revises: 
-Create Date: 2024-06-16 08:52:30.345499
+Create Date: 2024-06-21 14:07:08.575321
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cddcdea9194f'
+revision = '02824ae293a0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -76,6 +76,7 @@ def upgrade():
     sa.Column('body', sa.String(length=140), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.Column('rec', sa.Boolean(), nullable=False),
     sa.Column('rec_val', sa.Integer(), nullable=True),
     sa.Column('rec_unit', sa.Enum('minutes', 'hours', 'days', 'weeks', 'months', 'years', name='recurrence_units'), nullable=True),
     sa.Column('rec_next', sa.String(), nullable=True),
@@ -99,6 +100,7 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_gid_gud_created_at'), ['created_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_modified_at'), ['modified_at'], unique=False)
+        batch_op.create_index(batch_op.f('ix_gid_gud_rec'), ['rec'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_rec_next'), ['rec_next'], unique=False)
         batch_op.create_index(batch_op.f('ix_gid_gud_user_id'), ['user_id'], unique=False)
 
@@ -140,6 +142,7 @@ def downgrade():
     with op.batch_alter_table('gid_gud', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_gid_gud_user_id'))
         batch_op.drop_index(batch_op.f('ix_gid_gud_rec_next'))
+        batch_op.drop_index(batch_op.f('ix_gid_gud_rec'))
         batch_op.drop_index(batch_op.f('ix_gid_gud_modified_at'))
         batch_op.drop_index(batch_op.f('ix_gid_gud_deleted_at'))
         batch_op.drop_index(batch_op.f('ix_gid_gud_created_at'))

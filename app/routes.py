@@ -136,10 +136,11 @@ def unfollow(username):
 def create_gidgud():
     title = 'New GidGud'
     form = GidGudForm()
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
 
     if request.method == 'POST':
         if form.validate_on_submit():
-            gg = c_man.gidgud_create_from_form(form)
+            gg = c_man.gidgud_create_from_form(user=current_user, form=form)
             flash('GidGud created')
             return redirect(url_for('routes.index'))
 
@@ -147,13 +148,14 @@ def create_gidgud():
         for field_name, field in form._fields.items():
             field.data = field.default
 
-    return render_template('create_or_edit_gidgud.html', title=title, form=form)
+    return render_template('create_or_edit_gidgud.html', title=title, form=form, gidguds=gidguds)
 
 @bp.route('/edit_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_gidgud(id):
     title = 'Edit GidGud'
     form = GidGudForm()
+    gidguds = db.session.scalars(sa.select(GidGud).where(current_user == GidGud.author))
 
     gidgud = db.session.scalar(sa.select(GidGud).where(GidGud.id == id))
 
@@ -173,7 +175,7 @@ def edit_gidgud(id):
             else:
                 field.data = getattr(gidgud, field_name, field.default)
 
-    return render_template('create_or_edit_gidgud.html', form=form, title=title)
+    return render_template('create_or_edit_gidgud.html', form=form, title=title, gidguds=gidguds)
 
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
@@ -187,9 +189,7 @@ def delete_gidgud(id):
 @bp.route('/complete_gidgud/<id>', methods=['GET', 'POST'])
 @login_required
 def complete_gidgud(id):
-    # TODO: make recurrence = 1 and timeunit=None instant recurrence
-    current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
-    c_man.gidgud_handle_complete(current_gidgud)
+    c_man.gidgud_handle_complete(id)
     flash('Gid completed_at!')
     return redirect(url_for('routes.index'))
 
