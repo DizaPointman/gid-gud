@@ -6,6 +6,36 @@ C_Man and U_Man as handlers/managers
 C_Man.create_child()
 C-Man.inject()
 
+# Flatting Comprehensions
+The "expression" applies to the inner_var, not the outer_var
+You can only have one expression at the beginning, but this expression can use any of the variables defined in the subsequent for clauses
+
+    {expression for outer_var in outer_iterable for inner_var in inner_iterable}
+
+    flat_collection = {
+            expression
+            for outer_var in outer_iterable
+            for inner_var in inner_iterable
+        }
+
+    {expression for outer_var in outer_iterable for middle_var in middle_iterable for inner_var in inner_iterable}
+
+    flat_collection = {
+            expression (inner_var * outer_var)
+            for outer_var in outer_iterable
+            for middle_var in middle_iterable
+            for inner_var in inner_iterable
+        }
+
+    blacklist_ids = {
+            int(id)
+            for path in blacklist_paths
+            for id in path.split('.')[:-max_depth_children]
+        }
+
+    blacklist_ids = {int(id) for path in blacklist_paths for id in path.split('.')[:-max_depth_children]}
+
+
 
 
 # TODO: Tests for Content Manager
@@ -14,16 +44,12 @@ C-Man.inject()
 # TODO: Implement Materialized Path
 ## Models
 ### Category
-- add path attribute
-- remove height, depth attribute, parent, children
-- add init
+- funcs in draft
 ## Content Manager
-- modify change parent
-- modify reassign children
-- modify get possible children
-- modify get possible parents
+- funcs in draft
+- adapt create/update from form to use {id, name}
 ## Routes
-- modify all categories query
+- modify choices to use {id, name}
 ## Template
 - modify category tree makro
 
