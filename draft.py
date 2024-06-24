@@ -9,9 +9,11 @@
 # models.py
 # Category Model
 from sqlite3 import IntegrityError
+from typing import Optional
+from flask_login import current_user
 from sqlalchemy import and_, func, not_, or_, union, update
 from sqlalchemy.orm import validates
-from app.models import Category
+from app.models import Category, User
 from app.factory import db
 
 class Category(db.Model):
@@ -134,14 +136,59 @@ class Category(db.Model):
 # content_manger.py
 class ContentManager:
 
-    def get_possible_parents(self, cat: Category):
+## Category
+
+    def cat_create(self, data: dict, user: Optional[User] = None) -> Category:
+        # only receive processed data, no if, resolve ifs in get_or and create from form
+        user = user or current_user
+        root = self.cat_get_or_create_root()
+        parent_name = data.get('parent', None)
+        parent = self.cat_get_or_create(parent_name) if parent_name else 
+        return True
+
+    def cat_get_or_create(self, name: str, user: User) -> Category:
+        if not name:
+            return False
+        else:
+            cat = Category.query.get(Category).filter(Category.user == user, Category.name == 'name').first()
+            return True
+
+    def cat_get_or_create_root(self) -> Category:
+        root = Category.query.get(Category).filter(Category.user == user, Category.name == 'root').first()
+        return True
+
+    def cat_create_from_form(self, form_data: dict) -> Category:
+        return True
+
+    def cat_create_from_form_batch(self, form_data: dict) -> list[Category]:
+        return True
+
+    def cat_update(self, cat: Category, form_data: dict) -> Category:
+        return True
+
+    def cat_update_name(self, cat: Category, name: str) -> bool:
+        return True
+
+    def cat_update_parent(self, cat: Category, new_parent_id: int) -> bool:
+        return True
+
+    def cat_reassign_children(self, cat: Category, new_parent_id: int) -> bool:
+        return True
+
+    def cat_reassign_gidguds(self, cat: Category, new_parent_id: int) -> bool:
+        return True
+
+    def cat_archive_and_recreate(self, cat: Category) -> Category:
+        return True
+
+    def cat_get_possible_parents(self, cat: Category) -> dict[int, str]:
         max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth()
         return db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
             ~Category.path.like(f"{cat.path}.%")
         ).all()
 
-    def get_possible_children(self, cat: Category):
+    def cat_get_possible_children(self, cat: Category) -> dict[int, str]:
         max_depth_children = Category.MAX_DEPTH - cat.depth
         if max_depth_children <= 0:
             return []
@@ -160,7 +207,7 @@ class ContentManager:
             not_(Category.id.in_(blacklist_ids))
         ).all()
 
-    def get_possible_parents_for_children(self, cat: Category):
+    def cat_get_possible_parents_for_children(self, cat: Category) -> dict[int, str]:
         max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth() + 1
 
         possible_parents = db.session.query(Category.id, Category.name).filter(
@@ -171,5 +218,13 @@ class ContentManager:
 
         possible_parents.append((cat.id, cat.name))
         return possible_parents
+
+## GidGud
+### change name
+### change category
+### change recurrence
+### complete
+### Funcs: create(data), create_from_form(form), create_from_batch(form), update(data), complete
+
 # routes.py
 # /templates

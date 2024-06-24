@@ -43,14 +43,14 @@ def log_exception(exception: Exception, module_name: str, function_name: str) ->
     """
     # Capture the stack trace
     stack_trace = traceback.format_exc()
-    
+
     # Log the timestamp, module, and function names
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logging.error(f"Timestamp: {timestamp}, Module: {module_name}, Function: {function_name}")
-    
+
     # Log the stack trace at the debug level
     logging.debug(stack_trace)
-    
+
     # Initialize the error message with a generic message
     error_msg = f"An error occurred: {exception}"
 
