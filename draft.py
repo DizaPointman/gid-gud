@@ -15,11 +15,14 @@ from sqlalchemy import func, not_, update
 from sqlalchemy.orm import validates
 from app.models import Category, GidGud, User
 from app.factory import db
+from app.utils import exception_handler
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     path = db.Column(db.String(255), nullable=False, index=True)
+    # real model has different syntax
+    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
     MAX_DEPTH = 5
 
@@ -147,10 +150,11 @@ class ContentManager:
 
 ## Category
 
+    @exception_handler
     def get_category_by_id(self, id) -> Category:
-        cat = Category.query.filter_by(Category.id == id).first()
-        return cat
+        return Category.query.filter_by(Category.id == id).first()
 
+    @exception_handler
     def cat_create(self, data: dict, user: Optional[User] = None) -> Category:
         user = user or current_user
         name = data.get('name', None)
@@ -163,6 +167,7 @@ class ContentManager:
             db.session.commit()
             return new_cat
 
+    @exception_handler
     def cat_get_or_create(self, name: str, user: Optional[User] = None) -> Category:
         user = user or current_user
         if not name:
@@ -175,6 +180,7 @@ class ContentManager:
                 cat = self.cat_create(data, user)
         return cat
 
+    @exception_handler
     def cat_get_or_create_root(self, user: Optional[User] = None) -> Category:
         user = user or current_user
         root = Category.query.get(Category).filter(Category.user == user, Category.name == 'root').first()
@@ -184,6 +190,7 @@ class ContentManager:
             db.session.commit()
         return root
 
+    @exception_handler
     def cat_create_from_form(self, form_data: dict) -> Category:
         user = form_data.get('user', current_user)
         name = form_data.get('name', None)
@@ -196,10 +203,12 @@ class ContentManager:
         new_cat = self.cat_create(data, user)
         return new_cat
 
+    @exception_handler
     def cat_create_from_form_batch(self, form_data: dict) -> list[Category]:
         # Implement when time comes up
         return True
 
+    @exception_handler
     def cat_update_from_form(self, cat: Category, form_data: dict) -> Category:
         # form validation checks for existing names
         old_name = cat.name
@@ -209,8 +218,12 @@ class ContentManager:
         new_children_id = form_data.get('reassign_children', None)
         new_gidguds_id = form_data.get('reassign_gidguds', None)
 
+        name_updated = True
+        parent_updated = True
+        children_reassigned = True
+        gidguds_reassigned = True
 
-        if new_name is not None and new_name != cat.name:
+        if new_name is not None and new_name != old_name:
             name_updated = self.cat_update_name(cat, new_name)
         if new_parent_id is not None and new_parent_id != old_parent_id:
             parent_updated = self.cat_update_parent(cat, new_parent_id)
@@ -218,8 +231,10 @@ class ContentManager:
             children_reassigned = self.cat_reassign_children(cat, new_children_id)
         if new_gidguds_id is not None and new_gidguds_id != cat.id:
             gidguds_reassigned = self.cat_reassign_gidguds(cat, new_gidguds_id)
-        return True
 
+        return name_updated and parent_updated and children_reassigned and gidguds_reassigned
+
+    @exception_handler
     def cat_update_name(self, cat: Category, new_name: str) -> bool:
         cat.name = new_name
         db.session.commit()
@@ -228,6 +243,7 @@ class ContentManager:
         else:
             return False
 
+    @exception_handler
     def cat_update_parent(self, cat: Category, new_parent_id: int) -> bool:
         new_parent = self.get_category_by_id(new_parent_id)
         if new_parent is not None:
@@ -236,6 +252,7 @@ class ContentManager:
         else:
             return False
 
+    @exception_handler
     def cat_reassign_children(self, cat: Category, new_parent_id: int) -> bool:
         children = cat.get_descendants()
         if children is not None:
@@ -247,14 +264,18 @@ class ContentManager:
             return True
         return False
 
+    @exception_handler
     def cat_reassign_gidguds(self, cat: Category, new_parent_id: int) -> bool:
         db.session.query(GidGud).filter(GidGud.category_id == cat.id).update({GidGud.category_id: new_parent_id}, synchronize_session=False)
         db.session.commit()
         return True
 
+    @exception_handler
     def cat_archive_and_recreate(self, cat: Category) -> Category:
+        # Implement when time comes up
         return True
 
+    @exception_handler
     def cat_get_possible_parents(self, cat: Category) -> dict[int, str]:
         max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth()
         return db.session.query(Category.id, Category.name).filter(
@@ -262,6 +283,7 @@ class ContentManager:
             ~Category.path.like(f"{cat.path}.%")
         ).all()
 
+    @exception_handler
     def cat_get_possible_children(self, cat: Category) -> dict[int, str]:
         max_depth_children = Category.MAX_DEPTH - cat.depth
         if max_depth_children <= 0:
@@ -281,6 +303,7 @@ class ContentManager:
             not_(Category.id.in_(blacklist_ids))
         ).all()
 
+    @exception_handler
     def cat_get_possible_parents_for_children(self, cat: Category) -> dict[int, str]:
         max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth() + 1
 
