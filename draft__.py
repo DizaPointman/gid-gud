@@ -1,15 +1,7 @@
-"""
-1. List Files and Folders
-2. List affected Classes in File
-3. Write Function Names
-4. Add Input and Output to Functions
-5. Write Functions
-"""
-
 # models.py
-# Category Model
+
 from sqlite3 import IntegrityError
-from typing import Optional
+from typing import Optional, List
 from flask_login import current_user
 from sqlalchemy import func, not_, update
 from sqlalchemy.orm import validates
@@ -21,8 +13,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     path = db.Column(db.String(255), nullable=False, index=True)
-    # real model has different syntax
-    gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
+    gidguds: Optional[List['GidGud']] = db.relationship('GidGud', back_populates='category')
 
     MAX_DEPTH = 5
 
@@ -89,7 +80,6 @@ class Category(db.Model):
         category = cls.query.get(category_id)
         if not category:
             raise ValueError("Category not found")
-
         new_parent = cls.query.get(new_parent_id) if new_parent_id else None
         subtree_moved = category.set_parent(new_parent)
         return subtree_moved
@@ -112,14 +102,12 @@ class Category(db.Model):
                         )
                     )
                 )
-
                 # Update the category's own path
                 db.session.execute(
                     update(Category)
                     .where(Category.id == self.id)
                     .values(path=new_path)
                 )
-
                 db.session.commit()
             return True
         except IntegrityError:
@@ -135,23 +123,21 @@ class Category(db.Model):
         with db.session.begin():
             # Reset all paths
             cls.query.update({cls.path: cls.id.cast(db.String)})
-
             # Get all categories
             categories = cls.query.order_by(cls.id).all()
-
             # Rebuild paths
             for category in categories:
                 parent = category.get_parent()
                 if parent:
                     category.path = f"{parent.path}.{category.id}"
                 db.session.add(category)
-
             db.session.commit()
 
-# content_manger.py
+# content_manager.py
+
 class ContentManager:
 
-## Category
+    ## Category
 
     @exception_handler
     def get_category_by_id(self, id) -> Optional[Category]:
@@ -160,35 +146,33 @@ class ContentManager:
     @exception_handler
     def cat_create(self, data: dict, user: Optional[User] = None) -> Category:
         user = user or current_user
-        name = data.get('name', None)
-        parent = data.get('parent', None)
-        if not (name or parent or user):
-            raise ValueError('Need name, parent and user to create category')
-        else:
-            new_cat = Category(name=name, user=user, parent=parent)
-            db.session.add(new_cat)
-            db.session.commit()
-            return new_cat
+        name = data.get('name')
+        parent = data.get('parent')
+        if not (name and parent and user):
+            raise ValueError('Need name, parent, and user to create category')
+        new_cat = Category(name=name, parent=parent)
+        db.session.add(new_cat)
+        db.session.commit()
+        return new_cat
 
     @exception_handler
     def cat_get_or_create(self, name: str, user: Optional[User] = None) -> Category:
         user = user or current_user
         if not name:
-            cat = self.cat_get_or_create_root(user)
-        else:
-            cat = Category.query.get(Category).filter(Category.user == user, Category.name == 'name').first()
-            if not cat:
-                parent = self.cat_get_or_create_root(user)
-                data = {'name': name, 'parent': parent}
-                cat = self.cat_create(data, user)
+            return self.cat_get_or_create_root(user)
+        cat = Category.query.filter_by(user=user, name=name).first()
+        if not cat:
+            parent = self.cat_get_or_create_root(user)
+            data = {'name': name, 'parent': parent}
+            cat = self.cat_create(data, user)
         return cat
 
     @exception_handler
     def cat_get_or_create_root(self, user: Optional[User] = None) -> Category:
         user = user or current_user
-        root = Category.query.get(Category).filter(Category.user == user, Category.name == 'root').first()
+        root = Category.query.filter_by(user=user, name='root').first()
         if not root:
-            root = Category(name='root', user=user, parent=None)
+            root = Category(name='root', parent=None)
             db.session.add(root)
             db.session.commit()
         return root
@@ -196,12 +180,9 @@ class ContentManager:
     @exception_handler
     def cat_create_from_form(self, form_data: dict) -> Category:
         user = form_data.get('user', current_user)
-        name = form_data.get('name', None)
-        parent_id = form_data.get('parent', None)
-        if parent_id:
-            parent = self.get_category_by_id(parent)
-        if not parent:
-            parent = self.cat_get_or_create_root(user)
+        name = form_data.get('name')
+        parent_id = form_data.get('parent')
+        parent = self.get_category_by_id(parent_id) if parent_id else self.cat_get_or_create_root(user)
         data = {'name': name, 'parent': parent}
         new_cat = self.cat_create(data, user)
         return new_cat
@@ -212,27 +193,26 @@ class ContentManager:
         return True
 
     @exception_handler
-    def cat_update_from_form(self, cat: Category, form_data: dict) -> Category:
-        # form validation checks for existing names
+    def cat_update_from_form(self, cat: Category, form_data: dict) -> bool:
         old_name = cat.name
-        new_name = form_data.get('name', None)
+        new_name = form_data.get('name')
         old_parent_id = cat.get_parent_id()
-        new_parent_id = form_data.get('parent', None)
-        new_children_id = form_data.get('reassign_children', None)
-        new_gidguds_id = form_data.get('reassign_gidguds', None)
+        new_parent_id = form_data.get('parent')
+        new_children_id = form_data.get('reassign_children')
+        new_gidguds_id = form_data.get('reassign_gidguds')
 
         name_updated = True
         parent_updated = True
         children_reassigned = True
         gidguds_reassigned = True
 
-        if new_name is not None and new_name != old_name:
+        if new_name and new_name != old_name:
             name_updated = self.cat_update_name(cat, new_name)
-        if new_parent_id is not None and new_parent_id != old_parent_id:
+        if new_parent_id and new_parent_id != old_parent_id:
             parent_updated = self.cat_update_parent(cat, new_parent_id)
-        if new_children_id is not None and new_children_id != cat.id:
+        if new_children_id and new_children_id != cat.id:
             children_reassigned = self.cat_reassign_children(cat, new_children_id)
-        if new_gidguds_id is not None and new_gidguds_id != cat.id:
+        if new_gidguds_id and new_gidguds_id != cat.id:
             gidguds_reassigned = self.cat_reassign_gidguds(cat, new_gidguds_id)
 
         return name_updated and parent_updated and children_reassigned and gidguds_reassigned
@@ -241,24 +221,20 @@ class ContentManager:
     def cat_update_name(self, cat: Category, new_name: str) -> bool:
         cat.name = new_name
         db.session.commit()
-        if cat.name == new_name:
-            return True
-        else:
-            return False
+        return cat.name == new_name
 
     @exception_handler
     def cat_update_parent(self, cat: Category, new_parent_id: int) -> bool:
         new_parent = self.get_category_by_id(new_parent_id)
-        if new_parent is not None:
-            parent_changed = cat.set_parent(new_parent_id)
+        if new_parent:
+            parent_changed = cat.set_parent(new_parent)
             return parent_changed
-        else:
-            return False
+        return False
 
     @exception_handler
     def cat_reassign_children(self, cat: Category, new_parent_id: int) -> bool:
         children = cat.get_descendants()
-        if children is not None:
+        if children:
             for child in children:
                 child_reassigned = child.set_parent(new_parent_id)
                 if not child_reassigned:
@@ -291,17 +267,14 @@ class ContentManager:
         max_depth_children = Category.MAX_DEPTH - cat.depth
         if max_depth_children <= 0:
             return []
-
         blacklist_paths = set(path[0] for path in db.session.query(Category.path).filter(
             (func.length(Category.path) - func.length(func.replace(Category.path, '.'))) >= max_depth_children
         ).all()) | {cat.path}
-
         blacklist_ids = {
             int(id)
             for path in blacklist_paths
             for id in path.split('.')[:-max_depth_children]
         }
-
         return db.session.query(Category.id, Category.name).filter(
             not_(Category.id.in_(blacklist_ids))
         ).all()
@@ -309,26 +282,10 @@ class ContentManager:
     @exception_handler
     def cat_get_possible_parents_for_children(self, cat: Category) -> dict[int, str]:
         max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth() + 1
-
         possible_parents = db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
             Category.id != cat.id,
             ~Category.path.like(f"{cat.path}.%")
         ).all()
-
         possible_parents.append((cat.id, cat.name))
         return possible_parents
-
-# Changes
-# remove set_parent from init and put into create
-# add parent, parent_id attributes to allow for path reconstruction
-
-## GidGud
-### change name
-### change category
-### change recurrence
-### complete
-### Funcs: create(data), create_from_form(form), create_from_batch(form), update(data), complete
-
-# routes.py
-# /templates
