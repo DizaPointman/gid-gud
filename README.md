@@ -44,10 +44,10 @@ You can only have one expression at the beginning, but this expression can use a
 # TODO: Implement Materialized Path
 ## Models
 ### Category
-- funcs in draft
+- dismiss init
+- correct set_parent to set parent field and update path
 ## Content Manager
-- funcs in draft
-- adapt create/update from form to use {id, name}
+- update create to make use of set_parent
 ## Routes
 - modify choices to use {id, name}
 ## Template
