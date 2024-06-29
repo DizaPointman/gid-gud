@@ -220,7 +220,7 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        category = c_man.create_category_from_form(current_user, form)
+        category = c_man.cat_create_from_form(form.data)
         flash('New Category created!')
         return redirect(url_for('routes.user_categories', username=current_user.username))
 
@@ -233,32 +233,18 @@ def edit_category(id):
     current_category = db.session.scalar(sa.select(Category).where(id == Category.id))
     delete_afterwards = bool(request.args.get('dla'))
 
-    # Choices: all categories except the current category
-
-    parent_choices = [current_category.parent.name or current_category.name] + c_man.get_possible_parents(current_category)
-
-    if current_category.gidguds:
-        gidgud_reassignment_choices = [current_category.name, 'root'] + [c.name for c in current_user.categories if c.name not in [current_category.name, 'root']]
-    else:
-        gidgud_reassignment_choices = ['No GidGuds']
-
-    if current_category.children:
-        parent_choices_for_children = [current_category.name] + c_man.get_possible_parents_for_children(current_category)
-    else:
-        parent_choices_for_children = ['No Children']
-
     form = EditCategoryForm(current_name=current_category.name)
 
     # Assigning choices to selection fields
-    form.parent.choices = parent_choices
-    form.reassign_gidguds.choices = gidgud_reassignment_choices
-    form.reassign_children.choices = parent_choices_for_children
+    form.parent.choices = c_man.cat_get_possible_parents(current_category) or ['Root has no parent']
+    form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or ['No GidGuds']
+    form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or ['No Children']
 
     if request.method == 'POST':
 
         if form.validate_on_submit():
 
-            c_man.update_category_from_form(id, form)
+            c_man.cat_update_from_form(current_category, form.data)
 
             #if delete_afterwards:
             if delete_afterwards:
@@ -274,9 +260,9 @@ def edit_category(id):
     elif request.method == 'GET':
         # populating fields for get requests
         form.name.data = current_category.name
-        form.parent.choices = parent_choices
-        form.reassign_gidguds.choices = gidgud_reassignment_choices
-        form.reassign_children.choices = parent_choices_for_children
+        form.parent.choices = c_man.cat_get_possible_parents(current_category) or ['Root has no parent']
+        form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or ['No GidGuds']
+        form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or ['No Children']
 
     return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
 

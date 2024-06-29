@@ -1,3 +1,4 @@
+from sqlite3 import IntegrityError
 from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -5,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from typing import List, Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
+from sqlalchemy.orm import validates
 from app.factory import db, login
 from flask_login import UserMixin, current_user
 from hashlib import md5
@@ -148,26 +150,137 @@ class Category(db.Model):
 
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent', remote_side=[parent_id], uselist=True)
+    path = so.Mapped[str] = so.mapped_column(db.String(255), nullable=False, index=True)
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
-
-    # Tree
-    # Depth indicates own level below default including self
-    depth: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
-    # Height indicates levels below including self
-    height: so.Mapped[int] = so.mapped_column(sa.Integer(), default=1)
 
     created_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, default=iso_now)
     modified_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
     archived_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
+    # Not in use yet
     a_brief_history_of_time = sa.Column(sa.String(255), nullable=True)
 
     # Setting a tree height limit
     MAX_HEIGHT = 5
 
+    @validates('path')
+    def validate_path(self, key, path):
+        if not path or not all(part.isdigit() for part in path.split('.')):
+            raise ValueError("Invalid path format: Path must be a dot-separated string of digits")
+        return path
 
+    @property
+    def depth(self):
+        return len(self.path.split('.'))
+
+    def get_parent(self):
+        return self.parent
+
+    def get_children(self):
+        return Category.query.filter(
+            Category.path.like(f"{self.path}.%"),
+            Category.depth == self.depth + 1
+        ).all()
+    def get_descendants(self):
+        return Category.query.filter(Category.path.like(f"{self.path}.%")).all()
+
+    def get_max_descendants_depth(self):
+        max_depth = db.session.query(
+            sa.func.max(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1
+            )
+        ).filter(Category.path.like(f"{self.path}.%")).scalar()
+        return max_depth if max_depth else self.depth
+
+    def get_subtree_depth(self):
+        return self.get_max_descendants_depth() - self.depth + 1
+
+    def is_descendant_of(self, other):
+        return self.path.startswith(f"{other.path}.")
+
+    def set_parent(self, new_parent):
+        if new_parent and self.is_descendant_of(new_parent):
+            raise ValueError("Cannot set a descendant as parent")
+        if new_parent:
+            self.parent = new_parent
+            new_path = f"{new_parent.path}.{self.id}"
+        else:
+            new_path = str(self.id)
+
+        old_path = self.path if self.path else None
+        self.path = new_path
+
+        if old_path:
+            subtree_paths_updated = self._update_subtree_paths(old_path, new_path)
+        return subtree_paths_updated
+
+    @classmethod
+    def move_subtree(cls, category_id, new_parent_id=None):
+        category = cls.query.get(category_id)
+        if not category:
+            raise ValueError("Category not found")
+
+        new_parent = cls.query.get(new_parent_id) if new_parent_id else None
+        subtree_moved = category.set_parent(new_parent)
+        db.session.commit()
+        return subtree_moved
+
+    def _update_subtree_paths(self, old_path, new_path):
+        if old_path == new_path:
+            return
+
+        # Start a transaction
+        try:
+            with db.session.begin():
+                # Update the paths of all descendants
+                db.session.execute(
+                    sa.update(Category)
+                    .where(Category.path.like(f"{old_path}.%"))
+                    .values(
+                        path=sa.func.concat(
+                            new_path,
+                            sa.func.substr(Category.path, sa.func.length(old_path) + 1)
+                        )
+                    )
+                )
+
+                # Update the category's own path
+                db.session.execute(
+                    sa.update(Category)
+                    .where(Category.id == self.id)
+                    .values(path=new_path)
+                )
+
+                db.session.commit()
+            return True
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError("Path update failed due to integrity constraint")
+        except Exception as e:
+            db.session.rollback()
+            raise ValueError(f"Path update failed due to an unexpected error: {e}")
+
+    @classmethod
+    def rebuild_tree(cls):
+        """Rebuild the entire tree structure."""
+        with db.session.begin():
+            # Reset all paths
+            cls.query.update({cls.path: cls.id.cast(db.String)})
+
+            # Get all categories
+            categories = cls.query.order_by(cls.id).all()
+
+            # Rebuild paths
+            for category in categories:
+                parent = category.get_parent()
+                category.path = f"{parent.path}.{category.id}" if parent else str(category.id)
+
+                db.session.add(category)
+
+            db.session.commit()
+
+    # Not in use yet
     def archive_and_historize(self, new_version):
 
         # Archive the old category
@@ -183,7 +296,6 @@ class Category(db.Model):
         db.session.commit()
 
         return True
-
 
     def get_version_history(self) -> List['Category']:
         if not self.a_history_of_violence:
