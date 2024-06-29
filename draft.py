@@ -20,6 +20,8 @@ from app.utils import exception_handler
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
     path = db.Column(db.String(255), nullable=False, index=True)
     # real model has different syntax
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
@@ -32,25 +34,12 @@ class Category(db.Model):
             raise ValueError("Invalid path format: Path must be a dot-separated string of digits")
         return path
 
-    def __init__(self, name, parent=None):
-        self.name = name
-        self.set_parent(parent)
-
     @property
     def depth(self):
         return len(self.path.split('.'))
 
     def get_parent(self):
-        if '.' in self.path:
-            parent_id = int(self.path.rsplit('.', 1)[0].split('.')[-1])
-            return Category.query.get(parent_id)
-        return None
-
-    def get_parent_id(self):
-        if '.' in self.path:
-            parent_id = int(self.path.rsplit('.', 1)[0].split('.')[-1])
-            return parent_id
-        return None
+        return self.parent
 
     def get_children(self):
         return Category.query.filter(
@@ -78,6 +67,7 @@ class Category(db.Model):
         if new_parent and self.is_descendant_of(new_parent):
             raise ValueError("Cannot set a descendant as parent")
         if new_parent:
+            self.parent = new_parent
             new_path = f"{new_parent.path}.{self.id}"
         else:
             new_path = str(self.id)
@@ -170,9 +160,10 @@ class ContentManager:
         parent = data.get('parent')
         if not (name or parent or user):
             raise ValueError('Need name, parent, and user to create category')
-        new_cat = Category(name=name, parent=parent)
+        new_cat = Category(name=name)
         db.session.add(new_cat)
         db.session.commit()
+        new_cat.set_parent(parent)
         return new_cat
 
     @exception_handler
@@ -205,7 +196,7 @@ class ContentManager:
         parent = self.get_category_by_id(parent_id) if parent_id else self.cat_get_or_create_root(user)
 
         data = {'name': name, 'parent': parent}
-        return self.cat_create(data, user
+        return self.cat_create(data, user)
 
     @exception_handler
     def cat_create_from_form_batch(self, form_data: dict) -> list[Category]:
