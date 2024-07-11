@@ -141,7 +141,9 @@ def create_gidgud():
 
     if request.method == 'POST':
         if form.validate_on_submit():
-            gg = c_man.gidgud_create_from_form(user=current_user, form=form)
+            formdata = form.data
+            formdata['user'] = current_user
+            gg = c_man.gidgud_create_from_form(formdata)
             flash('GidGud created')
             return redirect(url_for('routes.index'))
 

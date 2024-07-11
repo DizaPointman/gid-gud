@@ -50,7 +50,7 @@ class ContentManager:
         user = user if user else current_user
         if not name:
             return self.cat_get_or_create_root(user)
-        cat = Category.query.filter_by(user=user, name=name).first()
+        cat = Category.query.filter_by(name=name, user=user).first()
         if not cat:
             parent = self.cat_get_or_create_root(user)
             data = {'name': name, 'parent': parent}
@@ -266,7 +266,7 @@ class ContentManager:
             log_exception(e)
             return False
 
-    def gidgud_create_from_form(self, user, form):
+    def gidgud_create_from_form(self, formdata):
         """
         Creates a GidGud instance from a form.
 
@@ -275,13 +275,15 @@ class ContentManager:
         :return: The created GidGud instance.
         """
 
-        body = form.body.data
-        category = self.return_or_create_category(user, form.category.data)
+        body = formdata.get('body')
+        user = formdata.get('user')
+        cat_name = formdata.get('category')
+        category = self.cat_get_or_create(cat_name, user)
 
-        reset_timer = form.reset_timer.data or False
-        rec_instant = form.rec_instant.data
-        rec_custom = form.rec_custom.data
-        rec_next = form.rec_next.data.isoformat() or self.iso_now()
+        reset_timer = formdata.get('reset_timer', False)
+        rec_instant = formdata.get('rec_instant')
+        rec_custom = formdata.get('rec_custom')
+        rec_next = (formdata.get('rec_next')).isoformat() or self.iso_now()
 
         if not rec_instant and not rec_custom:
             rec = False

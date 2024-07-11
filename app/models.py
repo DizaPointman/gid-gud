@@ -184,7 +184,7 @@ class Category(db.Model):
 
     @staticmethod
     def validate_category(category):
-        if category.parent_id is None and category.query.filter_by(parent_id=None).count() > 0:
+        if category.parent_id is None and category.query.filter_by(parent_id=None).count() > 1:
             raise ValueError("Only one root category is allowed.")
         if category.parent_id is not None and category.query.get(category.parent_id) is None:
             raise ValueError("Parent category must exist.")
