@@ -3,5 +3,4 @@
 /__pycache__/
 app.db
 /logs
-app/managers/__pycache__
-app/managers/__pycache__/content_manager.cpython-310.pyc
+app/managers/__pycache__/

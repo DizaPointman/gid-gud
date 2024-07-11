@@ -297,8 +297,8 @@ class ContentManager:
 
         elif rec_custom:
             rec = True
-            rec_val = form.rec_val.data
-            rec_unit = form.rec_unit.data
+            rec_val = formdata.get('rec_val')
+            rec_unit = formdata.get('rec_unit')
 
         gg = GidGud(author=user, body=body, category=category, rec=rec, rec_val=rec_val, rec_unit=rec_unit, rec_next=rec_next)
         db.session.add(gg)

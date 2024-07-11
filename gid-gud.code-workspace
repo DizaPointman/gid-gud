@@ -12,6 +12,7 @@
 		"editor.defaultFormatter": "vscode.emmet",
 		"cSpell.words": [
 			"dateutil",
+			"formdata",
 			"gid",
 			"gidgud",
 			"gidguds",
@@ -21,6 +22,7 @@
 			"historize",
 			"isouter",
 			"joinedload",
+			"levelname",
 			"ondelete",
 			"primaryjoin",
 			"pytz",
