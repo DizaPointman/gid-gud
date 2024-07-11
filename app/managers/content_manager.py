@@ -42,8 +42,9 @@ class ContentManager:
             raise ValueError('Need name, parent, and user to create category')
         new_cat = Category(name=name)
         db.session.add(new_cat)
-        db.session.commit()
+        db.session.flush()
         new_cat.set_parent(parent)
+        db.session.commit()
         return new_cat
 
     @exception_handler
@@ -63,8 +64,10 @@ class ContentManager:
         user = user or current_user
         root = Category.query.filter_by(user=user, name='root').first()
         if not root:
-            root = Category(name='root', parent=None)
+            root = Category(name='root')
             db.session.add(root)
+            db.session.flush()
+            root.set_parent(None)
             db.session.commit()
         return root
 
@@ -72,8 +75,7 @@ class ContentManager:
     def cat_create_from_form(self, form_data: dict) -> Category:
         user = form_data.get('user', current_user)
         name = form_data.get('name')
-        parent_id = form_data.get('parent')
-        parent = self.get_category_by_id(parent_id) if parent_id else self.cat_get_or_create_root(user)
+        parent = self.cat_get_or_create_root(user)
 
         data = {'name': name, 'parent': parent}
         return self.cat_create(data, user)

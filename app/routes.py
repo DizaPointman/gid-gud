@@ -198,10 +198,7 @@ def complete_gidgud(id):
 @login_required
 def user_categories(username):
     # categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
-    root_categories = Category.query.filter_by(parent_id=None).options(
-        joinedload(Category.children).joinedload(Category.children),
-        joinedload(Category.gidguds)
-    ).all()
+    root_categories = Category.query.all()
     return render_template('user_categories.html', title='My Categories', root_categories=root_categories)
 
 @bp.route('/create_category', methods=['GET', 'POST'])
@@ -220,7 +217,10 @@ def create_category():
     categories = db.session.scalars(sa.select(Category).where(current_user == Category.user))
 
     if form.validate_on_submit():
-        category = c_man.cat_create_from_form(form.data)
+        formdata = form.data
+        formdata['user'] = current_user
+        current_app.logger.info(formdata)
+        category = c_man.cat_create_from_form(formdata)
         flash('New Category created!')
         return redirect(url_for('routes.user_categories', username=current_user.username))
 
@@ -244,7 +244,9 @@ def edit_category(id):
 
         if form.validate_on_submit():
 
-            c_man.cat_update_from_form(current_category, form.data)
+            formdata = form.data
+            formdata['user'] = current_user
+            c_man.cat_update_from_form(current_category, formdata)
 
             #if delete_afterwards:
             if delete_afterwards:
