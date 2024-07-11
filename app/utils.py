@@ -85,6 +85,20 @@ def handle_exception(exception):
     db.session.rollback()
     raise exception
 
+def exception_handler(func):
+    """
+    Decorator to handle exceptions in a function.
+
+    Parameters:
+        func (function): The function to wrap with exception handling.
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            handle_exception(e)
+    return wrapper
+
 # debug helper
 
 def log_request():

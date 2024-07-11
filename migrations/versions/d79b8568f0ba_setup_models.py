@@ -1,8 +1,8 @@
 """setup models
 
-Revision ID: 6183b2e4a887
+Revision ID: d79b8568f0ba
 Revises: 
-Create Date: 2024-06-21 17:39:07.101608
+Create Date: 2024-07-11 23:13:01.279367
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6183b2e4a887'
+revision = 'd79b8568f0ba'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -45,8 +45,7 @@ def upgrade():
     sa.Column('name', sa.String(length=20), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('parent_id', sa.Integer(), nullable=True),
-    sa.Column('depth', sa.Integer(), nullable=False),
-    sa.Column('height', sa.Integer(), nullable=False),
+    sa.Column('path', sa.String(length=255), nullable=False),
     sa.Column('created_at', sa.String(), nullable=False),
     sa.Column('modified_at', sa.String(), nullable=True),
     sa.Column('archived_at', sa.String(), nullable=True),
@@ -62,6 +61,7 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_category_deleted_at'), ['deleted_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_category_modified_at'), ['modified_at'], unique=False)
         batch_op.create_index(batch_op.f('ix_category_parent_id'), ['parent_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_category_path'), ['path'], unique=False)
         batch_op.create_index(batch_op.f('ix_category_user_id'), ['user_id'], unique=False)
 
     op.create_table('followers',
@@ -153,6 +153,7 @@ def downgrade():
     op.drop_table('followers')
     with op.batch_alter_table('category', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_category_user_id'))
+        batch_op.drop_index(batch_op.f('ix_category_path'))
         batch_op.drop_index(batch_op.f('ix_category_parent_id'))
         batch_op.drop_index(batch_op.f('ix_category_modified_at'))
         batch_op.drop_index(batch_op.f('ix_category_deleted_at'))

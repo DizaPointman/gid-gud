@@ -17,16 +17,20 @@ login.login_view = 'routes.login'
 
 
 def create_app(config_class=Config):
+    print("Creating app...")
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    print("Initializing extensions...")
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
 
     with app.app_context():
+        print("Registering blueprints...")
         from .routes import bp as routes_bp
         app.register_blueprint(routes_bp)
+        print("Blueprints registered successfully")
 
 
     if not app.debug and not app.testing:
@@ -57,6 +61,8 @@ def create_app(config_class=Config):
             app.logger.info('GidGud startup')
 
     if app.debug and not app.testing:
+
+        print("App is running as app.debug")
 
         if not os.path.exists('logs'):
             os.mkdir('logs')
@@ -92,6 +98,9 @@ def create_app(config_class=Config):
             app.logger.info('GidGud startup')
 
     if app.testing:
+
+        print("App is running as app.testing")
+
         if not os.path.exists('logs'):
             os.mkdir('logs')
         file_handler = RotatingFileHandler('logs/gidgud.log', maxBytes=10240, backupCount=10)
@@ -103,8 +112,10 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('GidGud Test startup')
 
+    print("Right before shell context processor")
     @app.shell_context_processor
     def make_shell_context():
         return {'sa': sa, 'so': so, 'db': db}
 
+    print("App creation complete.")
     return app
