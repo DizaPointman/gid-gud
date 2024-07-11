@@ -44,9 +44,10 @@ You can only have one expression at the beginning, but this expression can use a
 # TODO: Implement Materialized Path
 ## Models
 ### Category
-- dismiss init
-- correct set_parent to set parent field and update path
-- implement flush() in create func
+- create with parent but dummy path
+- add and commit
+- set path
+- change parent includes set path
 ## Content Manager
 - update create to make use of set_parent
 ## Routes

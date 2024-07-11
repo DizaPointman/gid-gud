@@ -35,21 +35,19 @@ class ContentManager:
 
     @exception_handler
     def cat_create(self, data: dict, user: Optional[User] = None) -> Category:
-        user = user or current_user
+        user = user if user else current_user
         name = data.get('name')
         parent = data.get('parent')
         if not (name or parent or user):
             raise ValueError('Need name, parent, and user to create category')
-        new_cat = Category(name=name)
-        db.session.add(new_cat)
-        db.session.flush()
-        new_cat.set_parent(parent)
-        db.session.commit()
+        new_cat = Category(name=name, user=user, parent=parent)
+        Category.validate_category(new_cat)
+        new_cat.save()
         return new_cat
 
     @exception_handler
     def cat_get_or_create(self, name: str, user: Optional[User] = None) -> Category:
-        user = user or current_user
+        user = user if user else current_user
         if not name:
             return self.cat_get_or_create_root(user)
         cat = Category.query.filter_by(user=user, name=name).first()
@@ -61,19 +59,19 @@ class ContentManager:
 
     @exception_handler
     def cat_get_or_create_root(self, user: Optional[User] = None) -> Category:
-        user = user or current_user
-        root = Category.query.filter_by(user=user, name='root').first()
-        if not root:
-            root = Category(name='root')
+        user = user if user else current_user
+        root = Category.query.filter_by(parent_id=None, user=user).first()
+        if root is None:
+            root = Category(name='root', path='root', user=user)
             db.session.add(root)
-            db.session.flush()
-            root.set_parent(None)
+            db.session.commit()
+            root.path = f'root.{root.id}'
             db.session.commit()
         return root
 
     @exception_handler
     def cat_create_from_form(self, form_data: dict) -> Category:
-        user = form_data.get('user', current_user)
+        user = form_data.get('user')
         name = form_data.get('name')
         parent = self.cat_get_or_create_root(user)
 
@@ -119,19 +117,25 @@ class ContentManager:
     @exception_handler
     def cat_update_parent(self, cat: Category, new_parent_id: int) -> bool:
         new_parent = self.get_category_by_id(new_parent_id)
-        if new_parent:
-            parent_changed = cat.set_parent(new_parent)
+        if new_parent and new_parent.is_descendant_of(cat):
+            raise ValueError("Cannot set a descendant as parent")
+        if new_parent != cat.parent:
+            old_path = cat.path if cat.path else None
+            cat.parent = new_parent
             db.session.commit()
-            return parent_changed
-        return False
+            cat.set_path()
+        new_path = cat.path
+
+        if old_path:
+            subtree_paths_updated = cat._update_subtree_paths(old_path, new_path)
+        return subtree_paths_updated
 
     @exception_handler
     def cat_reassign_children(self, cat: Category, new_parent_id: int) -> bool:
-        new_parent = self.get_category_by_id(new_parent_id)  # Retrieve the new_parent object
         children = cat.get_descendants()
         if children:
             for child in children:
-                child_reassigned = child.set_parent(new_parent_id)
+                child_reassigned = self.cat_update_parent(child, new_parent_id)
                 if not child_reassigned:
                     return False
             db.session.commit()

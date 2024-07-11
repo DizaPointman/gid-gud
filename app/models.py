@@ -150,7 +150,7 @@ class Category(db.Model):
 
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    path: so.Mapped[str] = so.mapped_column(db.String(255), nullable=False, index=True)
+    path: so.Mapped[str] = so.mapped_column(db.String(255), nullable=False, index=True, default='temporary_path')
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
     created_at: so.Mapped[datetime] = so.mapped_column(sa.String(), index=True, default=iso_now)
@@ -159,16 +159,35 @@ class Category(db.Model):
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     # Not in use yet
-    a_brief_history_of_time = sa.Column(sa.String(255), nullable=True)
+    a_brief_history_of_time: so.Mapped[list[str]] = so.mapped_column(sa.String(255), nullable=True)
 
     # Setting a tree height limit
     MAX_HEIGHT = 5
 
-    @validates('path')
-    def validate_path(self, key, path):
-        if not path or not all(part.isdigit() for part in path.split('.')):
-            raise ValueError("Invalid path format: Path must be a dot-separated string of digits")
-        return path
+    @staticmethod
+    def validate_path(path):
+        if not path or path == 'temporary_path':
+            raise ValueError("Path is invalid")
+
+    def set_path(self):
+        if self.parent:
+            self.path = f'{self.parent.path}.{self.id}'
+        else:
+            self.path = f'root.{self.id}'
+        db.session.commit()
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+        self.set_path()
+        db.session.commit()
+
+    @staticmethod
+    def validate_category(category):
+        if category.parent_id is None and category.query.filter_by(parent_id=None).count() > 0:
+            raise ValueError("Only one root category is allowed.")
+        if category.parent_id is not None and category.query.get(category.parent_id) is None:
+            raise ValueError("Parent category must exist.")
 
     @property
     def depth(self):
@@ -199,32 +218,22 @@ class Category(db.Model):
     def is_descendant_of(self, other):
         return self.path.startswith(f"{other.path}.")
 
-    def set_parent(self, new_parent):
+    """
+    def update_parent(self, new_parent):
         if new_parent and self.is_descendant_of(new_parent):
             raise ValueError("Cannot set a descendant as parent")
-        if new_parent:
+        if new_parent != self.parent:
+            old_path = self.path if self.path else None
             self.parent = new_parent
-            new_path = f"{new_parent.path}.{self.id}"
-        else:
-            new_path = str(self.id)
+            db.session.commit()
+            self.set_path()
 
-        old_path = self.path if self.path else None
-        self.path = new_path
+        new_path = self.path
 
         if old_path:
             subtree_paths_updated = self._update_subtree_paths(old_path, new_path)
         return subtree_paths_updated
-
-    @classmethod
-    def move_subtree(cls, category_id, new_parent_id=None):
-        category = cls.query.get(category_id)
-        if not category:
-            raise ValueError("Category not found")
-
-        new_parent = cls.query.get(new_parent_id) if new_parent_id else None
-        subtree_moved = category.set_parent(new_parent)
-        db.session.commit()
-        return subtree_moved
+    """
 
     def _update_subtree_paths(self, old_path, new_path):
         if old_path == new_path:
@@ -374,7 +383,7 @@ class GidGud(db.Model):
     deleted_at: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, nullable=True)
 
     # Materialized path for versioning
-    a_history_of_violence = sa.Column(sa.String(255), nullable=True)
+    a_history_of_violence: so.Mapped[list[str]] = so.mapped_column(sa.String(255), nullable=True)
 
     def __repr__(self):
         return '<GidGud {}>'.format(self.body)
