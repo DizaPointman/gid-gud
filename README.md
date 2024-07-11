@@ -558,3 +558,66 @@ Here is a complete example of how to handle form submissions securely using Flas
 
 Conclusion
 By using server-side session management, CSRF protection, and secure database operations, you can ensure that user-specific data is handled securely and efficiently. This approach minimizes the risk of security vulnerabilities and ensures that user IDs are managed in a secure manner.
+
+# Autoflush Warning on Category Creation
+
+This warning is indicating that you're trying to add a Category object to the User.categories relationship, but the Category object is not in the session. This typically happens when you create a new Category object but haven't added it to the session before trying to associate it with a User. To resolve this, you need to ensure that the Category object is added to the session before you try to associate it with a User. Here's how you can modify your code to address this:
+
+    First, let's look at the line causing the warning:
+
+    python
+    if category.parent_id is None and category.query.filter_by(parent_id=None).count() > 1
+
+This line is checking if there's more than one root category (categories with parent_id=None). However, it's using category.query, which might be causing issues if category is not in the session.
+
+    To fix this, you can modify your code as follows:
+
+    python
+    from sqlalchemy import func
+
+# ... in your Category model ...
+
+    @classmethod
+    def create_root_category(cls, user):
+        with db.session.begin_nested():
+            root = cls(name='root', user=user, parent_id=None)
+            db.session.add(root)
+            
+            # Check if there's more than one root category for this user
+            root_count = db.session.query(func.count(cls.id)).filter_by(user=user, parent_id=None).scalar()
+            
+            if root_count > 1:
+                raise ValueError("Only one root category per user is allowed")
+            
+        return root
+
+# In your content_manager.py or wherever you're creating categories
+
+    def cat_get_or_create_root(self, user: User) -> Category:
+        root = Category.query.filter_by(parent_id=None, user=user).first()
+        if not root:
+            try:
+                root = Category.create_root_category(user)
+                db.session.commit()
+            except ValueError as e:
+                db.session.rollback()
+                current_app.logger.error(f"Error creating root category: {str(e)}")
+                raise
+        return root
+
+This approach does the following:
+
+    It moves the root category creation logic into a class method on the Category model.
+    It uses db.session.begin_nested() to create a savepoint, allowing for easy rollback if needed.
+    It adds the new root category to the session immediately.
+    It checks for existing root categories using a query that doesn't depend on the category instance.
+    If there's already a root category, it raises an exception, which will rollback the savepoint.
+
+By adding the new Category to the session immediately and using db.session.query() instead of category.query, we avoid the "Object not in session" warning. Also, make sure that in your User model, the categories relationship is set up correctly:
+
+    python
+    class User(db.Model):
+        # ... other fields ...
+        categories = db.relationship('Category', back_populates='user', cascade='all, delete-orphan')
+
+This ensures that when a User is deleted, all associated Category objects are also deleted, and it properly sets up the bidirectional relationship. These changes should resolve the warning and ensure that your category creation process is more robust and consistent.
