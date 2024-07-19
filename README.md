@@ -41,19 +41,11 @@ You can only have one expression at the beginning, but this expression can use a
 # TODO: Tests for Content Manager
 # TODO: Tests for Routes
 
-# TODO: Implement Materialized Path
-## Models
-### Category
-- create with parent but dummy path
-- add and commit
-- set path
-- change parent includes set path
-## Content Manager
-- update create to make use of set_parent
-## Routes
-- modify choices to use {id, name}
-## Template
-- modify category tree makro
+# TODO: Display Category Feed
+- FULL: cat: ggs -> child: ggs -> recursively
+- need: premade tree, for loop, cat template with ggs
+- MANAGE: recursive cat tree without ggs, or just amount of ggs
+- need: recursive cat tree, for loop, simple cat template without ggs
 
 # TODO: Simplify Content Manager
 - remove Versioning

@@ -195,6 +195,30 @@ class ContentManager:
         return possible_parents
 
     @exception_handler
+    def return_category_tree(self, user: User) -> list[Category]:
+
+        if not user:
+            raise ValueError("Need user to return category tree.")
+        categories = Category.query.filter_by(user_id=user.id).order_by(Category.path).all()
+        category_dict = {category.id: category for category in categories}
+        root_categories = []
+
+        # Initialize children list for each category
+        for category in categories:
+            category.children = []
+
+        # Populate children list based on parent_id
+        for category in categories:
+            if category.parent_id:
+                parent = category_dict.get(category.parent_id)
+                if parent:
+                    parent.children.append(category)
+            else:
+                root_categories.append(category)
+
+        return root_categories
+
+    @exception_handler
     def cat_get_all_id_name(self):
         return db.session.query(Category.id, Category.name).all()
 
