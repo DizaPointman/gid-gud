@@ -166,9 +166,30 @@ class Category(db.Model):
     MAX_HEIGHT = 5
 
     @staticmethod
-    def validate_path(path):
-        if not path or path == 'temporary_path':
+    def validate_path(self, path):
+            # Check if the path is invalid
+        if not self.path or self.path == 'temporary_path':
             raise ValueError("Path is invalid")
+
+        # Ensure the path format matches the expected pattern
+        path_parts = self.path.split('.')
+        if not all(part.isdigit() for part in path_parts):
+            raise ValueError(f"Path format for category {self.id} is invalid")
+
+        # Ensure the path corresponds to actual parent-child relationships
+        current = self
+        expected_path = str(current.id)
+        parent_ids = []
+
+        while current.parent:
+            current = current.parent
+            expected_path = f'{current.id}.{expected_path}'
+            if current.id in parent_ids:
+                raise ValueError("Cycle detected in the path")
+            parent_ids.append(current.id)
+
+        if self.path != expected_path:
+            raise ValueError(f"Path {self.path} does not match the expected parent-child relationship for category {self.id}")
 
     def set_path(self):
         if self.parent:
@@ -245,26 +266,10 @@ class Category(db.Model):
         if old_path == new_path:
             return
 
-        # Start a transaction
         try:
-            # Update the paths of all descendants
-            db.session.execute(
-                sa.update(Category)
-                .where(Category.path.like(f"{old_path}.%"))
-                .values(
-                    path=sa.func.concat(
-                        new_path,
-                        sa.func.substr(Category.path, sa.func.length(old_path) + 1)
-                    )
-                )
-            )
-
-            # Update the category's own path
-            db.session.execute(
-                sa.update(Category)
-                .where(Category.id == self.id)
-                .values(path=new_path)
-            )
+            descendants = db.session.query(Category).filter(Category.path.like(f"{old_path}.%")).all()
+            for descendant in descendants:
+                descendant.path = new_path + descendant.path[len(old_path):]
 
             db.session.commit()
             return True
