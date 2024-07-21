@@ -51,7 +51,7 @@
             {% else %}
                 <input type="hidden" name="reassign_gidguds" value="No GidGuds">
             {% endif %}
-            {% if cat.children %}
+            {% if cat.has_children %}
                 <p>
                     {{ form.reassign_children.label }} {{ form.reassign_children() }}<br>
                     {% for error in form.reassign_children.errors %}

@@ -164,7 +164,6 @@ class ContentManager:
             ~Category.path.like(f"{cat.path}.%")
         ).all()
         res = [(row.id, row.name) for row in categories_query]
-        current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
         return res
 
     @exception_handler
@@ -267,7 +266,7 @@ class ContentManager:
         ).all()
 
         res = [(cat.id, cat.name)] + [(row.id, row.name) for row in possible_parents]
-        current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
+        #current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
         return res
 
     @exception_handler

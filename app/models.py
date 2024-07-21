@@ -163,11 +163,10 @@ class Category(db.Model):
     a_brief_history_of_time: so.Mapped[list[str]] = so.mapped_column(sa.String(255), nullable=True)
 
     # Setting a tree height limit
-    MAX_HEIGHT = 5
+    MAX_HEIGHT = 6
 
-    @staticmethod
-    def validate_path(self, path):
-            # Check if the path is invalid
+    def validate_path(self):
+        # Check if the path is invalid
         if not self.path or self.path == 'temporary_path':
             raise ValueError("Path is invalid")
 
@@ -190,6 +189,16 @@ class Category(db.Model):
 
         if self.path != expected_path:
             raise ValueError(f"Path {self.path} does not match the expected parent-child relationship for category {self.id}")
+
+    """
+    # Optional: Add a hook to validate path before insert or update
+    @staticmethod
+    @event.listens_for(db.Session, "before_flush")
+    def validate_category_paths(session, flush_context, instances):
+        for instance in session.new.union(session.dirty):
+            if isinstance(instance, Category):
+                instance.validate_path()
+    """
 
     def set_path(self):
         if self.parent:
@@ -228,6 +237,11 @@ class Category(db.Model):
             Category.path.like(f"{self.path}.%"),
             Category.depth == self.depth + 1
         ).all()
+
+    @property
+    def has_children(self):
+        return db.session.query(Category).filter(Category.path.like(f'{self.path}.%')).count() > 0
+
     def get_descendants(self):
         return Category.query.filter(Category.path.like(f"{self.path}.%")).all()
 

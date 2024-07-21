@@ -241,7 +241,23 @@ def edit_category(id):
     form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
     form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
 
+    if delete_afterwards:
+        if current_category.gidguds:
+            form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
+            form.reassign_gidguds.default = 0  # Default value if no GidGuds are present
+        else:
+            form.reassign_gidguds.choices = [(0, 'No GidGuds')]
+            form.reassign_gidguds.default = 0  # Default value when there are no GidGuds
+
+        if current_category.has_children:
+            form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
+            form.reassign_children.default = 0  # Default value if there are children
+        else:
+            form.reassign_children.choices = [(0, 'No Children')]
+            form.reassign_children.default = 0  # Default value when there are no children
+
     if request.method == 'POST':
+        current_app.logger.info(form.data)
 
         if form.validate_on_submit():
 
@@ -277,7 +293,7 @@ def delete_category(id):
     if current_category.name == 'root':
         flash('The root Category may not be deleted')
         return redirect(url_for('routes.user_categories', username=current_user.username))
-    elif current_category.gidguds or current_category.children:
+    elif current_category.gidguds or current_category.has_children:
         flash('This Category has attached GidGuds or Subcategories. Please reassign before deletion.')
         return redirect(url_for('routes.edit_category', id=id, dla=True))
     else:
