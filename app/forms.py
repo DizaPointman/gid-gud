@@ -80,9 +80,9 @@ class CreateCategoryForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    parent = SelectField('New Parent:')
-    reassign_gidguds = SelectField('Reassign GidGuds to:')
-    reassign_children = SelectField('Reassign children to:')
+    parent = SelectField('New Parent:', coerce=int, validators=[DataRequired()])
+    reassign_gidguds = SelectField('Reassign GidGuds to:', coerce=int, validators=[DataRequired()])
+    reassign_children = SelectField('Reassign children to:', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Save Changes')
 
     def __init__(self, *args, **kwargs):

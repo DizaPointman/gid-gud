@@ -14,19 +14,19 @@
                 {% endfor %}
             </p>
             <p>
-                {{ form.parent.label }} {{ form.parent }}<br>
+                {{ form.parent.label }} {{ form.parent() }}<br>
                 {% for error in form.parent.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
             <p>
-                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds() }}<br>
                 {% for error in form.reassign_gidguds.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </p>
             <p>
-                {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                {{ form.reassign_children.label }} {{ form.reassign_children() }}<br>
                 {% for error in form.reassign_children.errors %}
                     <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
@@ -43,7 +43,7 @@
                 <input type="hidden" name="parent" value="{{ cat.parent.name }}">
             {% if cat.gidguds %}
                 <p>
-                    {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds }}<br>
+                    {{ form.reassign_gidguds.label }} {{ form.reassign_gidguds() }}<br>
                     {% for error in form.reassign_gidguds.errors %}
                         <span style="color: red;">[{{ error }}]</span>
                     {% endfor %}
@@ -53,7 +53,7 @@
             {% endif %}
             {% if cat.children %}
                 <p>
-                    {{ form.reassign_children.label }} {{ form.reassign_children }}<br>
+                    {{ form.reassign_children.label }} {{ form.reassign_children() }}<br>
                     {% for error in form.reassign_children.errors %}
                         <span style="color: red;">[{{ error }}]</span>
                     {% endfor %}

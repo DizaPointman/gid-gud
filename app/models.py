@@ -7,6 +7,7 @@ from typing import List, Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from sqlalchemy.orm import validates
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.factory import db, login
 from flask_login import UserMixin, current_user
 from hashlib import md5
@@ -173,7 +174,7 @@ class Category(db.Model):
         if self.parent:
             self.path = f'{self.parent.path}.{self.id}'
         else:
-            self.path = f'root.{self.id}'
+            self.path = f'{self.id}'
         db.session.commit()
 
     def save(self):
@@ -189,9 +190,14 @@ class Category(db.Model):
         if category.parent_id is not None and category.query.get(category.parent_id) is None:
             raise ValueError("Parent category must exist.")
 
-    @property
+    @hybrid_property
     def depth(self):
         return len(self.path.split('.'))
+
+    @depth.expression
+    def depth(cls):
+        # SQL expression for computing depth from path
+        return sa.func.length(cls.path) - sa.func.length(sa.func.replace(cls.path, '.', '')) + 1
 
     def get_parent(self):
         return self.parent
@@ -241,27 +247,26 @@ class Category(db.Model):
 
         # Start a transaction
         try:
-            with db.session.begin():
-                # Update the paths of all descendants
-                db.session.execute(
-                    sa.update(Category)
-                    .where(Category.path.like(f"{old_path}.%"))
-                    .values(
-                        path=sa.func.concat(
-                            new_path,
-                            sa.func.substr(Category.path, sa.func.length(old_path) + 1)
-                        )
+            # Update the paths of all descendants
+            db.session.execute(
+                sa.update(Category)
+                .where(Category.path.like(f"{old_path}.%"))
+                .values(
+                    path=sa.func.concat(
+                        new_path,
+                        sa.func.substr(Category.path, sa.func.length(old_path) + 1)
                     )
                 )
+            )
 
-                # Update the category's own path
-                db.session.execute(
-                    sa.update(Category)
-                    .where(Category.id == self.id)
-                    .values(path=new_path)
-                )
+            # Update the category's own path
+            db.session.execute(
+                sa.update(Category)
+                .where(Category.id == self.id)
+                .values(path=new_path)
+            )
 
-                db.session.commit()
+            db.session.commit()
             return True
         except IntegrityError:
             db.session.rollback()

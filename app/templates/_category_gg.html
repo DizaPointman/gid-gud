@@ -2,6 +2,7 @@
     <table>
         <tr valign="top">
             <td>Category: {{ category.name }}</td>
+            <td>Parent: {{ category.parent }}</td>
         </tr>
         <tr>
             <td><a href="{{ url_for('routes.edit_category', id=category.id) }}">Edit Category</a></td>
@@ -9,14 +10,8 @@
         </tr>
     </table>
     <hr>
-    {% for gidgud in category.gidguds %}
-        {% include 'gidgud.html' %}
+    {% for gg in category.gidguds %}
+        <li>{{ gg.body }}</li>
+        <hr>
     {% endfor %}
-    {% if category.children %}
-        <div style="margin-left: 20px;">
-            {% for child in category.children %}
-                {% include '_category.html' with context %}
-            {% endfor %}
-        </div>
-    {% endif %}
 </div>

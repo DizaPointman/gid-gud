@@ -1,5 +1,17 @@
 <div>
-  {% for category in categories %}
-    {% include '_category_gg.html' %}
-  {% endfor %}
+    <ul>
+        {% macro render_categories(categories) %}
+            {% for category in categories %}
+                <li>
+                    {% include '_category_gg.html' %}
+                    {% if category.children %}
+                        <ul class="category">
+                            {{ render_categories(category.children) }}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        {% endmacro %}
+        {{ render_categories(categories) }}
+    </ul>
 </div>

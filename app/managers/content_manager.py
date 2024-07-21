@@ -65,7 +65,7 @@ class ContentManager:
             root = Category(name='root', path='root', user=user)
             db.session.add(root)
             db.session.commit()
-            root.path = f'root.{root.id}'
+            root.path = f'{root.id}'
             db.session.commit()
         return root
 
@@ -99,11 +99,11 @@ class ContentManager:
 
         if new_name and new_name != old_name:
             name_updated = self.cat_update_name(cat, new_name)
-        if new_parent_id and new_parent_id != old_parent_id:
+        if new_parent_id != 0 and new_parent_id != old_parent_id:
             parent_updated = self.cat_update_parent(cat, new_parent_id)
-        if new_children_id and new_children_id != (cat.id or 'No Children'):
+        if new_children_id != 0 and new_children_id != (cat.id or 'No Children'):
             children_reassigned = self.cat_reassign_children(cat, new_children_id)
-        if new_gidguds_id and new_gidguds_id != (cat.id or 'No GidGuds'):
+        if new_gidguds_id != 0 and new_gidguds_id != (cat.id or 'No GidGuds'):
             gidguds_reassigned = self.cat_reassign_gidguds(cat, new_gidguds_id)
 
         return name_updated and parent_updated and children_reassigned and gidguds_reassigned
@@ -117,12 +117,15 @@ class ContentManager:
     @exception_handler
     def cat_update_parent(self, cat: Category, new_parent_id: int) -> bool:
         new_parent = self.get_category_by_id(new_parent_id)
+        old_path = cat.path if cat.path else None
         if new_parent and new_parent.is_descendant_of(cat):
             raise ValueError("Cannot set a descendant as parent")
+        print(f"before check if new parent != current parent: {cat.parent}, new parent: {new_parent}")
         if new_parent != cat.parent:
-            old_path = cat.path if cat.path else None
+            print(f"check: {new_parent != cat.parent}")
             cat.parent = new_parent
             db.session.commit()
+            print(f"cat_update_parent before setting path: {cat.name}, current parent: {cat.parent}")
             cat.set_path()
         new_path = cat.path
 
@@ -154,36 +157,108 @@ class ContentManager:
         return True
 
     @exception_handler
-    def cat_get_possible_parents(self, cat: Category) -> dict[int, str]:
-        max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth()
-        return db.session.query(Category.id, Category.name).filter(
+    def cat_get_possible_parents(self, cat: Category) -> list[tuple[int, str]]:
+        max_d_parent = Category.MAX_HEIGHT - cat.get_subtree_depth()
+        categories_query = db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
             ~Category.path.like(f"{cat.path}.%")
         ).all()
+        res = [(row.id, row.name) for row in categories_query]
+        current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
+        return res
 
     @exception_handler
-    def cat_get_possible_children(self, cat: Category) -> dict[int, str]:
-        max_depth_children = Category.MAX_DEPTH - cat.depth
+    def cat_get_possible_children1(self, cat: Category) -> list[tuple[int, str]]:
+        max_depth_children = Category.MAX_HEIGHT - cat.depth
         if max_depth_children <= 0:
             return []
 
-        blacklist_paths = set(path[0] for path in db.session.query(Category.path).filter(
-            (sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.'))) >= max_depth_children
-        ).all()) | {cat.path}
+        # Construct a query to get paths that are too deep
+        blacklist_paths = set(
+            path[0] for path in db.session.query(Category.path).filter(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1 >= max_depth_children
+            ).all()
+        ) | {cat.path}
 
+        # Calculate blacklist IDs
         blacklist_ids = {
             int(id)
             for path in blacklist_paths
             for id in path.split('.')[:-max_depth_children]
         }
 
-        return db.session.query(Category.id, Category.name).filter(
+        # Query categories excluding the blacklisted IDs
+        categories_query = db.session.query(Category.id, Category.name).filter(
             ~Category.id.in_(blacklist_ids)
         ).all()
 
+        return [(row.id, row.name) for row in categories_query]
+
     @exception_handler
-    def cat_get_possible_parents_for_children(self, cat: Category) -> dict[int, str]:
-        max_d_parent = Category.MAX_DEPTH - cat.get_subtree_depth() + 1
+    def cat_get_possible_children2(self, cat: Category) -> list[tuple[int, str]]:
+        max_depth_children = Category.MAX_HEIGHT - cat.depth
+        if max_depth_children <= 0:
+            return []
+
+        # Construct a query to get paths that are too deep
+        blacklist_paths = set(
+            path[0] for path in db.session.query(Category.path).filter(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1 >= max_depth_children
+            ).all()
+        ) | {cat.path}
+
+        # Calculate blacklist IDs
+        blacklist_ids = set()
+        for path in blacklist_paths:
+            # Ensure path is a string
+            if isinstance(path, str):
+                for id_str in path.split('.')[:-max_depth_children]:
+                    try:
+                        blacklist_ids.add(int(id_str))
+                    except ValueError:
+                        # Handle the case where conversion fails
+                        pass
+
+        # Query categories excluding the blacklisted IDs
+        categories_query = db.session.query(Category.id, Category.name).filter(
+            ~Category.id.in_(blacklist_ids)
+        ).all()
+
+        return [(row.id, row.name) for row in categories_query]
+
+    @exception_handler
+    def cat_get_possible_children(self, cat: Category) -> list[tuple[int, str]]:
+        max_depth_children = Category.MAX_HEIGHT - cat.depth
+        if max_depth_children <= 0:
+            return []
+
+        # Construct a query to get paths that are too deep
+        blacklist_paths = set(
+            path[0] for path in db.session.query(Category.path).filter(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1 >= max_depth_children
+            ).all()
+        ) | {cat.path}
+
+        # Calculate blacklist IDs
+        blacklist_ids = {
+            int(id)
+            for path in blacklist_paths
+            for id in path.split('.')[:-max_depth_children]
+        }
+
+        # Query categories excluding the blacklisted IDs
+        categories_query = db.session.query(Category.id, Category.name).filter(
+            ~Category.id.in_(blacklist_ids)
+        ).all()
+
+        res = [(row.id, row.name) for row in categories_query]
+        current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
+        return res
+
+
+    @exception_handler
+    def cat_get_possible_parents_for_children(self, cat: Category) -> list[tuple[int, str]]:
+        max_d_parent = Category.MAX_HEIGHT - cat.get_subtree_depth() + 1
 
         possible_parents = db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
@@ -191,15 +266,16 @@ class ContentManager:
             ~Category.path.like(f"{cat.path}.%")
         ).all()
 
-        possible_parents.append((cat.id, cat.name))
-        return possible_parents
+        res = [(cat.id, cat.name)] + [(row.id, row.name) for row in possible_parents]
+        current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
+        return res
 
     @exception_handler
-    def return_category_tree(self, user: User) -> list[Category]:
+    def return_category_tree(self, user_id) -> list[Category]:
 
-        if not user:
+        if not user_id:
             raise ValueError("Need user to return category tree.")
-        categories = Category.query.filter_by(user_id=user.id).order_by(Category.path).all()
+        categories = Category.query.filter_by(user_id=user_id).order_by(Category.path).all()
         category_dict = {category.id: category for category in categories}
         root_categories = []
 
@@ -220,7 +296,9 @@ class ContentManager:
 
     @exception_handler
     def cat_get_all_id_name(self):
-        return db.session.query(Category.id, Category.name).all()
+        all_cat_id_name = db.session.query(Category.id, Category.name).all()
+        res = [(row.id, row.name) for row in all_cat_id_name]
+        return res
 
     def delete_category(self, category_id):
         """
