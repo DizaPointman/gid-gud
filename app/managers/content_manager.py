@@ -38,10 +38,12 @@ class ContentManager:
         user = user if user else current_user
         name = data.get('name')
         parent = data.get('parent')
+        current_app.logger.info(f"cat_create: name: {name}, parent: {parent}")
         if not (name or parent or user):
             raise ValueError('Need name, parent, and user to create category')
         new_cat = Category(name=name, user=user, parent=parent)
-        Category.validate_category(new_cat)
+        current_app.logger.info(f"cat_create: name: {new_cat.name}, parent: {new_cat.parent}")
+        #Category.validate_category(new_cat)
         new_cat.save()
         return new_cat
 
@@ -55,6 +57,7 @@ class ContentManager:
             parent = self.cat_get_or_create_root(user)
             data = {'name': name, 'parent': parent}
             cat = self.cat_create(data, user)
+        current_app.logger.info(f"cat_get_or_create: name: {data['name']}, parent: {data['parent']}")
         return cat
 
     @exception_handler
@@ -62,7 +65,7 @@ class ContentManager:
         user = user if user else current_user
         root = Category.query.filter_by(parent_id=None, user=user).first()
         if root is None:
-            root = Category(name='root', path='root', user=user)
+            root = Category(name='root', path='temporary_path', user=user)
             db.session.add(root)
             db.session.commit()
             root.path = f'{root.id}'
@@ -76,6 +79,7 @@ class ContentManager:
         parent = self.cat_get_or_create_root(user)
 
         data = {'name': name, 'parent': parent}
+        current_app.logger.info(f"cat_create_from_form: name: {data['name']}, parent: {data['parent']}")
         return self.cat_create(data, user)
 
     @exception_handler
@@ -157,73 +161,19 @@ class ContentManager:
         return True
 
     @exception_handler
+    def cat_choices_order(self, cat, query):
+        root = Category.query.filter_by(parent_id=None, user=cat.user).first()
+        return [(cat.id, cat.name)] + [(root.id, root.name)] + [(row.id, row.name) for row in query if row.id not in [cat.id, root.id]]
+
+    @exception_handler
     def cat_get_possible_parents(self, cat: Category) -> list[tuple[int, str]]:
         max_d_parent = Category.MAX_HEIGHT - cat.get_subtree_depth()
         categories_query = db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
             ~Category.path.like(f"{cat.path}.%")
         ).all()
-        res = [(row.id, row.name) for row in categories_query]
+        res = self.cat_choices_order(cat, categories_query)
         return res
-
-    @exception_handler
-    def cat_get_possible_children1(self, cat: Category) -> list[tuple[int, str]]:
-        max_depth_children = Category.MAX_HEIGHT - cat.depth
-        if max_depth_children <= 0:
-            return []
-
-        # Construct a query to get paths that are too deep
-        blacklist_paths = set(
-            path[0] for path in db.session.query(Category.path).filter(
-                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1 >= max_depth_children
-            ).all()
-        ) | {cat.path}
-
-        # Calculate blacklist IDs
-        blacklist_ids = {
-            int(id)
-            for path in blacklist_paths
-            for id in path.split('.')[:-max_depth_children]
-        }
-
-        # Query categories excluding the blacklisted IDs
-        categories_query = db.session.query(Category.id, Category.name).filter(
-            ~Category.id.in_(blacklist_ids)
-        ).all()
-
-        return [(row.id, row.name) for row in categories_query]
-
-    @exception_handler
-    def cat_get_possible_children2(self, cat: Category) -> list[tuple[int, str]]:
-        max_depth_children = Category.MAX_HEIGHT - cat.depth
-        if max_depth_children <= 0:
-            return []
-
-        # Construct a query to get paths that are too deep
-        blacklist_paths = set(
-            path[0] for path in db.session.query(Category.path).filter(
-                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1 >= max_depth_children
-            ).all()
-        ) | {cat.path}
-
-        # Calculate blacklist IDs
-        blacklist_ids = set()
-        for path in blacklist_paths:
-            # Ensure path is a string
-            if isinstance(path, str):
-                for id_str in path.split('.')[:-max_depth_children]:
-                    try:
-                        blacklist_ids.add(int(id_str))
-                    except ValueError:
-                        # Handle the case where conversion fails
-                        pass
-
-        # Query categories excluding the blacklisted IDs
-        categories_query = db.session.query(Category.id, Category.name).filter(
-            ~Category.id.in_(blacklist_ids)
-        ).all()
-
-        return [(row.id, row.name) for row in categories_query]
 
     @exception_handler
     def cat_get_possible_children(self, cat: Category) -> list[tuple[int, str]]:
@@ -250,7 +200,7 @@ class ContentManager:
             ~Category.id.in_(blacklist_ids)
         ).all()
 
-        res = [(row.id, row.name) for row in categories_query]
+        res = self.cat_choices_order(cat, categories_query)
         current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
         return res
 
@@ -265,7 +215,7 @@ class ContentManager:
             ~Category.path.like(f"{cat.path}.%")
         ).all()
 
-        res = [(cat.id, cat.name)] + [(row.id, row.name) for row in possible_parents]
+        res = self.cat_choices_order(cat, possible_parents)
         #current_app.logger.info([f"{type(res)}, {r}, {type(r)}, {r[0]}, {type(r[0])}, {r[1]}, {type(r[1])}" for r in res])
         return res
 
@@ -294,9 +244,9 @@ class ContentManager:
         return root_categories
 
     @exception_handler
-    def cat_get_all_id_name(self):
+    def cat_get_all_id_name(self, cat):
         all_cat_id_name = db.session.query(Category.id, Category.name).all()
-        res = [(row.id, row.name) for row in all_cat_id_name]
+        res = self.cat_choices_order(cat, all_cat_id_name)
         return res
 
     def delete_category(self, category_id):

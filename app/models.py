@@ -1,5 +1,5 @@
 from sqlite3 import IntegrityError
-from flask import session
+from flask import current_app, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -150,9 +150,8 @@ class Category(db.Model):
     user: so.Mapped['User'] = so.relationship('User', back_populates='categories')
 
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
-    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
-    #parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id], back_populates='children')
-    #children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent')
+    parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id], back_populates='children')
+    children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent')
     path: so.Mapped[str] = so.mapped_column(db.String(255), nullable=False, index=True, default='temporary_path')
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
@@ -168,16 +167,13 @@ class Category(db.Model):
     MAX_HEIGHT = 6
 
     def validate_path(self):
-        # Check if the path is invalid
         if not self.path or self.path == 'temporary_path':
             raise ValueError("Path is invalid")
 
-        # Ensure the path format matches the expected pattern
         path_parts = self.path.split('.')
         if not all(part.isdigit() for part in path_parts):
             raise ValueError(f"Path format for category {self.id} is invalid")
 
-        # Ensure the path corresponds to actual parent-child relationships
         current = self
         expected_path = str(current.id)
         parent_ids = []
@@ -210,17 +206,20 @@ class Category(db.Model):
         db.session.commit()
 
     def save(self):
+        current_app.logger.info(f"save_func: name:{self.name}, parent: {self.parent}")
         db.session.add(self)
         db.session.commit()
         self.set_path()
         db.session.commit()
 
+    """
     @staticmethod
     def validate_category(category):
         if category.parent_id is None and category.query.filter_by(parent_id=None).count() > 1:
             raise ValueError("Only one root category is allowed.")
         if category.parent_id is not None and category.query.get(category.parent_id) is None:
             raise ValueError("Parent category must exist.")
+    """
 
     @hybrid_property
     def depth(self):
@@ -260,23 +259,6 @@ class Category(db.Model):
 
     def is_descendant_of(self, other):
         return self.path.startswith(f"{other.path}.")
-
-    """
-    def update_parent(self, new_parent):
-        if new_parent and self.is_descendant_of(new_parent):
-            raise ValueError("Cannot set a descendant as parent")
-        if new_parent != self.parent:
-            old_path = self.path if self.path else None
-            self.parent = new_parent
-            db.session.commit()
-            self.set_path()
-
-        new_path = self.path
-
-        if old_path:
-            subtree_paths_updated = self._update_subtree_paths(old_path, new_path)
-        return subtree_paths_updated
-    """
 
     def _update_subtree_paths(self, old_path, new_path):
         if old_path == new_path:
