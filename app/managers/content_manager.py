@@ -374,10 +374,7 @@ class ContentManager:
 
         # Handle body change and archiving
         if body != gg.body:
-            if arch_and_recr:
-                gg = self.archive_and_recreate_gidgud(gg, form, user)
-            else:
-                gg.body = form.body.data
+            gg.body = form.body.data
 
         if not rec_instant and not rec_custom:
             gg.rec = False
