@@ -242,22 +242,23 @@ def edit_category(id):
     form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
 
     if delete_afterwards:
+        #form.parent.choices = [(current_category.parent.id, current_category.parent.name)]
+        form.name.data = current_category.name
+        form.parent.data = current_category.parent.id
         if current_category.gidguds:
             form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
-            form.reassign_gidguds.default = 0  # Default value if no GidGuds are present
         else:
             form.reassign_gidguds.choices = [(0, 'No GidGuds')]
-            form.reassign_gidguds.default = 0  # Default value when there are no GidGuds
+            form.reassign_gidguds.data = 0  # Default value when there are no GidGuds
 
         if current_category.has_children:
             form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
-            form.reassign_children.default = 0  # Default value if there are children
         else:
             form.reassign_children.choices = [(0, 'No Children')]
-            form.reassign_children.default = 0  # Default value when there are no children
+            form.reassign_children.data = 0  # Default value when there are no children
 
     if request.method == 'POST':
-        current_app.logger.info(form.data)
+        log_request()
 
         if form.validate_on_submit():
 
