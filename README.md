@@ -36,7 +36,9 @@ You can only have one expression at the beginning, but this expression can use a
     blacklist_ids = {int(id) for path in blacklist_paths for id in path.split('.')[:-max_depth_children]}
 
 
-
+# TODO: correct choices lists
+- remove self from choices before deletion
+- assure self is top choice if not deletion
 
 # TODO: Tests for Content Manager
 # TODO: Tests for Routes
