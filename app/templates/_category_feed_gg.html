@@ -1,17 +1,6 @@
 <div>
     <ul>
-        {% macro render_categories(categories) %}
-            {% for category in categories %}
-                <li>
-                    {% include '_category_gg.html' %}
-                    {% if category.children %}
-                        <ul class="category">
-                            {{ render_categories(category.children) }}
-                        </ul>
-                    {% endif %}
-                </li>
-            {% endfor %}
-        {% endmacro %}
-        {{ render_categories(categories) }}
+        {% from "macros.html" import render_category_hierarchy %}
+        {{ render_category_hierarchy(categories) }}
     </ul>
 </div>

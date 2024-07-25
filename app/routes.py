@@ -199,8 +199,8 @@ def complete_gidgud(id):
 @bp.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
 def user_categories(username):
-    categories_tree = c_man.return_category_tree(current_user.id)
-    return render_template('user_categories.html', title='My Categories', categories=categories_tree)
+    categories = [Category.query.filter_by(parent_id=None, user=current_user).first()]
+    return render_template('user_categories.html', title='My Categories', categories=categories)
 
 @bp.route('/create_category', methods=['GET', 'POST'])
 @login_required

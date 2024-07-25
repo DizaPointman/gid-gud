@@ -1,0 +1,12 @@
+<!-- templates/macros.html -->
+{% macro render_category_hierarchy(categories, level=0) %}
+    {% for category in categories %}
+        <div style="margin-left: {{ level * 10 }}px;">
+            {% include "_category_gg.html" %}
+
+            {% if category.children %}
+                {{ render_category_hierarchy(category.children, level + 1) }}
+            {% endif %}
+        </div>
+    {% endfor %}
+{% endmacro %}
