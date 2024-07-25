@@ -3,13 +3,25 @@ from flask_login import current_user
 from flask_wtf import FlaskForm
 from pytz import utc
 from wtforms import DateTimeField, SelectField, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, NumberRange, Optional, InputRequired, StopValidation
 import sqlalchemy as sa
 from app.factory import db
 from app.models import User, GidGud, Category
 from flask import current_app, request
 
 
+class InputRequiredEx(InputRequired):
+    def __call__(self, form, field):
+        if field.raw_data and len(field.raw_data):
+            return
+
+        if self.message is None:
+            message = field.gettext("This field is required.")
+        else:
+            message = self.message
+
+        field.errors[:] = []
+        raise StopValidation(message)
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -80,9 +92,9 @@ class CreateCategoryForm(FlaskForm):
 
 class EditCategoryForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=1, max=20)])
-    parent = SelectField('New Parent:', coerce=int, validators=[DataRequired()])
-    reassign_gidguds = SelectField('Reassign GidGuds to:', coerce=int, validators=[DataRequired()])
-    reassign_children = SelectField('Reassign children to:', coerce=int, validators=[DataRequired()])
+    parent = SelectField('New Parent:', coerce=int, validators=[InputRequiredEx()])
+    reassign_gidguds = SelectField('Reassign GidGuds to:', coerce=int, validators=[InputRequiredEx()])
+    reassign_children = SelectField('Reassign children to:', coerce=int, validators=[InputRequiredEx()])
     submit = SubmitField('Save Changes')
 
     def __init__(self, *args, **kwargs):
