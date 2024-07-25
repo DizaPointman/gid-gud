@@ -39,6 +39,7 @@ You can only have one expression at the beginning, but this expression can use a
 # TODO: correct choices lists
 - remove self from choices before deletion
 - assure self is top choice if not deletion
+- - make choices functions have correct order, just list splice in route
 
 # TODO: Tests for Content Manager
 # TODO: Tests for Routes

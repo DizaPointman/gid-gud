@@ -151,6 +151,8 @@ class Category(db.Model):
 
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, db.ForeignKey('category.id'), index=True, nullable=True)
     parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id])
+    #parent: so.Mapped[Optional['Category']] = so.relationship('Category', remote_side=[id], back_populates='children')
+    #children: so.Mapped[list['Category']] = so.relationship('Category', back_populates='parent')
     path: so.Mapped[str] = so.mapped_column(db.String(255), nullable=False, index=True, default='temporary_path')
     gidguds: so.Mapped[Optional[list['GidGud']]] = so.relationship('GidGud', back_populates='category')
 
