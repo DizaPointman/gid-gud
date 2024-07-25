@@ -57,7 +57,6 @@ class ContentManager:
             parent = self.cat_get_or_create_root(user)
             data = {'name': name, 'parent': parent}
             cat = self.cat_create(data, user)
-        current_app.logger.info(f"cat_get_or_create: name: {data['name']}, parent: {data['parent']}")
         return cat
 
     @exception_handler
