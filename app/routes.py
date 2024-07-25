@@ -199,8 +199,8 @@ def complete_gidgud(id):
 @bp.route('/user/<username>/user_categories', methods=['GET'])
 @login_required
 def user_categories(username):
-    categories_tree = c_man.return_category_tree(current_user.id)
-    return render_template('user_categories.html', title='My Categories', categories=categories_tree)
+    categories = [Category.query.filter_by(parent_id=None, user=current_user).first()]
+    return render_template('user_categories.html', title='My Categories', categories=categories)
 
 @bp.route('/create_category', methods=['GET', 'POST'])
 @login_required
@@ -238,7 +238,7 @@ def edit_category(id):
 
     # Assigning choices to selection fields
     form.parent.choices = c_man.cat_get_possible_parents(current_category) or [(0, 'Root has no parent')]
-    form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
+    form.reassign_gidguds.choices = c_man.cat_get_all_id_name(current_category) or [(0, 'No GidGuds')]
     form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
 
     if delete_afterwards:
@@ -246,7 +246,7 @@ def edit_category(id):
         form.name.data = current_category.name
         form.parent.data = current_category.parent.id
         if current_category.gidguds:
-            form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
+            form.reassign_gidguds.choices = c_man.cat_get_all_id_name(current_category) or [(0, 'No GidGuds')]
         else:
             form.reassign_gidguds.choices = [(0, 'No GidGuds')]
             form.reassign_gidguds.data = 0  # Default value when there are no GidGuds
@@ -282,7 +282,7 @@ def edit_category(id):
         # populating fields for get requests
         form.name.data = current_category.name
         form.parent.choices = c_man.cat_get_possible_parents(current_category) or [(0, 'Root has no parent')]
-        form.reassign_gidguds.choices = c_man.cat_get_all_id_name() or [(0, 'No GidGuds')]
+        form.reassign_gidguds.choices = c_man.cat_get_all_id_name(current_category) or [(0, 'No GidGuds')]
         form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
 
     return render_template('edit_category.html', title='Edit Category', id=id, form=form, cat=current_category, dla=delete_afterwards)
