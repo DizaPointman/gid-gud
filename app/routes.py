@@ -169,14 +169,17 @@ def edit_gidgud(id):
             return redirect(url_for('routes.index'))
 
     elif request.method == 'GET':
-        for field_name, field in form._fields.items():
-            if gidgud.rec:
-                form.rec_instant.data = True if gidgud.rec_val == 0 else False
-                form.rec_custom.data = True if gidgud.rec_val != 0 else False
-                if field_name not in ['rec_instant', 'rec_custom']:
-                    field.data = getattr(gidgud, field_name, field.default)
-            else:
-                field.data = getattr(gidgud, field_name, field.default)
+        form.body.data = gidgud.body
+        form.category.data = gidgud.category.name
+        form.rec_val.data = gidgud.rec_val
+        form.rec_unit.data = gidgud.rec_unit
+        form.reset_timer.data = form.reset_timer.default
+        if gidgud.rec:
+            form.rec_instant.data = True if gidgud.rec_val == 0 else False
+            form.rec_custom.data = True if gidgud.rec_val != 0 else False
+        else:
+            form.rec_instant.data = form.rec_instant.default
+            form.rec_custom.data = form.rec_custom.default
 
     return render_template('create_or_edit_gidgud.html', form=form, title=title, ggs=ggs)
 

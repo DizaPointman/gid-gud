@@ -358,16 +358,13 @@ class ContentManager:
         :return: The updated GidGud instance.
         """
         gg = self.get_gidgud_by_id(id)
-        arch_and_recr = False
-
-        user = gg.user
         body = form.body.data
-        category = self.return_or_create_category(form.category.data)
+        category = self.cat_get_or_create(form.category.data, gg.author)
 
         reset_timer = form.reset_timer.data
         rec_instant = form.rec_instant.data
         rec_custom = form.rec_custom.data
-        rec_next = gg.rec_next or form.rec_next.data.isoformat()
+        rec_next = form.rec_next.data.isoformat()
 
         if reset_timer:
             gg.rec_next = self.iso_now()

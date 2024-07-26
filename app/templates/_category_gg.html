@@ -2,7 +2,7 @@
     <table>
         <tr valign="top">
             <td>Category: {{ category.name }}</td>
-            <td>Parent: {{ category.parent }}</td>
+            <td>Parent: {{ category.parent.name }}</td>
         </tr>
         <tr>
             <td><a href="{{ url_for('routes.edit_category', id=category.id) }}">Edit Category</a></td>
