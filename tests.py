@@ -21,6 +21,7 @@ def get_category_by_name(user, name):
 
 class BullshitGenerator():
 
+    # TODO: rework this
     def __init__(self, c_man):
         self.c_man = c_man
 
@@ -75,6 +76,9 @@ class BaseTestCase(unittest.TestCase):
 
 class UserModelCase(BaseTestCase):
 
+    # TODO: tests for user management functions
+    # TODO: tests for user management routes
+
     print("Test: UserModelCase")
 
 
@@ -118,6 +122,7 @@ class UserModelCase(BaseTestCase):
         self.assertEqual(u2.followers_count(), 0)
 
     def test_follow_gidguds(self):
+        # TODO: rework this
 
         # Initialize ContentManager
         c_man = self.c_man
@@ -185,6 +190,8 @@ class UserModelCase(BaseTestCase):
 
 class CategoryModelCase(BaseTestCase):
 
+    # TODO: tests for category management functions
+    # TODO: tests for category management routes
     print("Test: CategoryModelCase")
 
     def test_return_or_create_category(self):
@@ -391,6 +398,8 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(len(possible_parents_cat2) == len(u.categories) - 2)
 
 
+    # TODO: tests for gidgud management functions
+    # TODO: tests for gidgud management routes
 
 if __name__ == '__main__':
     #unittest.main(verbosity=2)
