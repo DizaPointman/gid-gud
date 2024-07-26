@@ -36,12 +36,6 @@ You can only have one expression at the beginning, but this expression can use a
     blacklist_ids = {int(id) for path in blacklist_paths for id in path.split('.')[:-max_depth_children]}
 
 
-# TODO: correct gidgud rec_next
-- property converter for rec_next?
-- split isostring before get request and add afterwards
-- split create and edit form and templates
-- template doesnt correctly work with rec next on edit
-
 # TODO: Tests for Content Manager
 # TODO: Tests for Routes
 
