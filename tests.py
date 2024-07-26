@@ -133,10 +133,10 @@ class UserModelCase(BaseTestCase):
         db.session.commit()
 
         # create four default categories for users
-        c1 = c_man.return_or_create_category(user=u1)
-        c2 = c_man.return_or_create_category(user=u2)
-        c3 = c_man.return_or_create_category(user=u3)
-        c4 = c_man.return_or_create_category(user=u4)
+        c1 = c_man.cat_get_or_create_root(user=u1)
+        c2 = c_man.cat_get_or_create_root(user=u2)
+        c3 = c_man.cat_get_or_create_root(user=u3)
+        c4 = c_man.cat_get_or_create_root(user=u4)
 
         # create four guds
         now = datetime.now(timezone.utc)
