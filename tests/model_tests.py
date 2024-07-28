@@ -1,7 +1,7 @@
 # tests/model_tests.py
 
 from datetime import datetime, timedelta, timezone
-from app.models import CompletionTable, GidGud, User
+from app.models import Category, CompletionTable, GidGud, User
 from tests.base_test_case import BaseTestCase
 from app.factory import db
 from pytz import utc
@@ -182,3 +182,205 @@ class UserModelCase(BaseTestCase):
 
         # check that gid g5 is not in following guds
         self.assertNotIn(g4, f4)
+
+class CategoryModelCase(BaseTestCase):
+
+    print("Test: CategoryModelCase")
+
+    def test_category_creation(self):
+        # Create a user
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        # Create a category
+        category = Category(name='Test Category', user_id=user.id)
+        db.session.add(category)
+        db.session.commit()
+
+        # Fetch the category from the database
+        fetched_category = Category.query.get(category.id)
+        self.assertEqual(fetched_category.name, 'Test Category')
+        self.assertEqual(fetched_category.user_id, user.id)
+
+    def test_set_path_root_category(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        # Set path for root category
+        root_category.set_path()
+        self.assertEqual(root_category.path, str(root_category.id))
+
+    def test_set_path_child_category(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
+        db.session.add(child_category)
+        db.session.commit()
+
+        child_category.set_path()
+        self.assertEqual(child_category.path, f'{root_category.id}.{child_category.id}')
+
+    def test_validate_path(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
+        db.session.add(child_category)
+        db.session.commit()
+
+        child_category.set_path()
+
+        # Validate path
+        try:
+            child_category.validate_path()
+        except ValueError:
+            self.fail("validate_path raised ValueError unexpectedly!")
+
+    def test_validate_invalid_path(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        invalid_category = Category(name='Invalid Category', user_id=user.id)
+        invalid_category.path = 'invalid_path'
+        db.session.add(invalid_category)
+        db.session.commit()
+
+        with self.assertRaises(ValueError):
+            invalid_category.validate_path()
+
+    def test_get_parent(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
+        db.session.add(child_category)
+        db.session.commit()
+
+        self.assertEqual(child_category.get_parent(), root_category)
+
+    def test_get_children(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
+        child2 = Category(name='Child Category 2', user_id=user.id, parent_id=root_category.id)
+        db.session.add_all([child1, child2])
+        db.session.commit()
+
+        children = root_category.get_children()
+        self.assertIn(child1, children)
+        self.assertIn(child2, children)
+
+    def test_has_children(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        self.assertFalse(root_category.has_children)
+
+        child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
+        db.session.add(child_category)
+        db.session.commit()
+
+        self.assertTrue(root_category.has_children)
+
+    def test_get_descendants(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
+        child2 = Category(name='Child Category 2', user_id=user.id, parent_id=root_category.id)
+        grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
+        db.session.add_all([child1, child2, grandchild])
+        db.session.commit()
+
+        descendants = root_category.get_descendants()
+        self.assertIn(child1, descendants)
+        self.assertIn(child2, descendants)
+        self.assertIn(grandchild, descendants)
+
+    def test_get_max_descendants_depth(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
+        grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
+        db.session.add_all([child1, grandchild])
+        db.session.commit()
+
+        self.assertEqual(root_category.get_max_descendants_depth(), 3)
+        self.assertEqual(child1.get_max_descendants_depth(), 2)
+
+    def test_get_subtree_depth(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        db.session.add(root_category)
+        db.session.commit()
+
+        child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
+        grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
+        db.session.add_all([child1, grandchild])
+        db.session.commit()
+
+        self.assertEqual(root_category.get_subtree_depth(), 3)
+        self.assertEqual(child1.get_subtree_depth(), 2)
+
+    def test_is_descendant_of(self):
+        user = User(username='test_user', email='test@example.com')
+        db.session.add(user)
+        db.session.commit()
+
+        root_category = Category(name='root', user_id=user.id)
+        child = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
+        grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child.id)
+        db.session.add_all([child, grandchild])
+        db.session.commit()
+
+        self.assertTrue(grandchild.is_descendant_of(root_category))
+        self.assertTrue(grandchild.is_descendant_of(child))
+        self.assertFalse(child.is_descendant_of(grandchild))
