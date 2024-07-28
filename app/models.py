@@ -123,6 +123,7 @@ class User(UserMixin, db.Model):
             self.following.select().subquery())
         return db.session.scalar(query)
 
+    """
     def following_guds(self):
         Author = so.aliased(User)
         Follower = so.aliased(User)
@@ -140,6 +141,24 @@ class User(UserMixin, db.Model):
                 sa.not_(GidGud.completed_at.is_(None)))
             .group_by(GidGud)
             .order_by(sa.func.datetime(GidGud.timestamp).desc())
+        )
+    """
+
+    def following_guds(self):
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+
+        return (
+            sa.select(CompletionTable)
+            .join(CompletionTable.author.of_type(Author))
+            .join(Author.followers.of_type(Follower), isouter=True)
+            .where(sa.or_(
+                Follower.id == self.id,
+                Author.id == self.id
+            ) &
+                sa.not_(CompletionTable.completed_at.is_(None)))
+            .group_by(CompletionTable)
+            .order_by(sa.func.datetime(CompletionTable.completed_at).desc())
         )
 
 class Category(db.Model):
@@ -514,10 +533,13 @@ class GidGud(db.Model):
 
 class CompletionTable(db.Model):
 
+    # TODO: handle ondelete cascade
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id, ondelete="CASCADE"), nullable=False)
     gidgud: so.Mapped['GidGud'] = so.relationship('GidGud', back_populates='completions')
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
+    author: so.Mapped['User'] = so.relationship('User')
     category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
 
     category_name: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)

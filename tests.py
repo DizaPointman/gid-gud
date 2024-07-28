@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 import unittest
 from app.factory import create_app
 from app.factory import db
-from app.models import Category, User, GidGud
+from app.models import Category, CompletionTable, User, GidGud
 from pytz import utc
 from functools import wraps
 
@@ -21,19 +21,16 @@ def get_category_by_name(user, name):
 
 class BullshitGenerator():
 
-    # TODO: rework this
+    # TODO: add user gen
+    # TODO: add gidgud gen
+    # TODO: add completion gen
+
     def __init__(self, c_man):
         self.c_man = c_man
 
     def gen_cat_tree(self, user=None, tree_height=None):
-        categories = []
 
-        # Creating the default category
-        c0 = self.c_man.return_or_create_category(user=user)
-        categories.append(c0)
-        parent_category = c0
-
-        # Generate tree for tree_height = 5
+        # Generate tree for tree_height = 6
         # 'root'
         # 'root' -> 'cat1'
         # 'root' -> 'cat2' -> 'cat22'
@@ -41,16 +38,23 @@ class BullshitGenerator():
         # 'root' -> 'cat4' -> 'cat44' -> 'cat444' -> 'cat4444'
         # 'root' -> 'cat5' -> 'cat55' -> 'cat555' -> 'cat5555' -> 'cat55555'
 
+        if not user:
+            raise ValueError("BullshitGenerator needs a user")
+        if not tree_height:
+            tree_height = Category.MAX_HEIGHT
+        categories = []
+        root = Category(name='root', user=user, parent=None)
+        categories.append(root)
+
         for j in range(1, tree_height + 1):
             for i in range(1, j + 1):
                 cat_name = 'cat' + (str(j) * i)
-                category = self.c_man.return_or_create_category(cat_name, user, parent_category)
+                parent = root
+                category = Category(name=cat_name, user=user, parent=parent)
                 categories.append(category)
                 if i != j:
-                    parent_category = category
-            parent_category = c0
-
-        db.session.commit()
+                    parent = category
+            parent = root
 
         return categories
 
@@ -143,27 +147,59 @@ class UserModelCase(BaseTestCase):
         c3 = c_man.cat_get_or_create_root(user=u3)
         c4 = c_man.cat_get_or_create_root(user=u4)
 
-        # create four guds
+        # create four gidguds
         # TODO: change follow to completion entries in user model, adapt test
         now = datetime.now(timezone.utc)
         g1 = GidGud(body="post from john", author=u1, category=c1,
-                    timestamp=((now + timedelta(seconds=1)).isoformat()),
-                    completed_at=((now + timedelta(seconds=10)).isoformat()))
+                    created_at=((now + timedelta(seconds=1)).isoformat()))
         g2 = GidGud(body="post from susan", author=u2, category=c2,
-                    timestamp=((now + timedelta(seconds=4)).isoformat()),
-                    completed_at=((now + timedelta(seconds=40)).isoformat()))
+                    created_at=((now + timedelta(seconds=4)).isoformat()))
         g3 = GidGud(body="post from mary", author=u3, category=c3,
-                    timestamp=((now + timedelta(seconds=3)).isoformat()),
-                    completed_at=((now + timedelta(seconds=30)).isoformat()))
+                    created_at=((now + timedelta(seconds=3)).isoformat()))
         g4 = GidGud(body="post from david", author=u4, category=c4,
-                    timestamp=((now + timedelta(seconds=2)).isoformat()),
-                    completed_at=((now + timedelta(seconds=20)).isoformat()))
+                    created_at=((now + timedelta(seconds=2)).isoformat()))
 
-        # create one gid
-        g5 = GidGud(body="uncompleted_at post from david", author=u4, category=c4,
-                    timestamp=((now + timedelta(seconds=2)).isoformat()),
-                    completed_at=None)
-        db.session.add_all([g1, g2, g3, g4, g5])
+        db.session.add_all([g1, g2, g3, g4])
+        db.session.commit()
+
+        # create four guds from gidguds
+        g11 = CompletionTable(
+            gidgud_id=g1.id,
+            user_id=g1.user_id,
+            body=g1.body,
+            category_name=g1.category.name,
+            category_id=g1.category_id,
+            completed_at=((datetime.fromisoformat(g1.created_at) + timedelta(seconds=10)).isoformat())
+        )
+
+        g22 = CompletionTable(
+            gidgud_id=g2.id,
+            user_id=g2.user_id,
+            body=g2.body,
+            category_name=g2.category.name,
+            category_id=g2.category_id,
+            completed_at=((datetime.fromisoformat(g2.created_at) + timedelta(seconds=10)).isoformat())
+        )
+
+        g33 = CompletionTable(
+            gidgud_id=g3.id,
+            user_id=g3.user_id,
+            body=g3.body,
+            category_name=g3.category.name,
+            category_id=g3.category_id,
+            completed_at=((datetime.fromisoformat(g3.created_at) + timedelta(seconds=10)).isoformat())
+        )
+
+        g44 = CompletionTable(
+            gidgud_id=g4.id,
+            user_id=g4.user_id,
+            body=g4.body,
+            category_name=g4.category.name,
+            category_id=g4.category_id,
+            completed_at=((datetime.fromisoformat(g4.created_at) + timedelta(seconds=10)).isoformat())
+        )
+
+        db.session.add_all([g11, g22, g33, g44])
         db.session.commit()
 
         # setup the followers
@@ -178,13 +214,13 @@ class UserModelCase(BaseTestCase):
         f2 = db.session.scalars(u2.following_guds()).all()
         f3 = db.session.scalars(u3.following_guds()).all()
         f4 = db.session.scalars(u4.following_guds()).all()
-        self.assertEqual(f1, [g2, g4, g1])
-        self.assertEqual(f2, [g2, g3])
-        self.assertEqual(f3, [g3, g4])
-        self.assertEqual(f4, [g4])
+        self.assertEqual(f1, [g22, g44, g11])
+        self.assertEqual(f2, [g22, g33])
+        self.assertEqual(f3, [g33, g44])
+        self.assertEqual(f4, [g44])
 
         # check that gid g5 is not in following guds
-        self.assertNotIn(g5, f4)
+        self.assertNotIn(g4, f4)
 
 # TODO: implement test for gidgud completion, timedelta and recurrence
 
