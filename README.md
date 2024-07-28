@@ -47,7 +47,11 @@ You can only have one expression at the beginning, but this expression can use a
 - gg creation/updating
 
 # TODO: Tests for Content Manager
+- add unit tests for content manager funcs
 # TODO: Tests for Routes
+- add integration tests for routes
+# TODO: Functional Tests
+# TODO: Automate Testing
 
 # TODO: Display Category Feed
 - FULL: cat: ggs -> child: ggs -> recursively
