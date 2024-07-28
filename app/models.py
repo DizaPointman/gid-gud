@@ -246,7 +246,7 @@ class Category(db.Model):
 
     def is_descendant_of(self, other):
         return self.path.startswith(f"{other.path}.")
-    
+
     def get_max_descendants_depth(self):
         # Ensure `self.path` is valid
         if not self.path or self.path == 'temporary_path':

@@ -1,6 +1,7 @@
 # tests/model_tests.py
 
 from datetime import datetime, timedelta, timezone
+from dateutil.relativedelta import relativedelta
 from app.models import Category, CompletionTable, GidGud, User
 from tests.base_test_case import BaseTestCase
 from app.factory import db
@@ -428,3 +429,105 @@ class CategoryModelCase(BaseTestCase):
         self.assertTrue(grandchild.is_descendant_of(root_category))
         self.assertTrue(grandchild.is_descendant_of(child1))
         self.assertFalse(child1.is_descendant_of(grandchild))
+
+class GidGudModelCase(BaseTestCase):
+
+    def setUp(self):
+        super().setUp()
+        # Create a user
+        self.user = User(username='test_user', email='test@example.com')
+        db.session.add(self.user)
+        db.session.commit()
+
+        # Create a category
+        self.category = Category(name='Test Category', user=self.user)
+        db.session.add(self.category)
+        db.session.commit()
+
+    def test_update_rec_next_no_recurrence(self):
+        gidgud = GidGud(
+            body='Test GidGud',
+            user_id=self.user.id,
+            category_id=self.category.id,
+            rec=False
+        )
+        db.session.add(gidgud)
+        db.session.commit()
+
+        timestamp = datetime(2024, 1, 1)
+        next_date = gidgud.update_rec_next(timestamp)
+
+        self.assertIsNone(next_date)
+
+    def test_update_rec_next_with_recurrence(self):
+        gidgud = GidGud(
+            body='Test GidGud',
+            user_id=self.user.id,
+            category_id=self.category.id,
+            rec=True,
+            rec_val=2,
+            rec_unit='days'
+        )
+        db.session.add(gidgud)
+        db.session.commit()
+
+        timestamp = datetime(2024, 1, 1)
+        next_date = gidgud.update_rec_next(timestamp)
+
+        expected_date = timestamp + timedelta(days=2)
+        self.assertEqual(next_date, expected_date)
+
+    def test_update_rec_next_with_months(self):
+        gidgud = GidGud(
+            body='Test GidGud',
+            user_id=self.user.id,
+            category_id=self.category.id,
+            rec=True,
+            rec_val=2,
+            rec_unit='months'
+        )
+        db.session.add(gidgud)
+        db.session.commit()
+
+        timestamp = datetime(2024, 1, 1)
+        next_date = gidgud.update_rec_next(timestamp)
+
+        expected_date = timestamp + relativedelta(months=2)
+        self.assertEqual(next_date, expected_date)
+
+    def test_update_rec_next_with_years(self):
+        gidgud = GidGud(
+            body='Test GidGud',
+            user_id=self.user.id,
+            category_id=self.category.id,
+            rec=True,
+            rec_val=1,
+            rec_unit='years'
+        )
+        db.session.add(gidgud)
+        db.session.commit()
+
+        timestamp = datetime(2024, 1, 1)
+        next_date = gidgud.update_rec_next(timestamp)
+
+        expected_date = timestamp + relativedelta(years=1)
+        self.assertEqual(next_date, expected_date)
+
+    def test_add_completion_entry(self):
+        gidgud = GidGud(
+            body='Test GidGud',
+            user_id=self.user.id,
+            category_id=self.category.id
+        )
+        db.session.add(gidgud)
+        db.session.commit()
+
+        timestamp = datetime(2024, 1, 1)
+        completion = gidgud.add_completion_entry(timestamp)
+
+        self.assertIsInstance(completion, CompletionTable)
+        self.assertEqual(completion.gidgud_id, gidgud.id)
+        self.assertEqual(completion.user_id, gidgud.user_id)
+        self.assertEqual(completion.body, gidgud.body)
+        self.assertEqual(completion.category_id, gidgud.category_id)
+        self.assertEqual(completion.completed_at, timestamp.isoformat())

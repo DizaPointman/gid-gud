@@ -1,7 +1,7 @@
 import unittest
 
 from tests.factory_tests import FactoryCase
-from tests.model_tests import CategoryModelCase, UserModelCase, BullshitGeneratorModelCase
+from tests.model_tests import CategoryModelCase, GidGudModelCase, UserModelCase, BullshitGeneratorModelCase
 
 
 if __name__ == '__main__':
@@ -15,6 +15,7 @@ if __name__ == '__main__':
     suite.addTest(unittest.makeSuite(BullshitGeneratorModelCase))
     suite.addTest(unittest.makeSuite(UserModelCase))
     suite.addTest(unittest.makeSuite(CategoryModelCase))
+    suite.addTest(unittest.makeSuite(GidGudModelCase))
 
     # Execute the test suite
     runner = unittest.TextTestRunner(verbosity=2)
