@@ -236,24 +236,32 @@ class Category(db.Model):
 
     @property
     def has_children(self):
-        return self.children is not None
+        return len(self.children) > 0
 
     def get_descendants(self):
         return Category.query.filter(Category.path.like(f"{self.path}.%")).all()
-
-    def get_max_descendants_depth(self):
-        max_depth = db.session.query(
-            sa.func.max(
-                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1
-            )
-        ).filter(Category.path.like(f"{self.path}.%")).scalar()
-        return max_depth if max_depth else self.depth
 
     def get_subtree_depth(self):
         return self.get_max_descendants_depth() - self.depth + 1
 
     def is_descendant_of(self, other):
         return self.path.startswith(f"{other.path}.")
+    
+    def get_max_descendants_depth(self):
+        # Ensure `self.path` is valid
+        if not self.path or self.path == 'temporary_path':
+            raise ValueError("Category path is invalid")
+
+        # Query to find the maximum depth of descendants
+        max_depth_subquery = db.session.query(
+            sa.func.max(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1
+            ).label('max_depth')
+        ).filter(
+            Category.path.like(f"{self.path}.%")
+        ).scalar()
+
+        return max_depth_subquery if max_depth_subquery is not None else 0
 
     def _update_subtree_paths(self, old_path, new_path):
         if old_path == new_path:
