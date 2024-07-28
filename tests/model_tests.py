@@ -1,87 +1,43 @@
-import os
+# tests/model_tests.py
 
-from app.managers.content_manager import ContentManager
-
-os.environ['DATABASE_URL'] = 'sqlite://'
-
-from datetime import datetime, timezone, timedelta
-import unittest
-from app.factory import create_app
+from datetime import datetime, timedelta, timezone
+from app.models import CompletionTable, GidGud, User
+from tests.base_test_case import BaseTestCase
 from app.factory import db
-from app.models import Category, CompletionTable, User, GidGud
 from pytz import utc
-from functools import wraps
 
 
-def get_category_by_name(user, name):
-    """
-    Retrieve a category by name from the user's categories.
-    """
-    return next((c for c in user.categories if c.name == name), None)
+class BullshitGeneratorModelCase(BaseTestCase):
 
-class BullshitGenerator():
+    print("Test: BullshitGeneratorModelCase")
 
-    # TODO: add user gen
-    # TODO: add gidgud gen
-    # TODO: add completion gen
+    # TODO: tests for category management functions
+    # TODO: tests for category management routes
 
-    def __init__(self, c_man):
-        self.c_man = c_man
+    def test_bullshit_generator(self):
 
-    def test_bs(self):
-        alive = "bullshit generator is alive"
-        print(alive)
-        return alive
+        bs = self.bs
+        alive = bs.test_bs()
+        self.assertEqual(alive, "Bullshit generator is alive")
 
-    def gen_cat_tree(self, user=None, tree_height=None):
+    def test_bullshit_categories(self):
 
-        # Generate tree for tree_height = 6
-        # 'root'
-        # 'root' -> 'cat1'
-        # 'root' -> 'cat2' -> 'cat22'
-        # 'root' -> 'cat3' -> 'cat33' -> 'cat333'
-        # 'root' -> 'cat4' -> 'cat44' -> 'cat444' -> 'cat4444'
-        # 'root' -> 'cat5' -> 'cat55' -> 'cat555' -> 'cat5555' -> 'cat55555'
+        # Create a user
+        u = User(username='test_user', email='test@example.com')
+        db.session.add(u)
+        db.session.commit()
 
-        if not user:
-            raise ValueError("BullshitGenerator needs a user")
-        if not tree_height:
-            tree_height = Category.MAX_HEIGHT
-        categories = []
-        root = Category(name='root', user=user, parent=None)
-        categories.append(root)
+        # Create category tree
+        bs = self.bs
+        tree_height = 5
+        triangular_number = (tree_height * (tree_height + 1)) // 2
+        tree = bs.gen_cat_tree(u, tree_height)
 
-        for j in range(1, tree_height + 1):
-            for i in range(1, j + 1):
-                cat_name = 'cat' + (str(j) * i)
-                parent = root
-                category = Category(name=cat_name, user=user, parent=parent)
-                categories.append(category)
-                if i != j:
-                    parent = category
-            parent = root
-
-        return categories
-
-    def c_man_alive(self):
-        return self.c_man.test_cm()
-
-
-class BaseTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.app = create_app(config_class='config.TestingConfig')
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-
-        # Initialize ContentManager instance
-        self.c_man = ContentManager()
-
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
+        # Check that the correct amount of categories is generated
+        # + 1 for the default category
+        self.assertTrue(len(tree) == triangular_number + 1)
+        self.assertTrue(tree[0].name == 'root')
+        self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
 
 class UserModelCase(BaseTestCase):
 
@@ -226,67 +182,3 @@ class UserModelCase(BaseTestCase):
 
         # check that gid g5 is not in following guds
         self.assertNotIn(g4, f4)
-
-# TODO: implement test for gidgud completion, timedelta and recurrence
-
-
-class BullshitGeneratorModelCase(BaseTestCase):
-
-    print("Test: BullshitGeneratorModelCase")
-
-    # TODO: tests for category management functions
-    # TODO: tests for category management routes
-
-    def test_bullshit_generator(self):
-        # Initialize ContentManager
-        c_man = self.c_man
-
-        # Create category tree
-        bs = BullshitGenerator(c_man)
-        alive = bs.test_bs()
-        self.assertEqual(alive, "bullshit generator is alive")
-
-    def test_bullshit_categories(self):
-
-        # Create a user
-        u = User(username='test_user', email='test@example.com')
-        db.session.add(u)
-        db.session.commit()
-
-        # Initialize ContentManager
-        c_man = self.c_man
-
-        # Create category tree
-        bs = BullshitGenerator(c_man)
-        tree_height = 5
-        triangular_number = (tree_height * (tree_height + 1)) // 2
-        tree = bs.gen_cat_tree(u, tree_height)
-
-        # Check that the correct amount of categories is generated
-        # + 1 for the default category
-        self.assertTrue(len(tree) == triangular_number + 1)
-        self.assertTrue(tree[0].name == 'root')
-        self.assertTrue(tree[-1].name == f"cat{(str(tree_height) * tree_height)}")
-
-class CategoryModelCase(BaseTestCase):
-
-    # TODO: tests for category management functions
-    # TODO: tests for category management routes
-    print("Test: CategoryModelCase")
-
-    # TODO: tests for gidgud management functions
-    # TODO: tests for gidgud management routes
-
-if __name__ == '__main__':
-    #unittest.main(verbosity=2)
-
-    # Create test suite
-    suite = unittest.TestSuite()
-
-    # Add the test cases to the suite
-    suite.addTest(unittest.makeSuite(UserModelCase))
-    suite.addTest(unittest.makeSuite(CategoryModelCase))
-
-    # Execute the test suite
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)

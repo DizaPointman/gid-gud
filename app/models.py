@@ -123,27 +123,6 @@ class User(UserMixin, db.Model):
             self.following.select().subquery())
         return db.session.scalar(query)
 
-    """
-    def following_guds(self):
-        Author = so.aliased(User)
-        Follower = so.aliased(User)
-        # using sa.func.datetime() to convert the ISO string timestamp to a datetime object
-        # within the SQL query before performing the desc() ordering operation
-        # filter out gids and return only guds by: '& (GidGud.completed_at != None)'
-        return (
-            sa.select(GidGud)
-            .join(GidGud.author.of_type(Author))
-            .join(Author.followers.of_type(Follower), isouter=True)
-            .where(sa.or_(
-                Follower.id == self.id,
-                Author.id == self.id
-            ) &
-                sa.not_(GidGud.completed_at.is_(None)))
-            .group_by(GidGud)
-            .order_by(sa.func.datetime(GidGud.timestamp).desc())
-        )
-    """
-
     def following_guds(self):
         Author = so.aliased(User)
         Follower = so.aliased(User)
