@@ -224,6 +224,8 @@ class CategoryModelCase(BaseTestCase):
         root_category = Category(name='root', user_id=user.id)
         db.session.add(root_category)
         db.session.commit()
+        root_category.set_path()
+        db.session.commit()
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
         db.session.add(child_category)
@@ -239,6 +241,8 @@ class CategoryModelCase(BaseTestCase):
 
         root_category = Category(name='root', user_id=user.id)
         db.session.add(root_category)
+        db.session.commit()
+        root_category.set_path()
         db.session.commit()
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)

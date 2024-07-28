@@ -232,14 +232,11 @@ class Category(db.Model):
         return self.parent
 
     def get_children(self):
-        return Category.query.filter(
-            Category.path.like(f"{self.path}.%"),
-            Category.depth == self.depth + 1
-        ).all()
+        return self.children
 
     @property
     def has_children(self):
-        return db.session.query(Category).filter(Category.path.like(f'{self.path}.%')).count() > 0
+        return self.children is not None
 
     def get_descendants(self):
         return Category.query.filter(Category.path.like(f"{self.path}.%")).all()
