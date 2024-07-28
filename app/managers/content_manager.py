@@ -23,7 +23,8 @@ class ContentManager:
 
     # Utilities
     def test_cm(self):
-        print("c_man is alive")
+        alive = "c_man is alive"
+        print(alive)
         return current_app.logger.info("Testing category manager initialization")
 
     def iso_now(self):
