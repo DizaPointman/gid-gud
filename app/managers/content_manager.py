@@ -241,6 +241,7 @@ class ContentManager:
         res = self.cat_choices_order(cat, all_cat_id_name)
         return res
 
+    @exception_handler
     def delete_category(self, category_id):
         """
         Delete a category.
@@ -250,65 +251,59 @@ class ContentManager:
 
     # GidGud
 
+    @exception_handler
     def get_gidgud_by_id(self, id) -> Optional[GidGud]:
-        try:
-            gg = GidGud.query.filter_by(id=id).first()
-            if gg is None:
-                current_app.logger.warning(f"GidGud with id {id} not found.")
-                return None
-            return gg
-        except SQLAlchemyError as e:
-            handle_exception(e)
-            return None
 
+        gg = GidGud.query.filter_by(id=id).first()
+        if gg is None:
+            current_app.logger.warning(f"GidGud with id {id} not found.")
+            return None
+        return gg
+
+    @exception_handler
     def gidgud_handle_update(self, gidgud, form):
 
-        try:
-            if gidgud.completed_at is None:
+        if gidgud.completed_at is None:
 
-                gidgud.body = form.body.data
-                if form.category.data is not gidgud.category.name:
-                    updated_category = self.return_or_create_category(name=(form.category.data))
-                    gidgud.category = updated_category
-                if form.rec_instant.data:
-                    gidgud.rec_val = 1
-                    gidgud.rec_unit = 'instantly'
-                if form.rec_val.data is not None:
-                    if form.rec_val.data is not gidgud.rec_val:
-                        gidgud.rec_val = form.rec_val.data
-                        if gidgud.rec_next is not None:
-                            gidgud.rec_next = None
-                if form.rec_unit.data is not None:
-                    if form.rec_unit.data is not gidgud.rec_unit:
-                        gidgud.rec_unit = form.rec_unit.data
-                        if gidgud.rec_next is not None:
-                            gidgud.rec_next = None
+            gidgud.body = form.body.data
+            if form.category.data is not gidgud.category.name:
+                updated_category = self.cat_get_or_create(name=(form.category.data))
+                gidgud.category = updated_category
+            if form.rec_instant.data:
+                gidgud.rec_val = 1
+                gidgud.rec_unit = 'instantly'
+            if form.rec_val.data is not None:
+                if form.rec_val.data is not gidgud.rec_val:
+                    gidgud.rec_val = form.rec_val.data
+                    if gidgud.rec_next is not None:
+                        gidgud.rec_next = None
+            if form.rec_unit.data is not None:
+                if form.rec_unit.data is not gidgud.rec_unit:
+                    gidgud.rec_unit = form.rec_unit.data
+                    if gidgud.rec_next is not None:
+                        gidgud.rec_next = None
 
-                db.session.commit()
+            db.session.commit()
 
-                return True
+            return True
 
-            else:
+        else:
 
-                # Archive old GidGud
-                gidgud.archived_at = True
-                # Create new GidGud
-                body = form.body.data or gidgud.body
-                category = self.return_or_create_category(name=(form.category.data)) or gidgud.category
-                rec_val = form.rec_val.data or gidgud.rec_val
-                rec_unit = form.rec_unit.data or gidgud.rec_unit
+            # Archive old GidGud
+            gidgud.archived_at = True
+            # Create new GidGud
+            body = form.body.data or gidgud.body
+            category = self.cat_get_or_create(name=(form.category.data)) or gidgud.category
+            rec_val = form.rec_val.data or gidgud.rec_val
+            rec_unit = form.rec_unit.data or gidgud.rec_unit
 
-                gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
-                db.session.add(gid)
-                db.session.commit()
+            gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
+            db.session.add(gid)
+            db.session.commit()
 
-                return True
+            return True
 
-        except Exception as e:
-            # Log any exceptions that occur during the process
-            log_exception(e)
-            return False
-
+    @exception_handler
     def gidgud_create_from_form(self, formdata):
         """
         Creates a GidGud instance from a form.
@@ -349,6 +344,7 @@ class ContentManager:
 
         return gg
 
+    @exception_handler
     def gidgud_update_from_form(self, id, form):
         """
         Updates a GidGud instance from a form.
@@ -394,6 +390,7 @@ class ContentManager:
 
         return gg
 
+    @exception_handler
     def gidgud_handle_complete(self, id):
 
         timestamp = datetime.now(utc)
@@ -411,25 +408,18 @@ class ContentManager:
         db.session.commit()
         return rec_next
 
+    @exception_handler
     def archive_and_recreate_gidgud(self, gg: GidGud, form, user):
         """
         Archive the old GidGud and create a new one with updated data.
         """
-        try:
-            new_gg = self.gidgud_create_from_form(form, user)
-            is_archived = gg.archive_and_historize(new_gg)
-            if is_archived:
-                return new_gg
 
-        except SQLAlchemyError as e:
-            handle_exception(e)
-            db.session.rollback()
-            return None
-        except Exception as e:
-            handle_exception(e)
-            db.session.rollback()
-            return None
+        new_gg = self.gidgud_create_from_form(form, user)
+        is_archived = gg.archive_and_historize(new_gg)
+        if is_archived:
+            return new_gg
 
+    @exception_handler
     def get_active_gidguds(self, user):
 
         now = datetime.now(utc).isoformat()
@@ -443,6 +433,7 @@ class ContentManager:
         ).scalars()
         return gidguds
 
+    @exception_handler
     def get_inactive_gidguds(self, user):
 
         now = datetime.now(utc).isoformat()
@@ -456,6 +447,7 @@ class ContentManager:
         ).scalars()
         return gidguds
 
+    @exception_handler
     def get_completed_gidguds(self, user):
         # FIXME: redundant, already in models.py
 
