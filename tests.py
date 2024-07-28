@@ -144,6 +144,7 @@ class UserModelCase(BaseTestCase):
         c4 = c_man.cat_get_or_create_root(user=u4)
 
         # create four guds
+        # TODO: change follow to completion entries in user model, adapt test
         now = datetime.now(timezone.utc)
         g1 = GidGud(body="post from john", author=u1, category=c1,
                     timestamp=((now + timedelta(seconds=1)).isoformat()),
