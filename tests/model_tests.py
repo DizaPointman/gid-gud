@@ -223,10 +223,7 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
         db.session.add(child_category)
@@ -241,16 +238,10 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child_category)
-        db.session.commit()
-
-        child_category.set_path()
+        child_category.save()
 
         # Validate path
         try:
@@ -277,12 +268,10 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
+        root_category.save()
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child_category)
-        db.session.commit()
+        child_category.save()
 
         self.assertEqual(child_category.get_parent(), root_category)
 
@@ -292,13 +281,12 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
+        root_category.save()
 
         child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
+        child1.save()
         child2 = Category(name='Child Category 2', user_id=user.id, parent_id=root_category.id)
-        db.session.add_all([child1, child2])
-        db.session.commit()
+        child2.save()
 
         children = root_category.get_children()
         self.assertIn(child1, children)
@@ -310,14 +298,12 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
+        root_category.save()
 
         self.assertFalse(root_category.has_children)
 
         child_category = Category(name='Child Category', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child_category)
-        db.session.commit()
+        child_category.save()
 
         self.assertTrue(root_category.has_children)
 
@@ -327,27 +313,15 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
         print(f"root path: {root_category.path}")
 
         child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child1)
-        db.session.commit()
-        child1.set_path()
-        db.session.commit()
+        child1.save()
         child2 = Category(name='Child Category 2', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child2)
-        db.session.commit()
-        child2.set_path()
-        db.session.commit()
+        child2.save()
         grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
-        db.session.add(grandchild)
-        db.session.commit()
-        grandchild.set_path()
-        db.session.commit()
+        grandchild.save()
 
         descendants = root_category.get_descendants()
         self.assertIn(child1, descendants)
@@ -360,21 +334,12 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
 
         child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child1)
-        db.session.commit()
-        child1.set_path()
-        db.session.commit()
+        child1.save()
         grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
-        db.session.add(grandchild)
-        db.session.commit()
-        grandchild.set_path()
-        db.session.commit()
+        grandchild.save()
 
         self.assertEqual(root_category.get_max_descendants_depth(), 3)
         self.assertEqual(child1.get_max_descendants_depth(), 3)
@@ -385,21 +350,12 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
 
         child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child1)
-        db.session.commit()
-        child1.set_path()
-        db.session.commit()
+        child1.save()
         grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
-        db.session.add(grandchild)
-        db.session.commit()
-        grandchild.set_path()
-        db.session.commit()
+        grandchild.save()
 
         self.assertEqual(root_category.get_subtree_depth(), 3)
         self.assertEqual(child1.get_subtree_depth(), 2)
@@ -410,21 +366,12 @@ class CategoryModelCase(BaseTestCase):
         db.session.commit()
 
         root_category = Category(name='root', user_id=user.id)
-        db.session.add(root_category)
-        db.session.commit()
-        root_category.set_path()
-        db.session.commit()
+        root_category.save()
 
         child1 = Category(name='Child Category 1', user_id=user.id, parent_id=root_category.id)
-        db.session.add(child1)
-        db.session.commit()
-        child1.set_path()
-        db.session.commit()
+        child1.save()
         grandchild = Category(name='Grandchild Category', user_id=user.id, parent_id=child1.id)
-        db.session.add(grandchild)
-        db.session.commit()
-        grandchild.set_path()
-        db.session.commit()
+        grandchild.save()
 
         self.assertTrue(grandchild.is_descendant_of(root_category))
         self.assertTrue(grandchild.is_descendant_of(child1))
