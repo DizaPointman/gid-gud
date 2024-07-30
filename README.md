@@ -45,6 +45,7 @@ You can only have one expression at the beginning, but this expression can use a
 - formdata and sanitizing
 - category creation/updating
 - gg creation/updating
+- ggm, catm, datam
 
 # TODO: Tests for Content Manager
 - add unit tests for content manager funcs
