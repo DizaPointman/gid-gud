@@ -35,15 +35,24 @@ You can only have one expression at the beginning, but this expression can use a
 
     blacklist_ids = {int(id) for path in blacklist_paths for id in path.split('.')[:-max_depth_children]}
 
+# TODO: add hidden identifier formfield to forms or find existing
+# TODO: func based on identifier for
+- populating get request
+- formdata sanitizing
 
-# TODO: correct gidgud rec_next
-- property converter for rec_next?
-- split isostring before get request and add afterwards
-- split create and edit form and templates
-- template doesnt correctly work with rec next on edit
+# TODO: subclass CM related funcs into:
+- db return funcs for gg, completions and categories, tree if necessary for pagination
+- formdata and sanitizing
+- category creation/updating
+- gg creation/updating
+- ggm, catm, datam
 
 # TODO: Tests for Content Manager
+- add unit tests for content manager funcs
 # TODO: Tests for Routes
+- add integration tests for routes
+# TODO: Functional Tests
+# TODO: Automate Testing
 
 # TODO: Display Category Feed
 - FULL: cat: ggs -> child: ggs -> recursively

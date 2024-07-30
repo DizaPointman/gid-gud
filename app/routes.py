@@ -196,7 +196,7 @@ def delete_gidgud(id):
 @login_required
 def complete_gidgud(id):
     c_man.gidgud_handle_complete(id)
-    flash('Gid completed_at!')
+    flash('Gid completed!')
     return redirect(url_for('routes.index'))
 
 @bp.route('/user/<username>/user_categories', methods=['GET'])

@@ -126,20 +126,18 @@ class User(UserMixin, db.Model):
     def following_guds(self):
         Author = so.aliased(User)
         Follower = so.aliased(User)
-        # using sa.func.datetime() to convert the ISO string timestamp to a datetime object
-        # within the SQL query before performing the desc() ordering operation
-        # filter out gids and return only guds by: '& (GidGud.completed_at != None)'
+
         return (
-            sa.select(GidGud)
-            .join(GidGud.author.of_type(Author))
+            sa.select(CompletionTable)
+            .join(CompletionTable.author.of_type(Author))
             .join(Author.followers.of_type(Follower), isouter=True)
             .where(sa.or_(
                 Follower.id == self.id,
                 Author.id == self.id
             ) &
-                sa.not_(GidGud.completed_at.is_(None)))
-            .group_by(GidGud)
-            .order_by(sa.func.datetime(GidGud.timestamp).desc())
+                sa.not_(CompletionTable.completed_at.is_(None)))
+            .group_by(CompletionTable)
+            .order_by(sa.func.datetime(CompletionTable.completed_at).desc())
         )
 
 class Category(db.Model):
@@ -234,31 +232,36 @@ class Category(db.Model):
         return self.parent
 
     def get_children(self):
-        return Category.query.filter(
-            Category.path.like(f"{self.path}.%"),
-            Category.depth == self.depth + 1
-        ).all()
+        return self.children
 
     @property
     def has_children(self):
-        return db.session.query(Category).filter(Category.path.like(f'{self.path}.%')).count() > 0
+        return len(self.children) > 0
 
     def get_descendants(self):
         return Category.query.filter(Category.path.like(f"{self.path}.%")).all()
-
-    def get_max_descendants_depth(self):
-        max_depth = db.session.query(
-            sa.func.max(
-                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1
-            )
-        ).filter(Category.path.like(f"{self.path}.%")).scalar()
-        return max_depth if max_depth else self.depth
 
     def get_subtree_depth(self):
         return self.get_max_descendants_depth() - self.depth + 1
 
     def is_descendant_of(self, other):
         return self.path.startswith(f"{other.path}.")
+
+    def get_max_descendants_depth(self):
+        # Ensure `self.path` is valid
+        if not self.path or self.path == 'temporary_path':
+            raise ValueError("Category path is invalid")
+
+        # Query to find the maximum depth of descendants
+        max_depth_subquery = db.session.query(
+            sa.func.max(
+                sa.func.length(Category.path) - sa.func.length(sa.func.replace(Category.path, '.', '')) + 1
+            ).label('max_depth')
+        ).filter(
+            Category.path.like(f"{self.path}.%")
+        ).scalar()
+
+        return max_depth_subquery if max_depth_subquery is not None else 0
 
     def _update_subtree_paths(self, old_path, new_path):
         if old_path == new_path:
@@ -514,10 +517,13 @@ class GidGud(db.Model):
 
 class CompletionTable(db.Model):
 
+    # TODO: handle ondelete cascade
+
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id, ondelete="CASCADE"), nullable=False)
     gidgud: so.Mapped['GidGud'] = so.relationship('GidGud', back_populates='completions')
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
+    author: so.Mapped['User'] = so.relationship('User')
     category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
 
     category_name: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
