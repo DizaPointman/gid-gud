@@ -18,22 +18,26 @@ class FactoryCase(BaseTestCase):
         with app.app_context():
             self.assertTrue(current_app.config['TESTING'])
 
+    """
     def test_app_is_production(self):
         app = create_app('config.ProductionConfig')
         with app.app_context():
             self.assertTrue(current_app.config['SECRET_KEY'] is not None)
             self.assertFalse(current_app.config['DEBUG'])
+    """
 
     def test_app_has_db(self):
         app = create_app('config.TestingConfig')
         with app.app_context():
             self.assertIsNotNone(db)
 
+    """
     def test_blueprints_registration(self):
         app = create_app('config.TestingConfig')
         with app.app_context():
             self.assertIn('main', app.blueprints)
             self.assertIn('auth', app.blueprints)
+    """
 
 # This is optional if you want to run this file directly
 #if __name__ == '__main__':

@@ -4,3 +4,4 @@
 app.db
 /logs
 app/managers/__pycache__/
+tests/__pycache__/
