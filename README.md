@@ -41,6 +41,11 @@ You can only have one expression at the beginning, but this expression can use a
 - formdata sanitizing
 
 # TODO: subclass CM related funcs into:
+- category_manager = CategoryManager(db)
+- gidgud_manager = GidGudManager(db)
+- db_manager = DatabaseManager(db)
+- auth_manager = AuthenticationManager()
+- content_manager = ContentManager(category_manager, gidgud_manager, db_manager, auth_manager)
 - db return funcs for gg, completions and categories, tree if necessary for pagination
 - formdata and sanitizing
 - category creation/updating
