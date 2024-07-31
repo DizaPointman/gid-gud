@@ -82,11 +82,9 @@ class ContentManager:
         user = user if user else current_user
         name = data.get('name')
         parent = data.get('parent')
-        current_app.logger.info(f"cat_create: name: {name}, parent: {parent}")
         if not (name or parent or user):
             raise ValueError('Need name, parent, and user to create category')
         new_cat = Category(name=name, user=user, parent=parent)
-        current_app.logger.info(f"cat_create: name: {new_cat.name}, parent: {new_cat.parent}")
         #Category.validate_category(new_cat)
         new_cat.save()
         return new_cat

@@ -264,13 +264,11 @@ def edit_category(id):
             form.reassign_children.data = 0  # Default value when there are no children
 
     if request.method == 'POST':
-        log_request()
 
         if form.validate_on_submit():
 
             formdata = form.data
             formdata['user'] = current_user
-            current_app.logger.info(f"{formdata}")
             c_man.cat_update_from_form(current_category, formdata)
 
             #if delete_afterwards:
