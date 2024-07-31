@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Hello, {{ current_user.username }}! See what your friends did!</h1>
+    <div>
+        {% for cg in cgsf %}
+            {% include '_completed_followed.html' %}
+        {% endfor %}
+    </div>
+
+{% endblock %}

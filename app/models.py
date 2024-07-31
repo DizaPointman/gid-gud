@@ -123,7 +123,7 @@ class User(UserMixin, db.Model):
             self.following.select().subquery())
         return db.session.scalar(query)
 
-    def following_guds(self):
+    def followed_guds(self):
         Author = so.aliased(User)
         Follower = so.aliased(User)
 

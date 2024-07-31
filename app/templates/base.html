@@ -18,6 +18,7 @@
             {% else %}
             <a href="{{ url_for('routes.statistics', username=current_user.username) }}">My Stats</a>
             <a href="{{ url_for('routes.user', username=current_user.username) }}">Profile</a>
+            <a href="{{ url_for('routes.statistics_followed', username=current_user.username) }}">Followed Stats</a>
             <a href="{{ url_for('routes.user_categories', username=current_user.username) }}">My Categories</a>
             <a href="{{ url_for('routes.logout') }}">Logout</a>
             {% endif %}

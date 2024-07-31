@@ -187,6 +187,7 @@ def edit_gidgud(id):
 @bp.route('/delete_gidgud/<id>', methods=['GET', 'DELETE', 'POST'])
 @login_required
 def delete_gidgud(id):
+    # TODO: handle delete gracefully by archiving if completions exist
     current_gidgud = db.session.scalar(sa.select(GidGud).where(id == GidGud.id))
     db.session.delete(current_gidgud)
     db.session.commit()
@@ -316,6 +317,12 @@ def statistics(username):
     cgs = c_man.get_completed_gidguds(current_user)
 
     return render_template('statistics.html', title='My Statistic', ggs=ggs, igs=igs, cgs=cgs)
+
+@bp.route('/user/<username>/followed_guds', methods=['GET'])
+@login_required
+def statistics_followed(username):
+    cgsf = db.session.scalars(current_user.followed_guds()).all()
+    return render_template('followed_guds.html', title='Statistics of followed Users', cgsf=cgsf)
 
 @bp.route('/user/<username>')
 @login_required
