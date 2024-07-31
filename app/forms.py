@@ -22,6 +22,7 @@ class InputRequiredEx(InputRequired):
 
         field.errors[:] = []
         raise StopValidation(message)
+
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -64,6 +65,7 @@ class EditProfileForm(FlaskForm):
 class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
 
+# TODO: Split GidGudForm into create and edit forms
 class GidGudForm(FlaskForm):
     body = StringField('GidGud', validators=[DataRequired(), Length(min=1, max=140)])
     category = StringField('Category', validators=[Length(max=20)])

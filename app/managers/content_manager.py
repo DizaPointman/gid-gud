@@ -30,6 +30,51 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
+    
+    @exception_handler
+    def sanitize_form(self, form_name, form, user_id):
+
+        # TODO: add user
+        # TODO: check if IDs are in user categories
+        # TODO: filter out ID fields for categories -> return category
+        sanitizied_data = {}
+        sanitizied_data[user_id] = user_id
+
+        for field in form:
+            if field.name == 'csrf_token':
+                continue
+            if field.name == 'submit' and not form.submit.data:
+                raise ValueError("Invalid form submission")
+            if field.name in ['parent', 'reassign_gidguds', 'reassign_children'] and form_name == 'EditCategoryForm':
+                if field.data == 0:
+                    sanitizied_data[field.name] = category
+                category = Category.query.filter_by(id=field.data, user_id=user_id).first()
+                sanitizied_data[field.name] = category
+
+            sanitized_data[field.name] = field.data
+
+        if form_name == 'CreateGidGudForm':
+            return True
+        if form_name == 'EditGidGudForm':
+            return True
+        if form_name == 'CreateCategoryForm':
+            return True
+        if form_name == 'EditCategoryForm':
+            return True
+
+    @exception_handler
+    def sanitize_category_field(data, form_name, field_name):
+
+    @exception_handler
+    def sanitize_field(data, form_name, field_name):
+        # Implement your sanitization logic here. For example:
+        if isinstance(data, str):
+            data = data.strip()
+            # Add more string sanitization logic if needed
+        # Add more type-specific sanitization logic if needed
+        return data
+    
+
     @exception_handler
     def get_category_by_id(self, id) -> Optional[Category]:
         return Category.query.filter_by(id=id).first()
@@ -260,49 +305,6 @@ class ContentManager:
             current_app.logger.warning(f"GidGud with id {id} not found.")
             return None
         return gg
-
-    @exception_handler
-    def gidgud_handle_update(self, gidgud, form):
-
-        if gidgud.completed_at is None:
-
-            gidgud.body = form.body.data
-            if form.category.data is not gidgud.category.name:
-                updated_category = self.cat_get_or_create(name=(form.category.data))
-                gidgud.category = updated_category
-            if form.rec_instant.data:
-                gidgud.rec_val = 1
-                gidgud.rec_unit = 'instantly'
-            if form.rec_val.data is not None:
-                if form.rec_val.data is not gidgud.rec_val:
-                    gidgud.rec_val = form.rec_val.data
-                    if gidgud.rec_next is not None:
-                        gidgud.rec_next = None
-            if form.rec_unit.data is not None:
-                if form.rec_unit.data is not gidgud.rec_unit:
-                    gidgud.rec_unit = form.rec_unit.data
-                    if gidgud.rec_next is not None:
-                        gidgud.rec_next = None
-
-            db.session.commit()
-
-            return True
-
-        else:
-
-            # Archive old GidGud
-            gidgud.archived_at = True
-            # Create new GidGud
-            body = form.body.data or gidgud.body
-            category = self.cat_get_or_create(name=(form.category.data)) or gidgud.category
-            rec_val = form.rec_val.data or gidgud.rec_val
-            rec_unit = form.rec_unit.data or gidgud.rec_unit
-
-            gid = GidGud(body=body, user_id=current_user.id, category=category, rec_val=rec_val, rec_unit=rec_unit)
-            db.session.add(gid)
-            db.session.commit()
-
-            return True
 
     @exception_handler
     def gidgud_create_from_form(self, formdata):

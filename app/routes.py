@@ -141,6 +141,7 @@ def create_gidgud():
 
     if request.method == 'POST':
         if form.validate_on_submit():
+            current_app.logger.info(f"complete form: {form.data}")
             formdata = form.data
             formdata['user'] = current_user
             gg = c_man.gidgud_create_from_form(formdata)
@@ -240,6 +241,8 @@ def edit_category(id):
     form = EditCategoryForm(current_name=current_category.name)
 
     # Assigning choices to selection fields
+    # FIXME: assure parent/reassign children choices for root are None
+    # TODO: root parent handled
     form.parent.choices = c_man.cat_get_possible_parents(current_category) or [(0, 'Root has no parent')]
     form.reassign_gidguds.choices = c_man.cat_get_all_id_name(current_category) or [(0, 'No GidGuds')]
     form.reassign_children.choices = c_man.cat_get_possible_parents_for_children(current_category) or [(0, 'No Children')]
