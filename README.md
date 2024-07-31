@@ -47,7 +47,7 @@ You can only have one expression at the beginning, but this expression can use a
 - auth_manager = AuthenticationManager()
 - content_manager = ContentManager(category_manager, gidgud_manager, db_manager, auth_manager)
 - db return funcs for gg, completions and categories, tree if necessary for pagination
-- formdata and sanitizing
+- formdata and sanitizing, rebasing funcs to user_id
 - category creation/updating
 - gg creation/updating
 - ggm, catm, datam

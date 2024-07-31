@@ -16,7 +16,6 @@ class ContentManager:
     # Setting a maximum height for categories tree
     MAX_HEIGHT = Category.MAX_HEIGHT
 
-
     def __init__(self, db=None):
 
         self.db = db
@@ -30,29 +29,13 @@ class ContentManager:
     def iso_now(self):
         return datetime.now(utc).isoformat()
 
-    
     @exception_handler
     def sanitize_form(self, form_name, form, user_id):
 
         # TODO: add user
         # TODO: check if IDs are in user categories
         # TODO: filter out ID fields for categories -> return category
-        sanitizied_data = {}
-        sanitizied_data[user_id] = user_id
-
-        for field in form:
-            if field.name == 'csrf_token':
-                continue
-            if field.name == 'submit' and not form.submit.data:
-                raise ValueError("Invalid form submission")
-            if field.name in ['parent', 'reassign_gidguds', 'reassign_children'] and form_name == 'EditCategoryForm':
-                if field.data == 0:
-                    sanitizied_data[field.name] = category
-                category = Category.query.filter_by(id=field.data, user_id=user_id).first()
-                sanitizied_data[field.name] = category
-
-            sanitized_data[field.name] = field.data
-
+        """
         if form_name == 'CreateGidGudForm':
             return True
         if form_name == 'EditGidGudForm':
@@ -61,9 +44,25 @@ class ContentManager:
             return True
         if form_name == 'EditCategoryForm':
             return True
+        """
+        sanitized_data = {}
+        sanitized_data[user_id] = user_id
 
-    @exception_handler
-    def sanitize_category_field(data, form_name, field_name):
+        for field in form:
+            if field.name == 'csrf_token':
+                continue
+            if field.name == 'submit' and not form.submit.data:
+                raise ValueError("Invalid form submission")
+            if field.name in ['parent', 'reassign_gidguds', 'reassign_children'] and form_name == 'EditCategoryForm':
+                if field.data == 0:
+                    sanitized_data[field.name] = None
+                else:
+                    sanitized_data[field.name] = Category.query.filter_by(id=field.data, user_id=user_id).first()
+            if field.name =='category' and form_name == 'GidGudForm':
+                sanitized_data[field.name] = self.cat_get_or_create(field.data)
+            else:
+                sanitized_data[field.name] = field.data
+        return sanitized_data
 
     @exception_handler
     def sanitize_field(data, form_name, field_name):
@@ -73,7 +72,6 @@ class ContentManager:
             # Add more string sanitization logic if needed
         # Add more type-specific sanitization logic if needed
         return data
-    
 
     @exception_handler
     def get_category_by_id(self, id) -> Optional[Category]:
@@ -150,9 +148,9 @@ class ContentManager:
             name_updated = self.cat_update_name(cat, new_name)
         if new_parent_id != 0 and new_parent_id != old_parent_id:
             parent_updated = self.cat_update_parent(cat, new_parent_id)
-        if new_children_id != 0 and new_children_id != (cat.id or 'No Children'):
+        if new_children_id != 0 and new_children_id != cat.id:
             children_reassigned = self.cat_reassign_children(cat, new_children_id)
-        if new_gidguds_id != 0 and new_gidguds_id != (cat.id or 'No GidGuds'):
+        if new_gidguds_id != 0 and new_gidguds_id != cat.id:
             gidguds_reassigned = self.cat_reassign_gidguds(cat, new_gidguds_id)
 
         return name_updated and parent_updated and children_reassigned and gidguds_reassigned
@@ -208,10 +206,22 @@ class ContentManager:
     @exception_handler
     def cat_choices_order(self, cat, query):
         root = Category.query.filter_by(parent_id=None, user=cat.user).first()
+        if cat == root:
+            return [(cat.id, cat.name)] + [(row.id, row.name) for row in query if row.id not in [cat.id, root.id]]
         return [(cat.id, cat.name)] + [(root.id, root.name)] + [(row.id, row.name) for row in query if row.id not in [cat.id, root.id]]
 
     @exception_handler
+    def cat_get_reassign_gidguds(self, cat):
+        if cat.gidguds is None:
+            return [(0, 'No GidGuds')]
+        all_cat_id_name = db.session.query(Category.id, Category.name).all()
+        res = self.cat_choices_order(cat, all_cat_id_name)
+        return res
+
+    @exception_handler
     def cat_get_possible_parents(self, cat: Category) -> list[tuple[int, str]]:
+        if cat.name == 'root':
+            return [(0, 'Root has no parent')]
         max_d_parent = Category.MAX_HEIGHT - cat.get_subtree_depth()
         categories_query = db.session.query(Category.id, Category.name).filter(
             Category.depth <= max_d_parent,
@@ -252,6 +262,10 @@ class ContentManager:
 
     @exception_handler
     def cat_get_possible_parents_for_children(self, cat: Category) -> list[tuple[int, str]]:
+        if cat.name == 'root':
+            return [(0, 'Not allowed')]
+        if cat.children is None:
+            return [(0, 'No Children')]
         max_d_parent = Category.MAX_HEIGHT - cat.get_subtree_depth() + 1
 
         possible_parents = db.session.query(Category.id, Category.name).filter(
@@ -280,12 +294,6 @@ class ContentManager:
                     'children': subtree
                 })
         return tree
-
-    @exception_handler
-    def cat_get_all_id_name(self, cat):
-        all_cat_id_name = db.session.query(Category.id, Category.name).all()
-        res = self.cat_choices_order(cat, all_cat_id_name)
-        return res
 
     @exception_handler
     def delete_category(self, category_id):
