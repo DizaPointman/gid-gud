@@ -5,7 +5,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
 from app.managers.content_manager import ContentManager
-from app.models import User, GidGud, Category
+from app.models import CompletionTable, User, GidGud, Category
 from app.utils import log_exception, log_form_validation_errors, log_object, log_request
 from urllib.parse import urlsplit
 from datetime import datetime, timezone
@@ -19,7 +19,6 @@ bp = Blueprint('routes', __name__)
 # Initialize ContentManager
 c_man = ContentManager()
 
-
 @bp.route('/')
 @bp.route('/index')
 @login_required
@@ -27,6 +26,24 @@ def index():
     c_man.test_cm()
     ggs = c_man.get_active_gidguds(current_user)
     return render_template('index.html', title='Home', ggs=ggs)
+
+@bp.route('/explore')
+@login_required
+def explore():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(CompletionTable).order_by(CompletionTable.completed_at.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
+    return render_template('explore.html', title='Explore', posts=posts.items)
+
+@bp.route('/user/<username>/followed_guds', methods=['GET'])
+@login_required
+def statistics_followed(username):
+    page = request.args.get('page', 1, type=int)
+    query = db.session.scalars(current_user.followed_guds()).all()
+    cgsf = db.paginate(query, page=page,
+                        per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
+    return render_template('statistics_followed.html', title='Statistics of followed Users', cgsf=cgsf)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -317,12 +334,6 @@ def statistics(username):
     cgs = c_man.get_completed_gidguds(current_user)
 
     return render_template('statistics.html', title='My Statistic', ggs=ggs, igs=igs, cgs=cgs)
-
-@bp.route('/user/<username>/followed_guds', methods=['GET'])
-@login_required
-def statistics_followed(username):
-    cgsf = db.session.scalars(current_user.followed_guds()).all()
-    return render_template('followed_guds.html', title='Statistics of followed Users', cgsf=cgsf)
 
 @bp.route('/user/<username>')
 @login_required

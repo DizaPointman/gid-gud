@@ -36,6 +36,7 @@ class User(UserMixin, db.Model):
 
     gidguds: so.WriteOnlyMapped['GidGud'] = so.relationship(back_populates='author')
     categories: so.Mapped[list['Category']] = so.relationship('Category', back_populates='user')
+    completions: so.Mapped[list['CompletionTable']] = so.relationship('CompletionTable', back_populates='author')
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(sa.String(), index=True, default=iso_now)
 
@@ -523,7 +524,7 @@ class CompletionTable(db.Model):
     gidgud_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(GidGud.id, ondelete="CASCADE"), nullable=False)
     gidgud: so.Mapped['GidGud'] = so.relationship('GidGud', back_populates='completions')
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), nullable=False)
-    author: so.Mapped['User'] = so.relationship('User')
+    author: so.Mapped['User'] = so.relationship('User', back_populates='completions')
     category_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Category.id), index=True, nullable=False)
 
     category_name: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
