@@ -270,7 +270,7 @@ def edit_category(id):
         form.name.data = current_category.name
         form.parent.data = current_category.parent.id
         if current_category.gidguds:
-            form.reassign_gidguds.choices = c_man.cat_get_all_id_name(current_category) or [(0, 'No GidGuds')]
+            form.reassign_gidguds.choices = c_man.cat_get_reassign_gidguds(current_category)
         else:
             form.reassign_gidguds.choices = [(0, 'No GidGuds')]
             form.reassign_gidguds.data = 0  # Default value when there are no GidGuds
