@@ -47,6 +47,8 @@ You can only have one expression at the beginning, but this expression can use a
 - gg creation/updating
 - ggm, catm, datam
 
+# TODO: make recurrence depend on time set instead of completed at
+
 # TODO: Tests for Content Manager
 - add unit tests for content manager funcs
 # TODO: Tests for Routes
